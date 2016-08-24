@@ -4,20 +4,26 @@ opensource blockchain software development kit, GO code and tests for hyperledge
 A test framework for testing Blockchain with GoSDK (written in Go Language)
 
 ##Obtain the GoSDK and test programs:
-Clone to the src directory where GO is installed (use either $GOROOT/src or $GOPATH/src),
-and follow instructions (here) to setup the peer network.
+Clone to the src directory where GO is installed (use either $GOROOT/src or $GOPATH/src).
 
 	$ cd $GOPATH/src
 	$ git clone https://github.com/scottz64/obcsdk.git -o obcsdk
 
+Enclosed local_fabric bash scripts will create docker containers to run the peers.
+For more information, 
+[read these instructions] (https://github.com/rameshthoomu/fabric1/blob/tools/localpeersetup/local_Readme.md)
+to setup a peer network.
  
 ##How to execute the programs:
-Change the credentials in NetworkCredentials.json accordingly.
-Helpful scripts are located in the automation directory.
-Go to the test directories and execute the tests.
-PEER LOGFILES are saved in the automation directory.
-GO_TEST output files are saved in the current working directory, when running script go_record.sh.
-	 
++ If you wish to connect to an existing network, change the credentials in NetworkCredentials.json as needed, 
+(and you may also need to modify some of the GO code too).
++ Helpful shell scripts are located in the obcsdk/automation directory.
++ Go to the test directories and execute the tests.
++ PEER LOGFILES are saved in the automation directory.
++ GO_TEST output files are saved in the current working directory, when running script go_record.sh.
+
+	Examples:
+	  
 	$ cd obcsdk/chcotest
 	$ go run BasicFunc.go
 	 
