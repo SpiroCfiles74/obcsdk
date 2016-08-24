@@ -22,19 +22,16 @@ to setup a peer network.
 + PEER LOGFILES are saved in the automation directory.
 + GO_TEST output files are saved in the current working directory, when running script go_record.sh.
 
-	Examples:
-	  
 	$ cd obcsdk/chcotest
 	$ go run BasicFunc.go
-	 
+
 	$ cd obcsdk/ledgerstresstest
 	$ NETWORK="LOCAL" go run LedgerStressOneCliOnePeer.go Utils.go
-	 
+
 	$ cd obcsdk/chco2test
 	$ go run IQ.go
-	 
+
 	$ cd obcsdk/CAT
 	$ go run testtemplate.go
 	$ ../automation/go_record.sh CAT*go
-	 
 
