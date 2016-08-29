@@ -19,7 +19,7 @@ import (
 *   2. Invoke 5K txns from each client simultaneously on a single peer
 *   3. Check if the counter value(20000) matches with query on "counter"
 *
-* USAGE: NETWORK="LOCAL" go run LedgerStressOneCliOnePeer.go Utils.go
+* USAGE: NETWORK="LOCAL" go run LedgerStressOneCliOnePeer.go 
 *  This NETWORK env value could be LOCAL or Z
 *********************************************************************/
 var peerNetworkSetup peernetwork.PeerNetwork
@@ -124,7 +124,7 @@ func main() {
 	util.InitLogger("LedgerStressFourCliOnePeer")
 	//TODO:Add support similar to GNU getopts, http://goo.gl/Cp6cIg
 	if len(os.Args) < 1 {
-		util.Logger("Usage: go run LedgerStressFourCliOnePeer.go Utils.go")
+		util.Logger("Usage: go run LedgerStressFourCliOnePeer.go ")
 		return
 	}
 	//TODO: Have a regular expression to check if the give argument is correct format

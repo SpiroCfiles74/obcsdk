@@ -45,7 +45,7 @@ func main() {
 	//=======================================================================================
 
 	// this is a long testrun; we call this a CRT = Consensus Regression Test (not a CAT)
-	chco2.CurrentTestName = "CRT_502_StopAndRestart1or2_12Hrs.go"
+	chco2.CurrentTestName = "CRT_502_StopAndRestart1or2_10Hrs.go"
 
 
 	//=======================================================================================
@@ -159,14 +159,14 @@ func main() {
 	// DEFINE MAIN TESTCASE STEPS HERE
 	// 
 
-	// CRT_502_StopAndRestart1or2_12Hrs.go
+	// CRT_502_StopAndRestart1or2_10Hrs.go
 
         cycle := 0
         j := 0
         totalStopCntr := 0
         // Double Loop bounce test: Ran for approx ?? hrs ?? mins.
 
-        numCycles := 100  // 12 hrs
+        numCycles := 97  // approx 10 hours
         for cycle < numCycles {
                 j = 0
                 for j < chco2.NumberOfPeersInNetwork {

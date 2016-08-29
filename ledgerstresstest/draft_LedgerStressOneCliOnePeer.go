@@ -21,7 +21,7 @@ import (
 *   3. Check the chain height and no of transactions successful and Pass tests
 *			 If results matches else Fail the test
 *
-* USAGE: go run LedgerStressOneCliOnePeer.go Utils.go http://172.17.0.3:5000
+* USAGE: go run LedgerStressOneCliOnePeer.go http://172.17.0.3:5000
 *
 *********************************************************************/
 var peerNetworkSetup peernetwork.PeerNetwork
@@ -120,7 +120,7 @@ func tearDown() {
 func main() {
 	//TODO:Add support similar to GNU getopts, http://goo.gl/Cp6cIg
 	if len(os.Args) <  2{
-		fmt.Println("Usage: go run LedgerStressOneCliOnePeer.go Utils.go <http://IP:PORT>")
+		fmt.Println("Usage: go run LedgerStressOneCliOnePeer.go <http://IP:PORT>")
 		return;
 	}
 	//TODO: Have a regular expression to check if the give argument is correct format

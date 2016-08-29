@@ -276,7 +276,7 @@ func setup_part1(testName string, started time.Time) {
 }
 
 func setup_part2_network() {
-	fmt.Println("Creating a local docker network")
+	fmt.Println("Creating a local docker network with # peers = ", NumberOfPeersInNetwork)
 	//peernetwork.SetupLocalNetwork( NumberOfPeersInNetwork, true )
 	peernetwork.SetupLocalNetworkWithMoreOptions(
 		CommitImage,		//  COMMIT
@@ -289,7 +289,7 @@ func setup_part2_network() {
 		//batchTimeout,		//  CORE_PBFT_GENERAL_TIMEOUT_BATCH
 		batchsize )		//  CORE_PBFT_GENERAL_BATCHSIZE
 
-	if (Verbose) { fmt.Println("Sleep 10 secs more") }; time.Sleep(10000 * time.Millisecond)
+	if (Verbose) { fmt.Println("Sleep 10 secs extra after setup_part2 created network") }; time.Sleep(10000 * time.Millisecond)
 }
 
 func setup_part3_verifyNetworkAndDeployCC() {
@@ -453,8 +453,8 @@ func DeployInit(peerNum int) {
 	depArgs := []string{"a", initA, "b", initB}
 	txId, err := chaincode.DeployOnPeer(dAPIArgs, depArgs)
 	Check(err) 	// if we cannot deploy, then panic
-	if (Verbose) { fmt.Println("Sleep 120 secs, after deployed, txId=" + txId) }
-	time.Sleep(120000 * time.Millisecond)
+	if (Verbose) { fmt.Println("Sleep 30 secs, after deployed, txId=" + txId) }
+	time.Sleep(30000 * time.Millisecond)
 	incrHeightCount(1, peerNum)
 	setQueuedTransactionCounter(1)
 }
@@ -936,10 +936,10 @@ func StopPeers(peerNumsToStopStart []int) {
 		}
 		if (rootPeer) {
 			// sleep extra when stopping/starting primary/root peer0
-			fmt.Println("Sleep 30 secs for primary") 
+			fmt.Println("Sleep extra 30 secs because stopping primary") 
 			time.Sleep(30000 * time.Millisecond) 
 		} else {
-			fmt.Println("Sleep 10 secs")
+			fmt.Println("Sleep extra 10 secs")
 			time.Sleep(10000 * time.Millisecond) 
 		}
 	}
@@ -1008,11 +1008,11 @@ func RestartPeers(peerNumsToStopStart []int) {
 		if (rootPeer) {
 			// sleep extra when stopping/starting primary/root peer
 			//if (Verbose) { fmt.Println("Sleep 60 secs") }
-			fmt.Println("Sleep 60 secs for primary") 
+			fmt.Println("Sleep extra 60 secs because restarting potential primary") 
 			time.Sleep(60000 * time.Millisecond) 
 		} else {
 			//if (Verbose) { fmt.Println("Sleep 30 secs") }
-			fmt.Println("Sleep 30 secs")
+			fmt.Println("Sleep extra 30 secs")
 			time.Sleep(30000 * time.Millisecond) 
 		}
 	}

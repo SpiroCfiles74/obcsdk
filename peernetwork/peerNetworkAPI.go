@@ -278,13 +278,18 @@ func PeerOfThisUser(thisNetwork PeerNetwork, username string) (ip string, port s
 	for peerIter := range Peers {
 		if len(Peers[peerIter].UserData) > 0 && len(Peers[peerIter].PeerDetails) > 0 && (Peers[peerIter].State == RUNNING ||  Peers[peerIter].State == STARTED){
 				if _, ok := Peers[peerIter].UserData[username]; ok {
-					fmt.Printf("Found %s in network", username)
+					//fmt.Printf("Found %s in network on peer %d\n", username, peerIter)
+					fmt.Printf("Found %s in network on peer %d\n", username, peerIter)
 					aPeer = &Peers[peerIter]
 				}
 		}
 	}
 	if aPeer == nil {
-		//TODO: Change these details on Z aswell, need a permanent solution
+		//TODO: we hardcoded some users on peer3. however must change this to a permanent solution. (Change these details on Z as well, below.)
+		if (username == "test_user4" || username == "test_user5" || username == "test_user6" || username == "test_user7") {
+			aPeer = &Peers[3]
+			return aPeer.PeerDetails["ip"], aPeer.PeerDetails["port"], username, err1
+		}
 		//TODO: Right now testing on Z, need a permanent solution
 
 		//if (username == "test_user4" || username == "test_user5" || username == "test_user6" || username == "test_user7") {
@@ -378,6 +383,7 @@ func PausePeersLocal(thisNetwork PeerNetwork, peers []string) {
 		//fmt.Println("Paused peer " + peers[i])
 		SetPeerState(thisNetwork, peers[i], PAUSED)
 	}
+	fmt.Println("After pause peers, sleep 5 secs")
 	time.Sleep(5000 * time.Millisecond)
 }
 
@@ -392,6 +398,7 @@ func PausePeerLocal(thisNetwork PeerNetwork, peer string) {
 			log.Fatal(err)
 		} else {
 			//fmt.Println("Paused peer " + peer)
+			fmt.Println("After pause peer, sleep 5 secs")
 			time.Sleep(5000 * time.Millisecond)
 			SetPeerState(thisNetwork, peer, PAUSED)
 	}
@@ -414,6 +421,7 @@ func UnpausePeersLocal(thisNetwork PeerNetwork, peers []string) {
 		//fmt.Println("Unpaused peer " + peers[i])
 		SetPeerState(thisNetwork, peers[i], RUNNING)
 	}
+	fmt.Println("After unpause peers, sleep 5 secs")
 	time.Sleep(5000 * time.Millisecond)
 }
 
@@ -429,6 +437,7 @@ func UnpausePeerLocal(thisNetwork PeerNetwork, peer string) {
 			fmt.Println(out)
 			log.Fatal(err)
         } else {
+			fmt.Println("After unpause peer, sleep 5 secs")
 			time.Sleep(5000 * time.Millisecond)
 			SetPeerState(thisNetwork, peer, RUNNING)
 	}
@@ -448,6 +457,7 @@ func StopPeersLocal(thisNetwork PeerNetwork, peers []string) {
 		//exec.Command(cmd)
 		SetPeerState(thisNetwork, peers[i], STOPPED)
 	}
+	fmt.Println("After stop peers, sleep 5 secs")
 	time.Sleep(5000 * time.Millisecond)
 }
 
@@ -464,6 +474,7 @@ func StartPeersLocal(thisNetwork PeerNetwork, peers []string) {
 			//exec.Command(cmd)
 			SetPeerState(thisNetwork, peers[i], RUNNING)
 		}
+		fmt.Println("After start peers, sleep 5 secs")
 		time.Sleep(5000 * time.Millisecond)
 	}
 }
@@ -477,6 +488,7 @@ func StartPeerLocal(thisNetwork PeerNetwork, peer string) {
 		log.Fatal(err)
 	} else {
 		if peer != "caserver" {
+			fmt.Println("After start peer, sleep 5 secs")
 			time.Sleep(5000 * time.Millisecond)
 			SetPeerState(thisNetwork, peer, RUNNING)
 		}
@@ -493,6 +505,7 @@ func StopPeerLocal(thisNetwork PeerNetwork, peer string) {
            log.Fatal(err)
         } else {
 		if peer != "caserver" {
+			fmt.Println("After stop peer, sleep 5 secs")
 			time.Sleep(5000 * time.Millisecond)
 			SetPeerState(thisNetwork, peer, STOPPED)
 		}

@@ -45,7 +45,7 @@ func main() {
 	//=======================================================================================
 
 	// this is a long testrun; we call this a CRT = Consensus Regression Test (not a CAT)
-	chco2.CurrentTestName = "CRT_501_StopAndRestartRandom_12Hrs.go"
+	chco2.CurrentTestName = "CRT_501_StopAndRestartRandom_10Hrs.go"
 
 
 	//=======================================================================================
@@ -160,14 +160,14 @@ func main() {
 	// DEFINE MAIN TESTCASE STEPS HERE
 	// 
 
-	// CRT_501_StopAndRestartRandom_12Hrs.go
+	// CRT_501_StopAndRestartRandom_02Hrs.go
 
 	var cntr []int
 	cntr = make ( [] int, chco2.NumberOfPeersInNetwork )
 
 	for c := 0; c < chco2.NumberOfPeersInNetwork ; c++ { cntr[c] = 0 } 
 
-	numCycles := 400  // 12 hrs
+	numCycles := 400  // approx 10 hrs
 	for i:=1; i <= numCycles; i++ {
 			peerNum := rand.Intn(chco2.NumberOfPeersInNetwork)
 			cntr[peerNum] += 1
@@ -187,7 +187,7 @@ func main() {
 
 	chco2.CatchUpAndConfirm()			// OPTIONAL. Depends on testcase details and objectives.
 
-	fmt.Println("Number of times each peer node was stopped during this test " + chco2.CurrentTestName)
+	fmt.Println("\nTOTAL # times each peer was stopped during this test " + chco2.CurrentTestName)
 	for c := 0; c < chco2.NumberOfPeersInNetwork ; c++ { fmt.Println("PEER" + strconv.Itoa(c) + "   " + strconv.Itoa(cntr[c])) }
 
 	chco2.RanToCompletion = true	// DO NOT MOVE OR CHANGE THIS. It must remain last.

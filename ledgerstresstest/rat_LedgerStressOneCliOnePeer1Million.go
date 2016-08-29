@@ -22,7 +22,7 @@ import (
 *   3. Check the chain height and no of transactions successful and Pass tests
 *			 If results matches else Fail the test
 *
-* USAGE: NETWORK="LOCAL" go run LedgerStressOneCliOnePeer.go Utils.go
+* USAGE: NETWORK="LOCAL" go run LedgerStressOneCliOnePeer.go 
 *  This NETWORK env value could be LOCAL or Z
 *
 *********************************************************************/
@@ -35,7 +35,7 @@ var counter int64
 
 const (
 	//TODO: change value to 30000000, for inserting 30 million records
-	TRX_COUNT = 1000000 // 1 Million
+	TRX_COUNT = 5 // 1 Million = 1000000
 )
 
 func initNetwork() {
@@ -61,7 +61,7 @@ func invokeLoop() {
 	go func() {
 		curTime := time.Now()
 		for i := 1; i <= TRX_COUNT; i++ {
-			if counter > 1 && counter%1000 == 0 {
+			if counter%1000 == 0 && counter > 1 {
 				elapsed := time.Since(curTime)
 				util.Logger(fmt.Sprintf("=========>>>>>> Iteration# %d Time: %s", counter, elapsed))
 				util.Sleep(30) //TODO: should we remove this delay ?
@@ -78,7 +78,7 @@ func main() {
 	util.InitLogger("LedgerStressOneCliOnePeer1Million")
 	//TODO:Add support similar to GNU getopts, http://goo.gl/Cp6cIg
 	if len(os.Args) < 1 {
-		util.Logger("Usage: go run LedgerStressOneCliOnePeer1Million.go Utils.go")
+		util.Logger("Usage: go run LedgerStressOneCliOnePeer1Million.go ")
 		return
 	}
 

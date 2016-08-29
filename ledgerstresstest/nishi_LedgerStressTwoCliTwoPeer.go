@@ -37,8 +37,7 @@ func sleep(secs int64) {
 }
 
 func deployChaincode(done chan bool) {
-	example := "mycc"
-	var funcArgs = []string{example, "init"}
+	var funcArgs = []string{util.CHAINCODE_NAME, "init"}
 	var args = []string{argA[0], data, argB[0], "0"}
 
 	//fmt.Println("\n######## Deploying chaincode ")
@@ -52,7 +51,7 @@ func invokeChaincodeOnPeer(peerName string) {
 	counter++
 	fmt.Println("Iteration# ["+ strconv.FormatInt(counter, 10)+"] On "+peerName)
 
-	arg1Construct := []string{"mycc", "invoke", peerName}
+	arg1Construct := []string{util.CHAINCODE_NAME, "invoke", peerName}
 	arg2Construct := []string{"a" + strconv.FormatInt(counter, 10), data, "b"}
 
 	_,_ = chaincode.InvokeOnPeer(arg1Construct, arg2Construct) //invRes
@@ -60,7 +59,7 @@ func invokeChaincodeOnPeer(peerName string) {
 
 func queryChaincode() (res1, res2 string) { //int64) {
 	var qargA = []string{"a" + strconv.FormatInt(counter, 10)}
-	qAPIArgs0 := []string{"mycc", "query"}
+	qAPIArgs0 := []string{util.CHAINCODE_NAME, "query"}
 	A, _ := chaincode.Query(qAPIArgs0, qargA)
 	B, _ := chaincode.Query(qAPIArgs0, []string{"b"})
 	return A, B

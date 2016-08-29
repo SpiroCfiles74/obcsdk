@@ -19,7 +19,7 @@ import (
 *   2. Invoke 10K txns from each client simultaneously on 2 seperate peers
 *   3. Check if the counter value(20000) matches with query on "counter"
 *
-* USAGE: NETWORK="LOCAL" go run LedgerStressOneCliOnePeer.go Utils.go
+* USAGE: NETWORK="LOCAL" go run LedgerStressOneCliOnePeer.go 
 *  This NETWORK env value could be LOCAL or Z
 *********************************************************************/
 var peerNetworkSetup peernetwork.PeerNetwork
@@ -45,7 +45,7 @@ func initNetwork() {
 
 func invokeChaincode(peer string) {
 	counter++
-	arg1Construct := []string{"mycc", util.INVOKE, peer}
+	arg1Construct := []string{util.CHAINCODE_NAME, util.INVOKE, peer}
 	arg2Construct := []string{"a" + strconv.FormatInt(counter, 10), util.DATA, "counter"}
 
 	_, _ = chaincode.InvokeOnPeer(arg1Construct, arg2Construct)
@@ -96,7 +96,7 @@ func main() {
 	util.InitLogger("LedgerStressTwoCliTwoPeer")
 	//TODO:Add support similar to GNU getopts, http://goo.gl/Cp6cIg
 	if len(os.Args) < 1 {
-		util.Logger("Usage: go run LedgerStressTwoCliTwoPeer.go Utils.go")
+		util.Logger("Usage: go run LedgerStressTwoCliTwoPeer.go ")
 		return
 	}
 	//TODO: Have a regular expression to check if the give argument is correct format

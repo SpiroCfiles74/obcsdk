@@ -19,7 +19,7 @@ import (
 *   2. Invoke 500K trxns from each client, simultaneously on a single peer
 *   3. Check if the counter value(5000000) matches with query value "counter"
 *
-* USAGE: NETWORK="LOCAL" go run LedgerStressOneCliOnePeer.go Utils.go
+* USAGE: NETWORK="LOCAL" go run LedgerStressOneCliOnePeer.go 
 *  This NETWORK env value could be LOCAL or Z
 *********************************************************************/
 var peerNetworkSetup peernetwork.PeerNetwork
@@ -30,7 +30,7 @@ var counter int64
 var wg sync.WaitGroup
 
 const (
-	TRX_COUNT = 1000000 // 1 Million
+	TRX_COUNT = 1000000 	// 1 million, split between 2 clients
 	CLIENTS   = 2
 )
 
@@ -96,7 +96,7 @@ func main() {
 	util.InitLogger("LedgerStressTwoCliOnePeer500K")
 	//TODO:Add support similar to GNU getopts, http://goo.gl/Cp6cIg
 	if len(os.Args) < 1 {
-		util.Logger("Usage: go run LedgerStressTwoCliOnePeer500K.go Utils.go")
+		util.Logger("Usage: go run LedgerStressTwoCliOnePeer500K.go ")
 		return
 	}
 	//TODO: Have a regular expression to check if the give argument is correct format

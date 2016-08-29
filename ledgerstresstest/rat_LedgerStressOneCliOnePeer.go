@@ -20,7 +20,7 @@ import (
 *      All transactions takes place on single peer with single client
 *   3. Check if the counter value(20000) matches with query on "counter"
 *
-* USAGE: NETWORK="LOCAL" go run LedgerStressOneCliOnePeer.go Utils.go
+* USAGE: NETWORK="LOCAL" go run LedgerStressOneCliOnePeer.go 
 *  This NETWORK env value could be LOCAL or Z
 *********************************************************************/
 var peerNetworkSetup peernetwork.PeerNetwork
@@ -32,7 +32,7 @@ var counter int64
 var wg sync.WaitGroup
 
 const (
-	TRX_COUNT = 20000 //3000000 Enable for long runs
+	TRX_COUNT = 5 //20000 	// or 3000000 for long runs
 )
 
 func initNetwork() {
@@ -75,7 +75,7 @@ func main() {
 	util.InitLogger("LedgerStressOneCliOnePeer")
 	//TODO:Add support similar to GNU getopts, http://goo.gl/Cp6cIg
 	if len(os.Args) < 1 {
-		fmt.Println("Usage: go run LedgerStressOneCliOnePeer.go Utils.go")
+		fmt.Println("Usage: go run LedgerStressOneCliOnePeer.go ")
 		return
 	}
 	//TODO: Have a regular expression to check if the give argument is correct format

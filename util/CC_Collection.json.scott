@@ -12,11 +12,10 @@
   },
   {"name": "concurrency",
    "type": "GOLANG",
-   "path" :"https://github.com/asararatnakar/fabric/examples/chaincode/go/chaincode_example02" 
+   "path" :"https://github.com/asararatnakar/fabric/examples/chaincode/go/chaincode_example02"
   },
   {"name":"mycc",
    "type": "GOLANG",
-   "path" :"../ledgerstresstest/example02_addRecordsToLedger/chaincode_example02_addrecs.go" 
+   "path" :"https://github.com/scottz64/obcsdk/ledgerstresstest/example02_addRecordsToLedger/chaincode_example02_addrecs.go"
   }
-
 ]
