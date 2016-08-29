@@ -26,7 +26,7 @@ exit
 ################################################################################
 ################################################################################
 headerInfo() {
-echo -e   "\n=========== GROUP START TIME ${STARTDATE}" | tee -a ${SUMMARY}
+echo -e   "\n=========== GROUP START TIME ${STARTDATE}, using $REPOSITORY_SOURCE COMMIT IMAGE $COMMIT" | tee -a ${SUMMARY}
 echo -e     "==========="
 echo -e   "\nNote: Output is recorded to file ${OUT}"
 echo -e     "Note: Brief test summaries are also written by tests themselves to file ${SUMMARY}"
@@ -84,7 +84,7 @@ echo -e " "
 ################################################################################
 ################################################################################
 trailerInfo() {
-echo -e "\n=========== GROUP END"
+echo -e "\n=========== GROUP END, using $REPOSITORY_SOURCE COMMIT IMAGE $COMMIT"
 echo -e "${STATS_BEFORE_RUN_GROUP}"
 echo -e "${STATS_AFTER_RUN_GROUP}"
 }
@@ -133,7 +133,7 @@ USAGE="
 Usage:  ${0}					- get help
         ${0} <testname.go> ...			- run testname.go
 
-To override any default parameters: set and export them from your ENV, or set them on the command line first when executing this script:
+To override any default script parameters: set and export them from your ENV, or set them on the command line first when executing this script:
 
 	COMMIT 					- hash commit image to use for the ca and peers; use prefix 'master-' for gerrit images
 	REPOSITORY_SOURCE 			- location of the fabric COMMIT image [ GERRIT (default, for master) | GITHUB (for v0.5) ]
@@ -148,10 +148,14 @@ To override any default parameters: set and export them from your ENV, or set th
 
 Examples:
 
-    Run a test in current directory, using default parameters; these two commands are equivalent:
+    Run a test in current directory, using default script parameters; these two commands are equivalent:
 
  	$0 testtemplate.go
  	COMMIT=latest REPOSITORY_SOURCE=GERRIT CORE_PBFT_GENERAL_N=4 CORE_PBFT_GENERAL_F=1 LOGGING_LEVEL=error CORE_SECURITY_ENABLED=Y CORE_PEER_VALIDATOR_CONSENSUS_PLUGIN=pbft CORE_PBFT_GENERAL_MODE=batch CORE_PBFT_GENERAL_BATCHSIZE=2 STOP_OR_PAUSE=STOP $0 testtemplate.go
+
+    This should run a test on the latest hyperledger fabric images using the code default configuration parameters:
+
+ 	COMMIT=latest CORE_PBFT_GENERAL_BATCHSIZE=500 $0 testtemplate.go
 
     Run all GO tests in current directory, using the first gerrit image level committed in hyperledger fabric master branch, with 10 peer nodes:
 
@@ -250,7 +254,7 @@ CORE_SECURITY_ENABLED=$(echo $CORE_SECURITY_ENABLED | tr a-z A-Z)
 #   Default is the gerrit script, for the official hyperledger/fabric.
 #   GITHUB may be specified when using v0.5 branch commit images for Z and BlueMix.
 LOCAL_FABRIC_SCRIPT=../automation/local_fabric_gerrit.sh
-if [ $REPOSITORY_SOURCE == "GITHUB" ]
+if [ "$REPOSITORY_SOURCE" == "GITHUB" ]
 then
     LOCAL_FABRIC_SCRIPT=../automation/local_fabric_github.sh
 fi
@@ -272,7 +276,7 @@ DIFF_PASSED=$(($AFTER_PASSED-$BEFORE_PASSED))
 DIFF_FAILED=$(($AFTER_FAILED-$BEFORE_FAILED))
 DIFF_ABORT=$(($AFTER_ABORT-$BEFORE_ABORT))
 
-STATS_AFTER_RUN_GROUP =$(echo -e "=========== STOP TIME `date`, TESTS STARTED=$DIFF_BEGIN PASSED=$DIFF_PASSED FAILED=$DIFF_FAILED ABORTED=$DIFF_FAILED")
+STATS_AFTER_RUN_GROUP=$(echo -e "=========== STOP TIME `date`, TESTS STARTED=$DIFF_BEGIN PASS=$DIFF_PASSED FAIL=$DIFF_FAILED STOPPED=$DIFF_ABORT")
 
 trailerInfo  | tee -a ${OUT} | tee -a ${SUMMARY}
 
