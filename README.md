@@ -48,7 +48,7 @@ to setup a peer network.
 	$ go run testtemplate.go
 	$ cd obcsdk/ledgerstresstest
 	$ NETWORK=LOCAL go run LST_2Client2Peer.go
-
+```
 - Running tests on Z network requires some tweaking to make things run.
 ```
 	Such as:
@@ -67,4 +67,3 @@ to setup a peer network.
 
 	$ cd ledgerstresstest; NETWORK=Z NET_COMM_PROTOCOL=HTTPS go run LST_1Client1Peer.go
 ```
-
