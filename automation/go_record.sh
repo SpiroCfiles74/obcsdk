@@ -194,6 +194,7 @@ SUMMARY="GO_TESTS_SUMMARY"
 STARTDATE="`date`"
 STATS_BEFORE_RUN_GROUP=$(echo -e "=========== STARTTIME ${STARTDATE}")
 
+touch ${SUMMARY}
 BEFORE_BEGIN=`grep -c ^BEGIN ${SUMMARY} 2>/dev/null`
 BEFORE_PASSED=`grep -c ^PASSED ${SUMMARY} 2>/dev/null`
 BEFORE_FAILED=`grep -c ^FAILED ${SUMMARY} 2>/dev/null`
