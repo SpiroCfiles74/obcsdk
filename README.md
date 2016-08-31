@@ -27,22 +27,35 @@ to setup a peer network.
 	$ cd obcsdk/chcotest
 	$ go run BasicFunc.go
 	 
-	Run Consensus Acceptance Tests:
+	Run Consensus Acceptance Tests and two long-run tests:
 	$ cd obcsdk/CAT
 	$ go run testtemplate.go
 	$ ../automation/go_record.sh CAT*go
-	$ ../automation/go_record.sh CRT_501_StopAndRestartRandom_10Hrs.go CRT_502_StopAndRestart1or2_10Hrs.go
+	$ ../automation/go_record.sh CRT_501_StopAndRestartRandom_10Hrs.go
+	$ ../automation/go_record.sh CRT_502_StopAndRestart1or2_10Hrs.go
 	 
-	Run other tests in chaincode02 test directory:
+	Run other tests being developed in chco2test directory:
 	$ cd obcsdk/chco2test
 	$ go run IQ.go
+	 
+	Run various tests being developed in chcotest directory:
+	$ cd obcsdk/chcotest
+	$ go run ConsensusBasic.go
 	 
 	Run ledger stress tests: first start up a network, and connect your tests to it by
 	configuring obcsdk/util/NetworkCredentials.json
 	$ cd obcsdk/CAT
 	$ go run testtemplate.go
 	$ cd obcsdk/ledgerstresstest
-	$ NETWORK="LOCAL" go run LST_2Client2Peer.go
-	$ NETWORK="Z" go run LST_1Client1Peer.go
+	$ NETWORK=LOCAL go run LST_2Client2Peer.go
+
+	Running tests on Z network requires some tweaking to make things run:
+	  - define its own usernames (may need to edit threadutil/threadutil.go)
+	  - put the IP addresses of the peers into the util/NetworkCredentials.json
+	  - set env var to use https instead of http
+	  - (ledgerstresstests only): set env var to use https instead of http
+	For example:
+	$ cd CAT; NET_COMM_PROTOCOL=HTTPS go run CAT_101*.go
+	$ cd ledgerstresstest; NETWORK=Z NET_COMM_PROTOCOL=HTTPS go run LST_1Client1Peer.go
 ```
 
