@@ -49,7 +49,9 @@ to setup a peer network.
 	$ cd obcsdk/ledgerstresstest
 	$ NETWORK=LOCAL go run LST_2Client2Peer.go
 
-	Running tests on Z network requires some tweaking to make things run:
+- Running tests on Z network requires some tweaking to make things run.
+```
+	Such as:
 	  - define its own usernames (may need to edit threadutil/threadutil.go)
 	  - put the IP addresses of the peers into the util/NetworkCredentials.json
 	  - set env var to use https instead of http
@@ -58,8 +60,11 @@ to setup a peer network.
 	    to change from mycc (special version of example02) to whatever is being run
 	    on the actual Z network to which you are connecting; and rebuild the tests
 	    before running them:    "cd lstutil; go build *.go"
+
 	For example:
+
 	$ cd CAT; NET_COMM_PROTOCOL=HTTPS go run CAT_101*.go
+
 	$ cd ledgerstresstest; NETWORK=Z NET_COMM_PROTOCOL=HTTPS go run LST_1Client1Peer.go
 ```
 
