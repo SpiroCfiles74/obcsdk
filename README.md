@@ -49,21 +49,19 @@ to setup a peer network.
 	$ cd obcsdk/ledgerstresstest
 	$ NETWORK=LOCAL go run LST_2Client2Peer.go
 ```
-- Running tests on Z network requires some tweaking to make things run.
+###Running tests on Z network requires some tweaking to make things run.
+- Put the IP address info of the peers into the util/NetworkCredentials.json
+- Set environment variable NET_COMM_PROTOCOL to use HTTPS instead of default HTTP;
+required for Ledger Stress Tests on Z network, and may also be useful when
+running other tests in other networks that could use HTTPS, 
+- Define its own usernames/passwords (may need to edit threadutil/threadutil.go)
+- (Ledger Stress Tests only): Set environment variable NETWORK to Z when using
+the Z network and its usernames/passwords
+- (Ledger Stress Tests only): set the correct chaincode name in lstutil/util.go
+to change it from "mycc" (special version of example02 that increases the ledger)
+to whatever is deployed on the actual Z network you are using; and before running
+any tests, rebuild:  "cd ledgerstresstest; ../automation/go_build_all.sh"
 ```
-	Such as:
-	  - put the IP address info of the peers into the util/NetworkCredentials.json
-	  - set environment variable NET_COMM_PROTOCOL to use HTTPS instead of default HTTP;
-	    required for ledger stress tests on Z network, and may also be useful when
-	    running other tests in other networks that could use HTTPS, 
-	  - define its own usernames/passwords (may need to edit threadutil/threadutil.go)
-	  - (ledger stress tests only): set environment variable NETWORK to Z when using
-	    the Z network and its usernames/passwords
-	  - (ledger stress tests only): set correct chaincode name in lstutil/util.go
-	    to change it from "mycc" (special version of example02 that increases the ledger)
-	    to whatever is deployed on the actual Z network you are using; and before running
-	    any tests, rebuild:  "cd ledgerstresstest; ../automation/go_build_all.sh"
-
 	For example:
 
 	$ cd CAT; NET_COMM_PROTOCOL=HTTPS go run CAT_101*.go
