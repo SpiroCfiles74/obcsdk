@@ -52,15 +52,17 @@ to setup a peer network.
 - Running tests on Z network requires some tweaking to make things run.
 ```
 	Such as:
-	  - define its own usernames/passwords (may need to edit threadutil/threadutil.go)
 	  - put the IP address info of the peers into the util/NetworkCredentials.json
-	  - set environment variable NET_COMM_PROTOCOL to use HTTPS instead of default HTTP
-	    (this is required for ledger stress tests on Z network, but also may be set
-	    when running other tests in other networks that could use HTTPS), 
-	  - (ledgerstresstests only): set correct CHAINCODE_NAME name in lstutil/util.go
-	    to change from mycc (special version of example02) to whatever is being run
-	    on the actual Z network to which you are connecting; and rebuild the tests
-	    before running them:    "cd lstutil; ../automation/go_build_all.sh"
+	  - set environment variable NET_COMM_PROTOCOL to use HTTPS instead of default HTTP;
+	    required for ledger stress tests on Z network, and may also be useful when
+	    running other tests in other networks that could use HTTPS, 
+	  - define its own usernames/passwords (may need to edit threadutil/threadutil.go)
+	  - (ledger stress tests only): set environment variable NETWORK to Z when using
+	    the Z network and its usernames/passwords
+	  - (ledger stress tests only): set correct chaincode name in lstutil/util.go
+	    to change it from "mycc" (special version of example02 that increases the ledger)
+	    to whatever is deployed on the actual Z network you are using; and before running
+	    any tests, rebuild:  "cd ledgerstresstest; ../automation/go_build_all.sh"
 
 	For example:
 
