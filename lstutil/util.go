@@ -1,4 +1,4 @@
-package util
+package lstutil 	// Ledger Stress Testing utility functions
 
 import (
 	"fmt"
@@ -20,6 +20,7 @@ const (
 	DATA           = "Yh1WWZlw1gGd2qyMNaHqBCt4zuBrnT4cvZ5iMXRRM3YBMXLZmmvyVr0ybWfiX4N3UMliEVA0d1dfTxvKs0EnHAKQe4zcoGVLzMHd8jPQlR5ww3wHeSUGOutios16lxfuQTdnsFcxhXLiGwp83ahyBomdmJ3igAYTyYw2bwXqhBeL9fa6CTK43M2QjgFhQtlcpsh7XMcUWnjJhvMHAyH67Z8Ugke6U8GQMO5aF1Oph0B2HlIQUaHMq2i6wKN8ZXyx7CCPr7lKnIVWk4zn0MLZ16LstNErrmsGeo188Rdx5Yyw04TE2OSPSsaQSDO6KrDlHYnT2DahsrY3rt3WLfBZBrUGhr9orpigPxhKq1zzXdhwKEzZ0mi6tdPqSzMKna7O9STstf2aFdrnsoovOm8SwDoOiyqfT5fc0ifVZSytVNeKE1C1eHn8FztytU2itAl1yDYSfTZQv42tnVgDjWcLe2JR1FpfexVlcB8RUhSiyoThSIFHDBZg8xyULPmp4e6acOfKfW2BXh1IDtGR87nBWqmytTOZrPoXRPq2QXiUjZS2HflHJzB0giDbWEeoZoMeF11364Xzmo0iWsBw0TQ2cHapS4cR49IoEDWkC6AJgRaNb79s6vythxX9CqfMKxIpqYAbm3UAZRS7QU7MiZu2qG3xBIEegpTrkVNneprtlgh3uTSVZ2n2JTWgexMcpPsk0ILh10157SooK2P8F5RcOVrjfFoTGF3QJTC2jhuobG3PIXs5yBHdELe5yXSEUqUm2ioOGznORmVBkkaY4lP025SG1GNPnydEV9GdnMCPbrgg91UebkiZsBMM21TZFbUqP70FDAzMWZKHDkDKCPoO7b8EPXrz3qkyaIWBymSlLt6FNPcT3NkkTfg7wl4DZYDvXA2EYu0riJvaWon12KWt9aOoXig7Jh4wiaE1BgB3j5gsqKmUZTuU9op5IXSk92EIqB2zSM9XRp9W2I0yLX1KWGVkkv2OIsdTlDKIWQS9q1W8OFKuFKxbAEaQwhc7Q5Mm"
 )
 
+var TESTNAME string
 var logEnabled bool
 var logFile *os.File
 
@@ -58,9 +59,8 @@ func DeployChaincode(done chan bool) {
 	//call chaincode deploy function to do actual deployment
 	deployID, err := chaincode.Deploy(funcArgs, args)
 	if err != nil {
-		Logger(fmt.Sprintf("util.DeployChaincode id=%s\n",deployID))
-		Logger(fmt.Sprintf("util.DeployChaincode err is non-nil. Not sure why this happens even when we get an ID!\n"))
-		////////////////////////////////////////////////////////////////////////panic(err)
+		Logger(fmt.Sprintf("util.DeployChaincode() returned (deployID=%s) and (Non-nil error=%s). Time to panic!\n", deployID, err))
+		panic(err)
 	}
 	Logger(fmt.Sprintf("<<<<<< DeployID=%s. Need to give it some time; sleep for 30 secs >>>>>>", deployID))
 	Sleep(30)
@@ -122,28 +122,30 @@ func CloseLogger() {
 
 //Cleanup methods to display useful information
 func TearDown(counter int64) {
-	Logger("....... State transfer is happening, Lets take a nap for 2 mins ......")
-	// TODO: Change this value when invokes are in millions ?
-
-	//Sleep(120)
 	Sleep(10)
-
 	val1, val2 := QueryChaincode(counter)
-	Logger(fmt.Sprintf("========= After Query values a%d = %s,  counter = %s\n", counter, val1, val2))
-
+	Logger(fmt.Sprintf("========= After Query values counter=%d, a%s = %s\n", counter, val2, val1))
 	newVal, err := strconv.ParseInt(val2, 10, 64)
-
-	if err != nil {
-		Logger(fmt.Sprintf("Failed to convert %d to int64\n Error: %s\n", val2, err))
-	}
+	if err != nil { Logger(fmt.Sprintf("Failed to convert %s to int64\n Error: %s\n", val2, err)) }
 
 	//TODO: Block size again depends on the Block configuration in pbft config file
 	//Test passes when 2 * block height match with total transactions, else fails
-	if newVal == counter {
-		Logger(fmt.Sprintf("######### Inserted %d records #########\n", counter))
-		Logger("######### TEST PASSED #########")
-	} else {
-		Logger("######### TEST FAILED #########")
-	}
 
+	if err == nil && newVal == counter {
+		Logger(fmt.Sprintf("\n######### %s TEST PASSED ######### Inserted %d records\n", TESTNAME, counter))
+	} else {
+		var sleepSecs = int64(120)	// TODO: calculate sleepSecs correctly, after moving more consts and functions into this file
+		Logger(fmt.Sprintf("counter does not match; sleep and recheck after %d secs", sleepSecs))
+		Sleep(sleepSecs)
+
+		val1, val2 := QueryChaincode(counter)
+		Logger(fmt.Sprintf("========= After Query values counter=%d, a%s = %s\n", counter, val2, val1))
+		newVal, err := strconv.ParseInt(val2, 10, 64)
+		if err != nil { Logger(fmt.Sprintf("Failed to convert %s to int64\n Error: %s\n", val2, err)) }
+		if err == nil && newVal == counter {
+			Logger(fmt.Sprintf("\n######### %s TEST PASSED ######### Inserted %d records\n", TESTNAME, counter))
+		} else {
+			Logger(fmt.Sprintf("\n######### %s TEST FAILED ######### Inserted %d/%d records #########\n", TESTNAME, newVal, counter))
+		}
+	}
 }

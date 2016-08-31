@@ -381,13 +381,13 @@ func readState_devops(url string, path string, restCallName string, args []strin
 } /* readState_devops() */
 
 func readState_chaincode(url string, path string, restCallName string, args []string, user string, funcName string) string {
-	fmt.Printf("readState_chaincode: entered path=%s, user=%s, args=%v",path, user, args)
+	msgStr := fmt.Sprintf("entering readState_chaincode: path=%s, restCallName=%s, user=%s, funcName=%s, args=%v\n", path, restCallName, user, funcName, args)
 	depPL := make(chan []byte)
 	go genPayLoadForChaincode(depPL, path, funcName, args, user, restCallName)
 	depPayLoad := <-depPL
 
 	restUrl := url + "/chaincode/"
-	msgStr := fmt.Sprintf("**Sending Rest Request to : %s", restUrl)
+	msgStr += fmt.Sprintf("**Sending Rest Request to : %s", restUrl)
 	if verbose { fmt.Println(msgStr) }
 
 	respBody, _ := peerrest.PostChainAPI(restUrl, depPayLoad)
@@ -544,7 +544,7 @@ func genPayLoadForChaincode(PL chan []byte, pathName string, funcName string,
 	PL <- payLoadInBytes
 } /* genPayLoadforChaincode() */
 
-func register(url string, user string, secret string) {
+func register(url string, user string, secret string) string {
 	payLoad := make(chan []byte)
 	fmt.Println("From Register ", url, user, secret)
 	go genRegPayLoad(payLoad, user, secret)
@@ -552,9 +552,9 @@ func register(url string, user string, secret string) {
 	regUrl := url + "/registrar"
 	msgStr := fmt.Sprintf("**Sending Rest Request to : %s", regUrl)
 	fmt.Println(msgStr)
-	_, _ = peerrest.PostChainAPI(regUrl, regPayLoad)
-	respBody, _ := peerrest.PostChainAPI(regUrl, regPayLoad)
+	respBody, status := peerrest.PostChainAPI(regUrl, regPayLoad)
 	fmt.Println(respBody)
+	return status
 }
 
 func genRegPayLoad(payLoad chan []byte, user string, secret string) {

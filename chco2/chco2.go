@@ -88,7 +88,6 @@ var AllRunningNodesMustMatch bool
 
 var NetworkAlreadyRunning bool
 
-var CommitImage string
 var LoggingLevel string
 var Security bool
 var ConsensusMode string
@@ -158,7 +157,6 @@ func setup_part1(testName string, started time.Time) {
 	// default settings, so that our test code uses the same values as the running peers and we can
 	// tune our tests accordingly (e.g. counting transactions).
 
-	CommitImage = "latest"		//  COMMIT                      - hash commit level image to use for the ca and peers
 	NumberOfPeersInNetwork = 4	//  CORE_PBFT_GENERAL_N         - number of validating peers in the network
 	NumberOfPeersOkToFail = 1	//  CORE_PBFT_GENERAL_F         - max # possible faulty nodes while still can reach consensus
 	LoggingLevel = "error"		//  CORE_LOGGING_LEVEL          - [critical|error|warning|notice|info|debug] as defined in peer/core.yaml
@@ -181,8 +179,6 @@ func setup_part1(testName string, started time.Time) {
 	//---------------------------------------------------------------------------------------------------------------
 
 	var envvar string
-	envvar = strings.TrimSpace(os.Getenv("COMMIT"))
-	if envvar != "" { CommitImage = envvar }
 	envvar = strings.TrimSpace(os.Getenv("CORE_PBFT_GENERAL_N"))
 	if envvar != "" { NumberOfPeersInNetwork, _ = strconv.Atoi(envvar) }
 	envvar = strings.TrimSpace(os.Getenv("CORE_PBFT_GENERAL_F"))
@@ -277,9 +273,7 @@ func setup_part1(testName string, started time.Time) {
 
 func setup_part2_network() {
 	fmt.Println("Creating a local docker network with # peers = ", NumberOfPeersInNetwork)
-	//peernetwork.SetupLocalNetwork( NumberOfPeersInNetwork, true )
 	peernetwork.SetupLocalNetworkWithMoreOptions(
-		CommitImage,		//  COMMIT
 		NumberOfPeersInNetwork,	//  CORE_PBFT_GENERAL_N
 		NumberOfPeersOkToFail,	//  CORE_PBFT_GENERAL_F
 		LoggingLevel,		//  CORE_LOGGING_LEVEL

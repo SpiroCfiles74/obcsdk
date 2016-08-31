@@ -53,8 +53,8 @@ const IP = "9.37.136.147"
 //NEW_IP = "9.42.91.158"
 
 
-/* **********
-func SetupLocalNetwork(numPeers int, security bool) {
+/* ********** deprecated Aug 2016
+// func SetupLocalNetwork(numPeers int, security bool) {
 	//goroot := os.Getenv("GOROOT")
 	var cmd *exec.Cmd
 	pwd, _ := os.Getwd()
@@ -94,7 +94,6 @@ func SetupLocalNetwork(numPeers int, security bool) {
 func SetupLocalNetwork(numPeers int, security bool) {
 	// wrapper: simply use mostly the default values
 	SetupLocalNetworkWithMoreOptions(
-        	"latest",		// commit image
         	numPeers,		// N
         	(numPeers-1)/3,		// F
         	"error",		// debug level
@@ -102,12 +101,11 @@ func SetupLocalNetwork(numPeers int, security bool) {
         	"pbft",			// consensusMode
         	// "batch",		// pbftMode
         	// "2s",		// batchTimeout
-        	2 )			// batchSize
+        	2 )			// batchSize - this is the default for our testing, although the default for the fabric is larger such as 500 or 1000
 }
 
 // PRE-CONDITIONS: all parameters must be non-null; otherwise the shell script will have problems setting up the network.
 func SetupLocalNetworkWithMoreOptions(
-        commitImage string,
         numPeers int,
         f int,
         logging string,
@@ -128,6 +126,11 @@ func SetupLocalNetworkWithMoreOptions(
 	script_name := "/local_fabric_gerrit.sh"	// default: pull hyperledger/fabric via gerrit
 	if repository == "GITHUB" { script_name = "/local_fabric_github.sh" }	// pull from github/rameshthoomu
 
+	// Now get the commit image name string. use "latest" as the default, if the tester does not override.
+	commitImage := "latest"
+        commit_envvar := strings.TrimSpace(os.Getenv("COMMIT"))
+        if commit_envvar != "" { commitImage = commit_envvar }
+
 	// script should be located in the ../automation directory
 
 	pwd, _ := os.Getwd()
@@ -138,16 +141,16 @@ func SetupLocalNetworkWithMoreOptions(
 	script_cmd := pwd_automation + script_name
 	//fmt.Println("Starting automation script to setup local network: ", script_cmd)
 
- /* **********
-    arg1,2       -c   - specific commit image [latest]
-    arg3,4       -n   - N = Number of peers to launch
-    arg5,6       -f   - F = Number of peers that can fail in a secure network, when using pbft for consensus, maximum (N-1)/3
-    arg7,8       -l   - logging detail level
-    arg13        -s   - enable Security and Privacy, optional
-    arg9,10      -m   - consensus mode
-    arg11,12     -b   - set batch size, useful when using consensus pbft mode of batch
-		      - Others are not yet unsupported, such as pbftMode ["batch"], batchTimeout ["2s"], K [10], and logmultiplier [4]
- ********** */
+ // ================
+ //   arg1,2     -c   - specific commit image [latest]
+ //   arg3,4     -n   - N = Number of peers to launch
+ //   arg5,6     -f   - F = Number of peers that can fail in a secure network, when using pbft for consensus, maximum (N-1)/3
+ //   arg7,8     -l   - logging detail level
+ //   arg13      -s   - enable Security and Privacy, optional
+ //   arg9,10    -m   - consensus mode
+ //   arg11,12   -b   - set batch size, useful when using consensus pbft mode of batch
+ //                   - Others are not yet unsupported, such as pbftMode ["batch"], batchTimeout ["2s"], K [10], and logmultiplier [4]
+ // ================
 
 	arg1 := "-c"
 	arg2 := commitImage

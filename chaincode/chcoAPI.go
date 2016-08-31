@@ -63,23 +63,24 @@ func GetURL(ip, port string) string {
    Registers each user on the network based on the content of ThisNetwork.Peers.
 */
 func RegisterUsers() {
-	if verbose { fmt.Println("\nRegisterUsers: register all users in all peers in network") }
+	if verbose { fmt.Println("\nRegisterUsers: register list of all users in all peers in network") }
 
 	//testuser := peernetwork.AUser(ThisNetwork)
-	Peers := ThisNetwork.Peers
+	Peers = ThisNetwork.Peers
 	i := 0
 	for i < len(Peers) {
-
-		userList := ThisNetwork.Peers[i].UserData
+		successfuls := 0
+		userList := Peers[i].UserData
 		for user, secret := range userList {
 			url := GetURL(Peers[i].PeerDetails["ip"], Peers[i].PeerDetails["port"])
 			if verbose {
 				msgStr := fmt.Sprintf("\nRegistering %s with password %s on %s using %s", user, secret, Peers[i].PeerDetails["name"], url)
 				fmt.Println(msgStr)
 			}
-			register(url, user, secret)
+			errStatusStr := register(url, user, secret)
+			if errStatusStr == "" { successfuls++ } else { fmt.Println("ERROR registering user:", user, " err:", errStatusStr) }
 		}
-		fmt.Println("\nRegisterUsers(): Done Registering ", len(userList), "users on ", Peers[i].PeerDetails["name"], "\n")
+		fmt.Println("\nRegisterUsers(): Done Registering ", successfuls, "/", len(userList), " users on ", Peers[i].PeerDetails["name"], "\n")
 		i++
 	}
 }
@@ -88,17 +89,21 @@ func RegisterUsers() {
 func RegisterCustomUsers() {
 	if verbose { fmt.Println("\nRegisterCustomUsers: register all users in all peers in network, plus custom users") }
 
-	Peers := ThisNetwork.Peers
+	Peers = ThisNetwork.Peers
 
 	for i := 0; i < len(Peers) ; i++ {
-
+		successfuls := 0
 		extraUsers := 0
-		userList := ThisNetwork.Peers[i].UserData
+		userList := Peers[i].UserData
 		for user, secret := range userList {
 			url := GetURL(Peers[i].PeerDetails["ip"], Peers[i].PeerDetails["port"])
-			msgStr := fmt.Sprintf("\nRegistering %s with password %s on %s using %s", user, secret, Peers[i].PeerDetails["name"], url)
-			fmt.Println(msgStr)
-			register(url, user, secret)
+			var msgStr string
+			if verbose {
+				msgStr = fmt.Sprintf("\nRegistering %s with password %s on %s using %s", user, secret, Peers[i].PeerDetails["name"], url)
+				fmt.Println(msgStr)
+			}
+			errStatusStr := register(url, user, secret)
+			if errStatusStr == "" { successfuls++ } else { fmt.Println("ERROR registering user:", user, " err:", errStatusStr) }
 			if (i == len(Peers)-1) {
 				if os.Getenv("NETWORK") == "Z" {
 					// custom users in Z network
@@ -107,8 +112,9 @@ func RegisterCustomUsers() {
 						secret = threadutil.ZUserPasswordsOnLastPeer[u]
 						msgStr = fmt.Sprintf("\nZ NTWK: Registering custom user %s with password %s on %s using %s", user, secret, Peers[i].PeerDetails["name"], url)
 						fmt.Println(msgStr)
-						register(url, user, secret)
-						extraUsers++
+						errStatusStr := register(url, user, secret)
+						if errStatusStr == "" { extraUsers++
+						} else { fmt.Println("ERROR registering custom user:", user, " err:", errStatusStr) }
 					}
 				} else {
 					// custom users in local network
@@ -117,13 +123,14 @@ func RegisterCustomUsers() {
 						secret = threadutil.LocalUserPasswordsOnLastPeer[u]
 						msgStr = fmt.Sprintf("\nLOCAL NTWK: Registering custom user %s with password %s on %s using %s", user, secret, Peers[i].PeerDetails["name"], url)
 						fmt.Println(msgStr)
-						register(url, user, secret)
-						extraUsers++
+						errStatusStr := register(url, user, secret)
+						if errStatusStr == "" { extraUsers++
+						} else { fmt.Println("ERROR registering custom user:", user, " err:", errStatusStr) }
 					}
 				}
 			}
 		}
-		fmt.Println("\nRegisterCustomUsers(): Done Registering ", len(userList)+extraUsers, "users on ", Peers[i].PeerDetails["name"], "\n")
+		fmt.Println("\nRegisterCustomUsers(): Done Registering ", successfuls, "/", len(userList), " regular users and ", extraUsers, "/",threadutil.NumberCustomUsersOnLastPeer, " extraUsers on ", Peers[i].PeerDetails["name"], "\n")
 	}
 }
 
@@ -131,7 +138,7 @@ func RegisterUsers2() {
 	if verbose { fmt.Println("\nCalling RegisterUsers2 ") }
 
 	//testuser := peernetwork.AUser(ThisNetwork)
-	Peers := ThisNetwork.Peers
+	Peers = ThisNetwork.Peers
 	for i:= 0;i < len(Peers)-2;i++ {
 
 		userList := ThisNetwork.Peers[i].UserData
@@ -141,7 +148,8 @@ func RegisterUsers2() {
 				msgStr := fmt.Sprintf("\nRegistering %s with password %s on %s using %s", user, secret, Peers[i].PeerDetails["name"], url)
 				fmt.Println(msgStr)
 			}
-			register(url, user, secret)
+			errStatusStr := register(url, user, secret)
+			if errStatusStr != "" { fmt.Println(errStatusStr) }
 		}
 		fmt.Println("\nRegisterUsers2(): Done Registering ", len(userList), "users on ", Peers[i].PeerDetails["name"], "\n")
 	}
@@ -205,7 +213,7 @@ func Deploy(args []string, depargs []string) (id string, err error)  {
 			fmt.Println("chcoAPI.Deploy() restCallname=", url, " funcName=", funcName)
 		}
 		txId = changeState(url, ChainCodeDetails["path"], restCallName, dargs, auser, funcName)
-        //if verbose { fmt.Println("chcoAPI.Deploy() txID", txId) }
+		//if verbose { fmt.Println("chcoAPI.Deploy() txID", txId) }
 		//storing the value of most recently deployed chaincode inside chaincode details if no tagname or versioning
 		ChainCodeDetails["dep_txid"] = txId
 		if len(tagName) != 0 {
@@ -214,7 +222,7 @@ func Deploy(args []string, depargs []string) (id string, err error)  {
 		//fmt.Println("ChainCodeDetails dep_txid = " + ChainCodeDetails["dep_txid"])
 	}
 
-	return txId, errors.New("")
+	return txId, nil
 
 }
 
@@ -288,7 +296,7 @@ func DeployOnPeer(args []string, depargs []string) (id string, err error)  {
                      }
 		}
      }
-     return txId, nil    /* nil or errors.New("") */
+     return txId, nil
 }
 
 /*
@@ -351,7 +359,7 @@ func Invoke(args []string, invokeargs []string) (id string, err error) {
 		txId = changeState(url, (ChainCodeDetails["dep_txid"]), restCallName, invargs, auser, funcName)
 	}
 	//fmt.Println("*** END Invoking as  ***", auser, " on a single peer")
-	return txId, nil  /* or errors.New("") */
+	return txId, nil
 }
 
 /*
@@ -417,7 +425,7 @@ func InvokeOnPeer(args []string, invokeargs []string) (id string, err error) {
 		}else {
 		        txId = changeState(url, (ChainCodeDetails["dep_txid"]), restCallName, invargs, auser, funcName)
 		}
-		return txId, nil  /* or errors.New("") */
+		return txId, nil
 	}
 }
 
@@ -458,6 +466,7 @@ func InvokeAsUser(args []string, invokeargs []string) (id string, err error) {
 	}
 	invargs := invokeargs
 	var err1 error
+	var txId string
 	ChainCodeDetails, Versions, err1 = peernetwork.GetCCDetailByName(ccName, LibCC)
 	if err1 != nil {
 		fmt.Println("Inside InvokeAsUser err1: ", err1)
@@ -474,11 +483,16 @@ func InvokeAsUser(args []string, invokeargs []string) (id string, err error) {
 	} else {
 		url := GetURL(ip, port)
 		if verbose {
-			msgStr0 := fmt.Sprintf("InvokeAsUser: ** Calling %s on chaincode %s with args %s on  %s as %s", funcName, ccName, invargs, url, auser)
+			msgStr0 := fmt.Sprintf("InvokeAsUser: ** Calling function:%s on chaincode name:%s with args:%s on url:%s as user:%s using tagName:%s", funcName, ccName, invargs, url, auser, tagName)
 			fmt.Println(msgStr0)
 		}
-		txId := changeState(url, Versions[tagName], restCallName, invargs, auser, funcName)
-		return txId, errors.New("")
+		//txId := changeState(url, Versions[tagName], restCallName, invargs, auser, funcName)
+		if (len(tagName) > 0) {
+			txId = changeState(url, Versions[tagName], restCallName, invargs, auser, funcName)
+		}else {
+		        txId = changeState(url, (ChainCodeDetails["dep_txid"]), restCallName, invargs, auser, funcName)
+		}
+		return txId, nil
 	}
 }
 
@@ -539,7 +553,7 @@ func Query(args []string, queryArgs []string) (id string, err error) {
 		txId = readState(url, (ChainCodeDetails["dep_txid"]), restCallName, qargs, auser, funcName)
 	}
 
-	return txId, nil  /* errors.New("") */
+	return txId, nil
 }
 
 
@@ -607,7 +621,7 @@ func QueryOnHost(args []string, queryargs []string) (id string, err error) {
 		}else {
 			txId = changeState(url, (ChainCodeDetails["dep_txid"]), restCallName, qryargs, auser, funcName)
 		}
-		return txId, nil  /*  errors.New("") */
+		return txId, nil
 	}
 
 }
@@ -622,7 +636,7 @@ func GetChainHeight(host string) (ht int, err error) {
 			} else {
 				url := GetURL(ip, port)
 				ht := Monitor_ChainHeight(url)
-				return ht, errors.New("")
+				return ht, nil
 			}
 
 }
@@ -638,7 +652,7 @@ func GetBlockTrxInfoByHost(host string, block int) (bsNonHash NonHashData, err e
 		url := GetURL(ip, port)
 		bsNonHashData := ChaincodeBlockTrxInfo(url, block)
 		fmt.Println(bsNonHashData)
-		return bsNonHashData, errors.New("")
+		return bsNonHashData, nil
 	}
 }
 
@@ -706,7 +720,7 @@ func DeployWithCCPATH(args []string, depargs []string) error {
     ChainCodeDetails, _, err = peernetwork.GetCCDetailByName(ccName, LibCC)
 		if err != nil {
 		ChainCodeDetails["dep_txid"] = txId
-		return txId, errors.New("")
+		return txId, nil
 	}
 
 }

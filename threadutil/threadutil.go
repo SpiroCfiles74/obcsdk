@@ -9,6 +9,7 @@ import (
 
 // For now, these are some hardcoded users for custom usage.
 //TODO : These values should be configurable for different environments
+var NumberOfPeers = 4
 var NumberCustomUsersOnLastPeer = 4
 var LocalUsersOnLastPeer = []string{"test_user4", "test_user5", "test_user6", "test_user7"}
 var LocalUserPasswordsOnLastPeer = []string{"4nXSrfoYGFCP", "yg5DVhm0er1z", "b7pmSxzKNFiw", "YsWZD4qQmYxo"}

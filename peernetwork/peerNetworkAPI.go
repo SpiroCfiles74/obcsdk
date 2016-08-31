@@ -65,14 +65,13 @@ func GetNumberOfPeers(thisNetwork PeerNetwork) int{
 */
 func GetCCDetailByName(name string, lcc LibChainCodes) (ccDetail map[string]string, versions map[string]string, err error) {
 	var errStr string
-	var err1 error
 	for k, v := range lcc.ChainCodes {
 		if strings.Contains(k, name) {
-			return v.Detail, v.Versions, err1
+			return v.Detail, v.Versions, nil
 		}
 	}
 	//no more chaincodes construct error string and empty maps
-	errStr = fmt.Sprintf("chaincode %s does not exist on the network", name)
+	errStr = fmt.Sprintf("chaincode name <%s> does not exist on the network", name)
 	//need to check for this
 	j := make(map[string]string)
 	return j, j, errors.New(errStr)
@@ -113,7 +112,7 @@ func APeer(thisNetwork PeerNetwork) (thisPeer *Peer, err error) {
 		}
 	}
 	if aPeer != nil {
-		return (aPeer), errors.New("")
+		return (aPeer), nil
 	} else {
 		errStr = fmt.Sprintf("Not found valid running peer on network")
 		return aPeer, errors.New(errStr)
@@ -140,7 +139,7 @@ func IPPeer(thisNetwork PeerNetwork, peername string) (IP string, err error) {
 		}
 	}
 	if aPeer != nil {
-		return (aPeer.PeerDetails["IP"]), errors.New("")
+		return (aPeer.PeerDetails["IP"]), nil
 	} else {
 		errStr = fmt.Sprintf("Not found %s peer on network", peername)
 		return aPeer.PeerDetails["IP"], errors.New(errStr)
@@ -329,7 +328,7 @@ func GetPeerState(thisNetwork PeerNetwork, peername string) (currPeer *Peer, err
 		emptyPD := new(Peer)
 		return emptyPD, errors.New(errStr)
 	} else {
-		return aPeer, errors.New("")
+		return aPeer, nil
 	}
 }
 
@@ -362,7 +361,7 @@ func SetPeerState(thisNetwork PeerNetwork, peername string, curstate int) (peerD
 	} else {
 		aPeer.State = curstate
 		// fmt.Println("SetPeerState=", curstate)   // RUNNING=0 STOPPED=1 NOTRESPONDIN=2 PAUSED=3
-		return aPeer.PeerDetails, errors.New("")
+		return aPeer.PeerDetails, nil
 	}
 }
 
@@ -530,7 +529,7 @@ func GetFullPeerName(thisNetwork PeerNetwork, shortname string) (name string, er
 		errStr = fmt.Sprintf("%s, Not found on network", shortname)
 		return "", errors.New(errStr)
 	} else {
-		return aPeer.PeerDetails["name"], errors.New("")
+		return aPeer.PeerDetails["name"], nil
 
 	}
 }

@@ -89,7 +89,7 @@ func PostChainAPI(url string, payLoad []byte) (respBody string, respStatus strin
 		respBody, respStatus = PostChainAPI_HTTP(url, payLoad)
 	}
 	return respBody, respStatus
-} /* change
+}
 
 /*
   Issue POST request to BlockChain resource.
@@ -100,34 +100,36 @@ func PostChainAPI(url string, payLoad []byte) (respBody string, respStatus strin
 */
 func PostChainAPI_HTTP(url string, payLoad []byte) (respBody string, respStatus string) {
 
-	verbose := false
+	veryverbose := false 	// for debugging github hyperledger fabric issue #2357
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payLoad))
 	//req.Header.Set("X-Custom-Header", "myvalue")
 	req.Header.Set("Content-Type", "application/json")
 
-	if verbose {
+	if veryverbose {
 		fmt.Println("PostChainAPI() calling http.Client.Do to url=" + url) 
 	}
 	client := &http.Client{}
 	resp, err := client.Do(req)
-	if verbose {
+	if veryverbose {
 		fmt.Println("PostChainAPI()  AFTER  http.Client.Do(req)")
 	}
 	if err != nil {
-		log.Println("Error", url, err)
-		return err.Error(), "There was an error Posting http Request"
+		//log.Println("ERROR from posting http Request.", url, err)
+		return err.Error(), "ERROR from Posting http Request"
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error")
-	}
-	if verbose {
+	if veryverbose {
 		fmt.Println("PostChainAPI() >>> response Status:", resp.Status)
 		fmt.Println("PostChainAPI() >>> response Body:", body)
 	}
-	return string(body), resp.Status
+	if err != nil {
+		//fmt.Println("PostChainAPI() Error from ioutil.ReadAll()")
+		return err.Error(), "ERROR from ioutil.ReadAll"
+	}
+	//return string(body), resp.Status
+	return string(body), string("")
 }
 
 /*
@@ -139,9 +141,9 @@ func PostChainAPI_HTTP(url string, payLoad []byte) (respBody string, respStatus 
 */
 func PostChainAPI_HTTPS(url string, payLoad []byte) (respBody string, respStatus string) {
 
-	verbose := false
+	veryverbose := false 	// for debugging github hyperledger fabric issue #2357
 
-	if verbose {
+	if veryverbose {
 		fmt.Println("PostChainAPI()_HTTPS url=" + url) 
 	}
         tr := &http.Transport{
@@ -150,26 +152,27 @@ func PostChainAPI_HTTPS(url string, payLoad []byte) (respBody string, respStatus
 	         DisableCompression: true,
         }
         client := &http.Client{Transport: tr}
-	if verbose {
+	if veryverbose {
 		fmt.Println("PostChainAPI()_HTTPS calling http.Client.Post=" + url) 
 	}
 	response, err := client.Post(url, "json", bytes.NewBuffer(payLoad))
-	if verbose {
+	if veryverbose {
 		fmt.Println("PostChainAPI()  AFTER  http.Client.Post")
 	}
 
 	if err != nil {
 		log.Println("Error", url, err)
-		return err.Error(), "There was an error Posting http Request"
+		return err.Error(), "There was an error Posting https Request"
 	}
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("Error from iuutil.ReadAll")
+		fmt.Println("Error from ioutil.ReadAll")
 	}
-	if verbose {
+	if veryverbose {
 		fmt.Println("PostChainAPI() secure postchain >>> response Status:", response.Status)
 		fmt.Println("PostChainAPI() secure postchain >>> response Body:", body)
 	}
-	return string(body), response.Status
+	//return string(body), response.Status
+	return string(body), string("")
 }
