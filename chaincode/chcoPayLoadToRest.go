@@ -192,12 +192,13 @@ func NetworkPeers(url string) (string, string) {
   displays if the given user has been already registed.
 	url  (http://IP:PORT) is the address of network peer
 */
-func UserRegister_Status(url string, username string) (response string, status string){
-	var body string
-	body, status = peerrest.GetChainInfo(url + "/registrar/" + username)
-	if verbose { fmt.Println("UserRegister_Status() chain info status: ", status) }
-	fmt.Println(body)
-	return body, status
+func UserRegister_Status(url string, username string) (responseBody string, status string){
+	responseBody, status = peerrest.GetChainInfo(url + "/registrar/" + username)
+	if verbose {
+		fmt.Println("UserRegister_Status() chain info responseStatus = ", status)
+		fmt.Println("UserRegister_Status() chain info responseBody = ", responseBody)
+	}
+	return responseBody, status
 }
 
 /*
@@ -207,8 +208,10 @@ func UserRegister_Status(url string, username string) (response string, status s
 func UserRegister_ecertDetail(url string, username string) (response string, status string) {
 	var body string
 	body,status = peerrest.GetChainInfo(url + "/registrar/" + username + "/ecert")
-	if verbose { fmt.Println("UserRegister_ecertDetail() chain info status: \n", status) }
-	fmt.Println(body)
+	if verbose {
+		fmt.Println("UserRegister_ecertDetail() chain info responseStatus = ", status)
+		fmt.Println("UserRegister_ecertDetail() chain info responseBody = ", body)
+	}
 	return body, status
 }
 

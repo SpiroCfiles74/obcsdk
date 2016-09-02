@@ -9,7 +9,7 @@ import (
 
 	"obcsdk/chaincode"
 	"obcsdk/peernetwork"
-	"obcsdk/util"
+	"obcsdk/lstutil"
 )
 /********** Test Objective : Ledger Stress with 1 Peer and 1 Client ************
 *
@@ -48,8 +48,8 @@ func initNetwork() {
 // Utility function to invoke on chaincode available @ http://urlmin.com/4r76d
 func invokeChaincode() {
 	counter ++
-	arg1 := []string{util.CHAINCODE_NAME, util.INVOKE}
-	arg2 := []string{"a" + strconv.FormatInt(counter, 10), util.DATA, "counter"}
+	arg1 := []string{lstutil.CHAINCODE_NAME, lstutil.INVOKE}
+	arg2 := []string{"a" + strconv.FormatInt(counter, 10), lstutil.DATA, "counter"}
 	_, _ = chaincode.Invoke(arg1, arg2)
 }
 
@@ -64,7 +64,7 @@ func invokeLoop() {
 			if counter % 1000 == 0 {
 				// This delay is for Transfer to happen in the background
 				fmt.Println("========= Sleep for 30 seconds =========")
-				util.Sleep(30)
+				lstutil.Sleep(30)
 			}
 			curTime = time.Now()
 		}
@@ -79,12 +79,12 @@ func tearDown() {
 	var errTransactions int64
 	errTransactions = 0
 	fmt.Println("....... State transfer is happening, Lets take a nap for a minute ......")
-	util.Sleep(60)
+	lstutil.Sleep(60)
 	fmt.Println("========= Counter is", counter)
-	val1, val2 := util.QueryChaincode(counter)
+	val1, val2 := lstutil.QueryChaincode(counter)
 	fmt.Printf("\n========= After Query values a%d = %s,  counter = %s\n",counter, val1, val2)
 
-	height := util.GetChainHeight(Url) //string(os.Args[1:])) //Remove hardcoding ??
+	height := lstutil.GetChainHeight(Url) //string(os.Args[1:])) //Remove hardcoding ??
 	fmt.Println("========= Total Blocks #", height)
 	for i := 1; i < height; i++ {
 		nonHashData := chaincode.ChaincodeBlockTrxInfo(Url, i)
@@ -132,19 +132,16 @@ func main() {
 	Url = os.Args[1]
 
 	// time to messure overall execution of the testcase
-	defer util.TimeTracker(time.Now(), "Total execution time for LedgerStressOneCliOnePeer.go ")
+	defer lstutil.TimeTracker(time.Now(), "Total execution time for LedgerStressOneCliOnePeer.go ")
 
 	//maintained counter variable to compare with final query value
 	counter = 0
-
-	//done chan int
-	done := make(chan bool, 1)
 
 	// Setup the network based on the NetworkCredentials.json provided
 	initNetwork()
 
 	//Deploy chaincode
-	util.DeployChaincode(done)
+	lstutil.DeployChaincode()
 
 	invokeLoop()
 

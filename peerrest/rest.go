@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"crypto/tls"
 	"os"
-
+	"time"
 )
 
 
@@ -33,7 +33,10 @@ func GetChainInfo(url string) (respBody string, respStatus string){
 func GetChainInfo_HTTP(url string) (respBody string, respStatus string) {
 	//TODO : define a logger
 	//fmt.Println("GetChainInfo_HTTP :", url)
-	response, err := http.Get(url)
+
+	httpclient := &http.Client{ Timeout: time.Second * 10 }
+	response, err := httpclient.Get(url)
+
 	if err != nil {
 		fmt.Printf("%s", err)
 		return err.Error(), "Error from GET request"
@@ -62,8 +65,8 @@ func GetChainInfo_HTTPS(url string) (respBody string, respStatus string) {
 	         TLSClientConfig:    &tls.Config{RootCAs: nil},
 	         DisableCompression: true,
         }
-        client := &http.Client{Transport: tr}
-        response, err := client.Get(url)
+        httpclient := &http.Client{ Timeout: time.Second * 10, Transport: tr }
+        response, err := httpclient.Get(url)
 	if err != nil {
 			fmt.Printf("%s", err)
 			return err.Error(), "Error from GET request"
@@ -109,14 +112,14 @@ func PostChainAPI_HTTP(url string, payLoad []byte) (respBody string, respStatus 
 	if veryverbose {
 		fmt.Println("PostChainAPI() calling http.Client.Do to url=" + url) 
 	}
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	httpclient := &http.Client{ Timeout: time.Second * 10 }
+	resp, err := httpclient.Do(req)
 	if veryverbose {
 		fmt.Println("PostChainAPI()  AFTER  http.Client.Do(req)")
 	}
 	if err != nil {
-		//log.Println("ERROR from posting http Request.", url, err)
-		return err.Error(), "ERROR from Posting http Request"
+		log.Println("httpclient.Do Error", url, err)
+		return err.Error(), "httpclient.Do Error"
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
@@ -151,18 +154,18 @@ func PostChainAPI_HTTPS(url string, payLoad []byte) (respBody string, respStatus
 	         //TLSClientConfig:    &tls.Config{RootCAs: nil},
 	         DisableCompression: true,
         }
-        client := &http.Client{Transport: tr}
+        httpclient := &http.Client{ Transport: tr, Timeout: time.Second * 10 }
 	if veryverbose {
 		fmt.Println("PostChainAPI()_HTTPS calling http.Client.Post=" + url) 
 	}
-	response, err := client.Post(url, "json", bytes.NewBuffer(payLoad))
+	response, err := httpclient.Post(url, "json", bytes.NewBuffer(payLoad))
 	if veryverbose {
 		fmt.Println("PostChainAPI()  AFTER  http.Client.Post")
 	}
 
 	if err != nil {
-		log.Println("Error", url, err)
-		return err.Error(), "There was an error Posting https Request"
+		log.Println("httpclient.Post Error", url, err)
+		return err.Error(), "httpclient.Post Error"
 	}
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)

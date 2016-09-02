@@ -299,7 +299,7 @@ func PeerOfThisUser(thisNetwork PeerNetwork, username string) (ip string, port s
 		errStr = fmt.Sprintf("PeerOfThisUser   %s, Not found on network", username)
 		return "", "", "", errors.New(errStr)
 	} else {
-		return aPeer.PeerDetails["ip"], aPeer.PeerDetails["port"], username, err1
+		return aPeer.PeerDetails["ip"], aPeer.PeerDetails["port"], username, nil
 	}
 }
 

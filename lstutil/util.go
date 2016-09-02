@@ -8,11 +8,13 @@ import (
 	"strconv"
 	"time"
 	"obcsdk/chaincode"
+	"obcsdk/threadutil"
 )
 
 // A Utility program, contains several utility methods that can be used across
 // test programs
 const (
+	// CHAINCODE_NAME = "example02"
 	CHAINCODE_NAME = "mycc"
 	INIT           = "init"
 	INVOKE         = "invoke"
@@ -53,18 +55,23 @@ var argA = []string{"a"}
 var argCounter = []string{"counter"}
 
 // Utility function to deploy chaincode available @ http://urlmin.com/4r76d
-func DeployChaincode(done chan bool) {
+func DeployChaincode() {
 	var funcArgs = []string{CHAINCODE_NAME, INIT}
 	var args = []string{argA[0], RandomString(1024), argCounter[0], "0"}
 	//call chaincode deploy function to do actual deployment
 	deployID, err := chaincode.Deploy(funcArgs, args)
 	if err != nil {
-		Logger(fmt.Sprintf("util.DeployChaincode() returned (deployID=%s) and (Non-nil error=%s). Time to panic!\n", deployID, err))
+		Logger(fmt.Sprintf("DeployChaincode() returned (deployID=%s) and (Non-nil error=%s). Time to panic!\n", deployID, err))
 		panic(err)
 	}
-	Logger(fmt.Sprintf("<<<<<< DeployID=%s. Need to give it some time; sleep for 30 secs >>>>>>", deployID))
-	Sleep(30)
-	done <- true
+	var sleepTime int64
+	sleepTime = 30
+	// Wait for deploy to complete; sleep based on network environment:  Z | LOCAL [default]
+	// Increase sleep from 30 secs (works in LOCAL network, the defalt) by 90 to sum of 120 secs in "Z" (or anything else)
+	ntwk := os.Getenv("NETWORK")
+	if ntwk != "" && ntwk != "LOCAL" { sleepTime += 90 }
+	Logger(fmt.Sprintf("<<<<<< DeployID=%s. Need to give it some time; sleep for %d secs >>>>>>", deployID, sleepTime))
+	Sleep(sleepTime)
 }
 
 // Utility function to invoke on chaincode available @ http://urlmin.com/4r76d
@@ -78,8 +85,15 @@ func DeployChaincode(done chan bool) {
 func QueryChaincode(counter int64) (res1, res2 string) {
 	var arg1 = []string{CHAINCODE_NAME, QUERY}
 	var arg2 = []string{"a" + strconv.FormatInt(counter, 10)}
-
 	val, _ := chaincode.Query(arg1, arg2)
+	counterArg, _ := chaincode.Query(arg1, []string{"counter"})
+	return val, counterArg
+}
+
+func QueryChaincodeOnHost(peerNum int, counter int64) (res1, res2 string) {
+	var arg1 = []string{CHAINCODE_NAME, QUERY, threadutil.GetPeer(peerNum)}
+	var arg2 = []string{"a" + strconv.FormatInt(counter, 10)}
+	val, _ := chaincode.QueryOnHost(arg1, arg2)
 	counterArg, _ := chaincode.Query(arg1, []string{"counter"})
 	return val, counterArg
 }

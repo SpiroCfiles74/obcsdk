@@ -36,21 +36,26 @@ func main() {
 
 	setupNetwork()
 
+	fmt.Println("\n===== Start userRegisterTest =====")
 	//get a URL details to get info n chainstats/transactions/blocks etc.
 	aPeer, _ := peernetwork.APeer(myNetwork)
 	url = "http://" + aPeer.PeerDetails["ip"] + ":" + aPeer.PeerDetails["port"]
 
-  userRegisterTest(url)
+  user_ip, user_port, user_name, err := peernetwork.PeerOfThisUser(myNetwork, "test_user0")
+  url = "http://" + user_ip + ":" + user_port
+  userRegisterTest(url, user_name)
 
+	fmt.Println("\n===== Start NetworkPeers Test =====")
 	response, status := chaincode.NetworkPeers(url)
 	if strings.Contains(status, "200") {
-		myStr = fmt.Sprintf("NetworkPeers Rest API Test Pass: successful")
+		myStr = fmt.Sprintf("NetworkPeers Rest API TEST PASS: successful")
 		fmt.Println(myStr)
 		fmt.Fprintln(writer, myStr)
 		fmt.Println(response)
 		fmt.Fprintln(writer, response)
 	}
 
+	fmt.Println("\n===== Get ChainStats Test =====")
 	chaincode.ChainStats(url)
 
 	var inita, initb, curra, currb int
@@ -59,75 +64,60 @@ func main() {
 	curra = inita
 	currb = initb
 
+	fmt.Println("\n===== Deploy Test =====")
 	deploy()
 	time.Sleep(60000 * time.Millisecond)
 
 	query("DEPLOY", curra, currb)
 
+	fmt.Println("\n===== Invoke Test =====")
 	invRes := invoke()
-	time.Sleep(60000 * time.Millisecond)
+	time.Sleep(10000 * time.Millisecond)
 	curra = curra - 1
 	currb = currb + 1
 
 	query("INVOKE", curra, currb)
 
-	getHeight()
+	fmt.Println("\n===== GetChainHeight Test =====")
+	height := chaincode.Monitor_ChainHeight(url) // need the height for items below.
+	getHeight() // verify all peers have the same height
 
-	time.Sleep(60000 * time.Millisecond)
-
-	fmt.Println("\nBlockchain: Get Chain  ....")
-	chaincode.ChainStats(url)
-
-	fmt.Println("\nBlockchain: GET Chain  ....")
-	response2 := chaincode.Monitor_ChainHeight(url)
-
-	fmt.Println("\nChain Height", chaincode.Monitor_ChainHeight(url))
-
-	fmt.Println("\nBlock: GET/Chain/Blocks/")
-	//chaincode.BlockStats(url, response2)
-	nonHashData, _ := chaincode.GetBlockTrxInfoByHost("PEER0", response2-1)
-
+	fmt.Println("\n===== GetBlockStats API Test =====")
+	//chaincode.BlockStats(url, height)
+	nonHashData, _ := chaincode.GetBlockTrxInfoByHost("PEER0", height-1)
 
 	if strings.Contains(nonHashData.TransactionResult[0].Uuid, invRes) {
-		myStr := fmt.Sprintf("\n\nGetBlocks API Test PASS: Transaction %s Successfully stored in Block ", invRes)
-		fmt.Printf(myStr)
-		fmt.Fprintf(writer, myStr)
-
-		myStr1 := fmt.Sprintf("\n=============Block:%d UUID: %s \n", response2-1, nonHashData.TransactionResult[0].Uuid)
-		fmt.Printf(myStr1)
-		fmt.Fprintf(writer, myStr1)
-		writer.Flush()
-
+		myStr = fmt.Sprintf("\nGetBlocks API TEST PASS: Transaction Successfully stored in Block")
 	} else {
-		myStr := fmt.Sprintf("GetBlocks API Test FAIL: Transaction %s NOT stored in Block ", invRes)
-		fmt.Printf(myStr)
-		fmt.Fprintf(writer, myStr)
+		myStr = fmt.Sprintf("\nGetBlocks API TEST FAIL: Transaction NOT stored in Block")
 	}
+	myStr += fmt.Sprintf("\nCH_Block = %d, UUID = %s, InvokeTransactionResult = %s\n", height-1, nonHashData.TransactionResult[0].Uuid, invRes)
+	fmt.Printf(myStr)
+	fmt.Fprintf(writer, myStr)
+	writer.Flush()
 
-  //This is for error condition
-	//getBlockTxInfo(response2)
-	//writer.Flush()
-
-	fmt.Println("\nTransactions: GET/transactions/" + invRes)
+	fmt.Println("\n===== Get Transaction_Detail Test =====")
+	fmt.Println("url:  " + url)
+	fmt.Println("invRes:  " + invRes)
+	fmt.Println("Transaction_Detail(url,invRes):  ")
 	chaincode.Transaction_Detail(url, invRes)
 
 	myStr = fmt.Sprintf("\n\n*********** END BASICFUNC.go ***************\n\n")
 	fmt.Println(myStr)
 	fmt.Fprintln(writer, myStr)
-
 	writer.Flush()
-
 }
 
 func setupNetwork() {
 
 
-	fmt.Println("Working with an existing network")
-	peernetwork.SetupLocalNetwork(4, false)
+	//fmt.Println("Working with an existing network")
+	fmt.Println("Setting up a local network with 4 peers with security")
+	peernetwork.SetupLocalNetwork(4, true)
 	myNetwork = chaincode.InitNetwork()
 	chaincode.InitChainCodes()
+	time.Sleep(50000 * time.Millisecond)
 	chaincode.RegisterUsers()
-
 	time.Sleep(10000 * time.Millisecond)
 	//peernetwork.PrintNetworkDetails(myNetwork)
 	peernetwork.PrintNetworkDetails()
@@ -139,25 +129,54 @@ func setupNetwork() {
 
 }
 
-func userRegisterTest(url string) {
+// arg = a username that was already registered; this func confirms if it was successful
+// and confirms user "ghostuserdoesnotexist" is not registered
+// and confirms 
+func userRegisterTest(url string, username string) {
 
-	response, status := chaincode.UserRegister_Status(url, "test_user0")
-
-	if (strings.Contains("200", status) && strings.Contains("test_user0", response)) {
-		fmt.Println("RegisterUser API Test PASS: User %s Registration is successful", response)
+	fmt.Println("\n----- RegisterUser Test -----")
+	response, status := chaincode.UserRegister_Status(url, username)
+	myStr := "RegisterUser API TEST "
+	if strings.Contains(status, "200") && strings.Contains(response, username + " is already logged in") {
+		myStr += fmt.Sprintf ("PASS: %s User Registration was already done successfully", username)
 	} else {
-		fmt.Println("RegisterUser API Test FAIL: User %s Registration is NOT successful", response)
+		myStr += fmt.Sprintf ("FAIL: %s User Registration was NOT already done\n status = %s\n response = %s", username, status, response)
+	}
+	fmt.Println(myStr)
+
+	time.Sleep(1000 * time.Millisecond)
+	fmt.Println("\n----- RegisterUser Negative Test -----")
+	response, status = chaincode.UserRegister_Status(url, "ghostuserdoesnotexist")
+	if ((strings.Contains(status, "200")) == false) {
+		fmt.Println("RegisterUser API Negative TEST PASS: CONFIRMED that user <ghostuserdoesnotexist> is unregistered as expected")
+	} else {
+		myStr = fmt.Sprintf("RegisterUser API Negative TEST FAIL: User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response)
+		fmt.Println(myStr)
 	}
 
-	response, status = chaincode.UserRegister_Status(url, "nishi")
-	if ((strings.Contains("200", status)) == false) {
-		fmt.Println("RegisterUser API -Ve Test PASS: User Nishi Is Not Registered")
+ /*
+	time.Sleep(1000 * time.Millisecond)
+	fmt.Println("\n----- UserRegister_ecert Test -----")
+	ecertUser := "lukas"
+	response, status = chaincode.UserRegister_ecertDetail(url, ecertUser)
+	myStr = "\nUserRegister_ecert TEST "
+	if strings.Contains(status, "200") && strings.Contains(response, ecertUser + " is already logged in") {
+		myStr += fmt.Sprintf ("PASS: %s ecert User Registration was already done successfully", ecertUser)
 	} else {
-		fmt.Println("RegisterUser API Test FAIL: User Nishi found in Register user list")
+		myStr += fmt.Sprintf ("FAIL: %s ecert User Registration was NOT already done\n status = %s\n response = %s\n", username, status, response)
 	}
+	fmt.Println(myStr)
+ */
 
-	chaincode.UserRegister_ecertDetail(url, "lukas")
-
+	time.Sleep(1000 * time.Millisecond)
+	fmt.Println("\n----- UserRegister_ecert Negative Test -----")
+	response, status = chaincode.UserRegister_ecertDetail(url, "ghostuserdoesnotexist")
+	if ((strings.Contains(status, "200")) == false) {
+		fmt.Println("UserRegister_ecert API Negative TEST PASS: CONFIRMED that user <ghostuserdoesnotexist> is unregistered as expected")
+	} else {
+		myStr = fmt.Sprintf("UserRegister_ecert API Negative TEST FAIL: User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response)
+		fmt.Println(myStr)
+	}
 }
 
 func deploy() {
@@ -246,20 +265,18 @@ func getHeight() {
 	ht3, _ := chaincode.GetChainHeight("PEER3")
 
 	if (ht0 == 3) && (ht1 == 3) && (ht2 == 3) && (ht3 == 3) {
-		myStr := fmt.Sprintf("\n\nGET CHAIN HEIGHT TEST PASS : Results in A value match on all Peers after ")
+		myStr := fmt.Sprintf("GET CHAIN HEIGHT TEST PASS : Results in A value match on all Peers after deploy and single invoke:\n")
+		myStr += fmt.Sprintf("  Height Verified: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3)
 		fmt.Println(myStr)
 		fmt.Fprintln(writer, myStr)
-		myStr = fmt.Sprintf("Height Verified: ht0: %d, ht1: %d, ht2: %d, ht3: %d ", ht0, ht1, ht2, ht3)
-		fmt.Println(myStr)
-		fmt.Fprintln(writer, myStr)
+		writer.Flush()
 	} else {
-		fmt.Printf(" All heights do NOT match : ht0: %d, ht1: %d, ht2: %d, ht3: %d ", ht0, ht1, ht2, ht3)
-		myStr := fmt.Sprintf("\n\nGET CHAIN HEIGHT TEST FAIL : value in chain height match on all Peers after deploy and single invoke")
+		myStr := fmt.Sprintf("GET CHAIN HEIGHT TEST FAIL : value in chain height DOES NOT MATCH ON ALL PEERS after deploy and single invoke:\n")
+		fmt.Printf("  All heights DO NOT MATCH expected value: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3)
 		fmt.Println(myStr)
 		fmt.Fprintln(writer, myStr)
+		writer.Flush()
 	}
-	writer.Flush()
-
 }
 
 func getBlockTxInfo(blockNumber int) {

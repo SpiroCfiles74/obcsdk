@@ -8,6 +8,7 @@ import (
 	//"sync"
 	"obcsdk/chaincode"
 	"obcsdk/peernetwork"
+	"obcsdk/lstutil"
 )
 
 var peerNetworkSetup peernetwork.PeerNetwork
@@ -36,7 +37,7 @@ func sleep(secs int64) {
 }
 
 func deployChaincode (done chan bool){
-	var funcArgs = []string{util.CHAINCODE_NAME, "init"}
+	var funcArgs = []string{lstutil.CHAINCODE_NAME, "init"}
 	var args = []string{argA[0], data, argB[0], "0"}
 
 	//fmt.Println("\n######## Deploying chaincode ")
@@ -47,7 +48,7 @@ func deployChaincode (done chan bool){
 }
 
 func invokeChaincode (i int){// (res1, res2 int64) {
-	arg1Construct := []string{util.CHAINCODE_NAME, "invoke"}
+	arg1Construct := []string{lstutil.CHAINCODE_NAME, "invoke"}
 	arg2Construct := []string{"a"+strconv.Itoa(i), data, "counter", }
 
 	_, _ = chaincode.Invoke(arg1Construct, arg2Construct)
@@ -56,7 +57,7 @@ func invokeChaincode (i int){// (res1, res2 int64) {
 
 func queryChaincode () (res1, res2 string){
 	var qargA = []string{"a"+strconv.FormatInt(counter, 10)}
-	qAPIArgs0 := []string{util.CHAINCODE_NAME, "query"}
+	qAPIArgs0 := []string{lstutil.CHAINCODE_NAME, "query"}
 	A, _ := chaincode.Query(qAPIArgs0, qargA)
 	B, _ := chaincode.Query(qAPIArgs0, []string{"counter"})
 	return A,B

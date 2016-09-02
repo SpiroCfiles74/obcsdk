@@ -71,14 +71,16 @@ func initNetwork() {
 	chaincode.RegisterCustomUsers()
 }
 
-// this func is not currently used, but it works; it just finds and uses first avail user on first avail peer
-func invokeChaincode() {
+// this func is not currently used by LST tests, but it works fine for BasicFunc; it just finds and uses first avail user on first avail peer
+func InvokeChaincode() (invokeResponse string) {
         counter++
         arg1 := []string{CHAINCODE_NAME, INVOKE}
         arg2 := []string{"a" + strconv.FormatInt(counter, 10), DATA, "counter"}
-        _, _ = chaincode.Invoke(arg1, arg2)
+        invokeResponse, _ = chaincode.Invoke(arg1, arg2)
+        return invokeResponse
 }
 
+// this func just uses the specified user on the last peer as defined in threadutil.GetUser(...)
 func invokeChaincodeWithUser(user string) {
 	counter++
 	arg1Construct := []string{CHAINCODE_NAME, INVOKE, user}
@@ -86,6 +88,7 @@ func invokeChaincodeWithUser(user string) {
 	_, _ = chaincode.InvokeAsUser(arg1Construct, arg2Construct)
 }
 
+// this func uses a user on the specified peer as defined in threadutil.GetPeer(...)
 func invokeChaincodeOnPeer(peer string) {
         counter++
         arg1Construct := []string{CHAINCODE_NAME, INVOKE, peer}
@@ -94,7 +97,6 @@ func invokeChaincodeOnPeer(peer string) {
 }
 
 func Init() {
-	done := make(chan bool, 1)
 	counter = 0
 
         var envvar string
@@ -129,7 +131,7 @@ func Init() {
 	initNetwork()
 
 	//Deploy chaincode
-	DeployChaincode(done)
+	DeployChaincode()
 }
 
 // use this func when using single thread per peer

@@ -9,7 +9,7 @@ import (
 
 	"obcsdk/chaincode"
 	"obcsdk/peernetwork"
-	"obcsdk/util"
+	"obcsdk/lstutil"
 )
 
 var peerNetworkSetup peernetwork.PeerNetwork
@@ -33,21 +33,20 @@ func initNetwork() {
 
 func invokeChaincode(peer string ) {
 	counter++
-	arg1Construct := []string{"concurrency", util.INVOKE, peer}
-	arg2Construct := []string{"a" + strconv.FormatInt(counter, 10), util.DATA, "counter"}
+	arg1Construct := []string{"concurrency", lstutil.INVOKE, peer}
+	arg2Construct := []string{"a" + strconv.FormatInt(counter, 10), lstutil.DATA, "counter"}
 
 	_,_ = chaincode.InvokeOnPeer(arg1Construct, arg2Construct)
 }
 
 func Init() {
 	//initialize
-	done := make(chan bool, 1)
 	counter = 0
 	// Setup the network based on the NetworkCredentials.json provided
 	initNetwork()
 
 	//Deploy chaincode
-	util.DeployChaincode(done)
+	lstutil.DeployChaincode()
 }
 
 func InvokeLoop() {
@@ -69,8 +68,8 @@ func tearDown(url string) {
 	var errTransactions int64
 	errTransactions = 0
 	fmt.Println("....... State transfer is happening, Lets take a nap for 2 mins ......")
-	util.Sleep(120)
-	val1, val2 := util.QueryChaincode(counter)
+	lstutil.Sleep(120)
+	val1, val2 := lstutil.QueryChaincode(counter)
 	fmt.Println("========= After Query Vals A = ",val1," \n B = ",  val2,"\n")
 
 /*	height := getChainHeight(url) //Remove hardcoding ??
@@ -124,7 +123,7 @@ func main() {
 	url := os.Args[1]
 
 	// time to messure overall execution of the testcase
-	defer util.TimeTracker(time.Now(), "Total execution time for LedgerStressTwoCliTwoPeer.go ")
+	defer lstutil.TimeTracker(time.Now(), "Total execution time for LedgerStressTwoCliTwoPeer.go ")
 
 	Init()
 	InvokeLoop()
