@@ -73,14 +73,15 @@ type Block struct {
 */
 func Monitor_ChainHeight(url string) int {
 
-	respBody, _ := peerrest.GetChainInfo(url + "/chain")
+	respBody, status := peerrest.GetChainInfo(url + "/chain")
 	type ChainMsg struct {
 		HT int `json:"height"`
 		//curHash string `json:"currentBlockHash"`
 		//prevHash string `json:"previousBlockHash"`
 	}
+	fmt.Println("Monitor_ChainHeight() chain info status: ", status)
+	if verbose { fmt.Println("Monitor_ChainHeight() chain info respBody: ", respBody) }
 	resCh := new(ChainMsg)
-	if verbose { fmt.Println("Monitor_ChainHeight() respBody: ", respBody) }
 	err := json.Unmarshal([]byte(respBody), &resCh)
 	if err != nil {
 		fmt.Println("There was an error in unmarshalling chain info")
@@ -93,15 +94,24 @@ func Monitor_ChainHeight(url string) int {
 	url (http://IP:PORT) is the address of a network peer
 */
 func ChainStats(url string) {
+	body, status := peerrest.GetChainInfo(url + "/chain")
+	fmt.Println("ChainStats() chain info status: ", status) 
+	fmt.Println("ChainStats() chain info body: ", body)
+	//return body, status
+}
 
-	peerrest.GetChainInfo(url + "/chain")
-
+func GetChainStats(url string) (body, status string) {
+        body, status = peerrest.GetChainInfo(url + "/chain")
+        fmt.Println("ChainStats() chain info status: ", status)
+        fmt.Println("ChainStats() chain info body: ", body)
+        return body, status
 }
 
 /*
 func ChaincodeBlockHash(url string, block int) string {
 	body, status := peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block - 1))
-	if verbose { fmt.Println("ChaincodeBlockHash() chain info status: ", status) }
+	fmt.Println("ChaincodeBlockHash() chain info status: ", status) 
+	if verbose { fmt.Println("ChaincodeBlockHash() chain info body: ", body) }
 	type blockStruct struct {
 		HT int `json:"height"`
 		//curHash string `json:"currentBlockHash"`
@@ -120,9 +130,10 @@ func ChaincodeBlockHash(url string, block int) string {
 
 func ChaincodeBlockHash(url string, block int) string {
 	//respBody, status := peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block - 1))
-	respBody, _ := peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block))
-	blockStruct := new(Block)
+	respBody, status := peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block))
+	fmt.Println("ChaincodeBlockHash() chain info status: ", status)
 	if verbose { fmt.Println("ChaincodeBlockHash() chain info respBody: ", respBody) }
+	blockStruct := new(Block)
 	err := json.Unmarshal([]byte(respBody), &blockStruct)
 	if err != nil {
 		fmt.Println("There was an error in unmarshalling chain info", err)
@@ -131,10 +142,10 @@ func ChaincodeBlockHash(url string, block int) string {
 }
 
 func ChaincodeBlockTrxInfo(url string, block int) NonHashData {
-	//respBody, status := peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block))
-	respBody, _ := peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block))
-	blockStruct := new(Block)
+	respBody, status := peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block))
+	fmt.Println("ChaincodeBlockTrxInfo() chain info status: ", status)
 	if verbose { fmt.Println("ChaincodeBlockTrxInfo() chain info respBody: ", respBody) }
+	blockStruct := new(Block)
 
 	err := json.Unmarshal([]byte(respBody), &blockStruct)
 	if err!= nil {
@@ -157,6 +168,7 @@ func BlockStats(url string, block int) string {
 	const JSON_INDENT = "    " // four bytes of indentation
 	body, status = peerrest.GetChainInfo(url + "/chain/blocks/" + currBlock)
 	fmt.Println("BlockStats() GetChainInfo status: ", status)
+	if verbose { fmt.Println("BlockStats() GetChainInfo body: ", body) }
 
 	error := json.Indent(&prettyJSON, []byte(body), "", JSON_INDENT)
 	if error != nil {
@@ -169,7 +181,7 @@ func BlockStats(url string, block int) string {
 }
 
 /*
-  Under construction
+  
 */
 func NetworkPeers(url string) (string, string) {
 	var body, status string
@@ -177,13 +189,14 @@ func NetworkPeers(url string) (string, string) {
 	const JSON_INDENT = "    " // four bytes of indentation
 	body, status = peerrest.GetChainInfo(url + "/network/peers")
 	fmt.Println("NetworkPeers() GetChainInfo status: ", status)
+	if verbose { fmt.Println("NetworkPeers() GetChainInfo body: ", body) }
 
 	error := json.Indent(&prettyJSON, []byte(body), "", JSON_INDENT)
 	if error != nil {
 		return fmt.Sprintln("JSON parse error: %s", error), status
 	}
 
-	fmt.Println(string(prettyJSON.Bytes()))
+	if verbose { fmt.Println(string(prettyJSON.Bytes())) }
 	return string(prettyJSON.Bytes()), status
 
 }
@@ -194,10 +207,8 @@ func NetworkPeers(url string) (string, string) {
 */
 func UserRegister_Status(url string, username string) (responseBody string, status string){
 	responseBody, status = peerrest.GetChainInfo(url + "/registrar/" + username)
-	if verbose {
-		fmt.Println("UserRegister_Status() chain info responseStatus = ", status)
-		fmt.Println("UserRegister_Status() chain info responseBody = ", responseBody)
-	}
+	fmt.Println("UserRegister_Status() chain info responseStatus = ", status)
+	if verbose { fmt.Println("UserRegister_Status() chain info responseBody = ", responseBody) }
 	return responseBody, status
 }
 
@@ -208,10 +219,8 @@ func UserRegister_Status(url string, username string) (responseBody string, stat
 func UserRegister_ecertDetail(url string, username string) (response string, status string) {
 	var body string
 	body,status = peerrest.GetChainInfo(url + "/registrar/" + username + "/ecert")
-	if verbose {
-		fmt.Println("UserRegister_ecertDetail() chain info responseStatus = ", status)
-		fmt.Println("UserRegister_ecertDetail() chain info responseBody = ", body)
-	}
+	fmt.Println("UserRegister_ecertDetail() chain info responseStatus = ", status)
+	if verbose { fmt.Println("UserRegister_ecertDetail() chain info responseBody = ", body) }
 	return body, status
 }
 
@@ -227,7 +236,8 @@ func Transaction_Detail(url string, txid string) {
 	var prettyJSON bytes.Buffer
 	const JSON_INDENT = "    " // four bytes of indentation
 	body, status = peerrest.GetChainInfo(url + "/transactions/" + txid)
-	if verbose { fmt.Println("Transaction_Detail() chain info status: ", status) }
+	fmt.Println("Transaction_Detail() chain info status: ", status)
+	if verbose { fmt.Println("Transaction_Detail() chain info body: ", body) }
 
 	error := json.Indent(&prettyJSON, []byte(body), "", JSON_INDENT)
 	if error != nil {
