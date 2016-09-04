@@ -15,9 +15,11 @@ var f *os.File
 var writer *bufio.Writer
 var myNetwork peernetwork.PeerNetwork
 var url string
+var overallTestPass bool
 
 func main() {
 
+	overallTestPass = true
 	var err error
 	f, err = os.OpenFile("/tmp/hyperledgerBetaTestrun_Output", os.O_RDWR|os.O_APPEND, 0660)
         if ( err != nil) {
@@ -52,6 +54,7 @@ func main() {
 		fmt.Println(myStr)
 		fmt.Fprintln(writer, myStr)
 	} else {
+		overallTestPass = false
 		myStr = fmt.Sprintf("NetworkPeers Rest API TEST FAIL!!! response:\n%s\n", response)
 		fmt.Println(response)
 		fmt.Fprintln(writer, response)
@@ -91,6 +94,7 @@ func main() {
 	if strings.Contains(nonHashData.TransactionResult[0].Uuid, invRes) {
 		myStr = fmt.Sprintf("\nGetBlocks API TEST PASS: Transaction Successfully stored in Block")
 	} else {
+		overallTestPass = false
 		myStr = fmt.Sprintf("\nGetBlocks API TEST FAIL: Transaction NOT stored in Block")
 	}
 	myStr += fmt.Sprintf("\nCH_Block = %d, UUID = %s, InvokeTransactionResult = %s\n", height-1, nonHashData.TransactionResult[0].Uuid, invRes)
@@ -104,7 +108,9 @@ func main() {
 	fmt.Println("Transaction_Detail(url,invRes):  ")
 	chaincode.Transaction_Detail(url, invRes)
 
-	myStr = fmt.Sprintf("\n\n*********** END BASICFUNC.go ***************\n\n")
+	resultStr := "PASS"
+	if !overallTestPass { resultStr = "FAIL" }
+	myStr = fmt.Sprintf("\n\n*********** END BASICFUNC.go OVERALL TEST RESULT = %s ***************\n\n", resultStr)
 	fmt.Println(myStr)
 	fmt.Fprintln(writer, myStr)
 	writer.Flush()
@@ -141,6 +147,7 @@ func userRegisterTest(url string, username string) {
 	if strings.Contains(status, "200") && strings.Contains(response, username + " is already logged in") {
 		myStr += fmt.Sprintf ("PASS: %s User Registration was already done successfully", username)
 	} else {
+		overallTestPass = false
 		myStr += fmt.Sprintf ("FAIL: %s User Registration was NOT already done\n status = %s\n response = %s", username, status, response)
 	}
 	fmt.Println(myStr)
@@ -151,6 +158,7 @@ func userRegisterTest(url string, username string) {
 	if ((strings.Contains(status, "200")) == false) {
 		fmt.Println("RegisterUser API Negative TEST PASS: CONFIRMED that user <ghostuserdoesnotexist> is unregistered as expected")
 	} else {
+		overallTestPass = false
 		myStr = fmt.Sprintf("RegisterUser API Negative TEST FAIL: User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response)
 		fmt.Println(myStr)
 	}
@@ -164,6 +172,7 @@ func userRegisterTest(url string, username string) {
 	if strings.Contains(status, "200") && strings.Contains(response, ecertUser + " is already logged in") {
 		myStr += fmt.Sprintf ("PASS: %s ecert User Registration was already done successfully", ecertUser)
 	} else {
+		overallTestPass = false
 		myStr += fmt.Sprintf ("FAIL: %s ecert User Registration was NOT already done\n status = %s\n response = %s\n", username, status, response)
 	}
 	fmt.Println(myStr)
@@ -175,6 +184,7 @@ func userRegisterTest(url string, username string) {
 	if ((strings.Contains(status, "200")) == false) {
 		fmt.Println("UserRegister_ecert API Negative TEST PASS: CONFIRMED that user <ghostuserdoesnotexist> is unregistered as expected")
 	} else {
+		overallTestPass = false
 		myStr = fmt.Sprintf("UserRegister_ecert API Negative TEST FAIL: User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response)
 		fmt.Println(myStr)
 	}
@@ -241,6 +251,7 @@ func query(txName string, expectedA int, expectedB int) {
 		fmt.Println(myStr)
 		fmt.Fprintln(writer, myStr)
 	} else {
+		overallTestPass = false
 		myStr := fmt.Sprintf("\n\n%s TEST FAIL: Results in A value DO NOT match on all Peers after %s", txName, txName)
 		fmt.Println(myStr)
 		fmt.Fprintln(writer, myStr)
@@ -254,6 +265,7 @@ func query(txName string, expectedA int, expectedB int) {
 		fmt.Println(myStr)
 		fmt.Fprintln(writer, myStr)
 	} else {
+		overallTestPass = false
 		myStr := fmt.Sprintf("\n\n%s TEST FAIL: Results in B value DO NOT match on all Peers after %s", txName, txName)
 		fmt.Println(myStr)
 		fmt.Fprintln(writer, myStr)
@@ -274,6 +286,7 @@ func getHeight() {
 		fmt.Fprintln(writer, myStr)
 		writer.Flush()
 	} else {
+		overallTestPass = false
 		myStr := fmt.Sprintf("CHAIN HEIGHT TEST FAIL : value in chain height DOES NOT MATCH ON ALL PEERS after deploy and single invoke:\n")
 		myStr += fmt.Sprintf("  All heights DO NOT MATCH expected value: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3)
 		fmt.Println(myStr)

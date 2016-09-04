@@ -16,8 +16,10 @@ var f *os.File
 var myNetwork peernetwork.PeerNetwork
 var url string
 var counter int64
+var overallTestPass bool
 
 func main() {
+	overallTestPass = true
 	lstutil.TESTNAME = "BasicFuncExistingNetworkLST"
 	lstutil.InitLogger(lstutil.TESTNAME)
 	lstutil.Logger("\n\n*********** " + lstutil.TESTNAME + " ***************")
@@ -42,31 +44,39 @@ func main() {
 	if strings.Contains(status, "200") {
 		myStr += "PASS. Successful "
 	} else {
+		overallTestPass = false
 		myStr += "FAIL!!! Error "
 	}
 	myStr += fmt.Sprintf("NetworkPeers response body:\n%s\n", response)
 	lstutil.Logger(myStr)
 
 	lstutil.Logger("\n===== Get ChainStats Test =====")
-	chaincode.ChainStats(url)
+	response, status = chaincode.GetChainStats(url)
+        if strings.Contains(status, "200") {
+                lstutil.Logger("ChainStats Rest API TEST PASS.")
+        } else {
+                overallTestPass = false
+                lstutil.Logger("ChainStats Rest API TEST FAIL!!!")
+        }
 
 	counter = queryAllHostsToGetCurrentCounter(lstutil.TESTNAME)
+        height := chaincode.Monitor_ChainHeight(url) // and save the height; it will be needed below for getHeight()
 
-//	lstutil.Logger("\n===== Deploy Test =====")
-//	lstutil.DeployChaincode()  // includes sleep
-//	queryAllHosts("DEPLOY", counter)
+	lstutil.Logger("\n===== Deploy Test =====")
+	//lstutil.DeployChaincode()  // includes sleep
+	counter = lstutil.DeployChaincode()  // includes sleep
+	height++
+	queryAllHosts("DEPLOY", counter)
 
 	lstutil.Logger("\n===== Invoke Test =====")
-	invRes := lstutil.InvokeChaincode()
+	invRes := lstutil.InvokeChaincode()  // increments counter inside
+	height++
 	time.Sleep(10000 * time.Millisecond)
 	queryAllHosts("INVOKE", counter)
 
 	lstutil.Logger("\n===== GetChainHeight Test =====")
-	getHeight()  // this gets height from all peers and validates all match
-	height := chaincode.Monitor_ChainHeight(url)  // retrieve height from peer of test_user0
+	getHeight(height)  // this gets height from all peers and validates all match
 
-	lstutil.Logger("\n===== ChainStats API Test =====")
-	chaincode.ChainStats(url)
 
 	lstutil.Logger("\n===== GetBlock Stats API Test =====")
 	//chaincode.BlockStats(url, height)
@@ -75,6 +85,7 @@ func main() {
 	if strings.Contains(nonHashData.TransactionResult[0].Uuid, invRes) {
 		myStr += fmt.Sprintf("PASS: Transaction Successfully stored in Block")
 	} else {
+		overallTestPass = false
 		myStr += fmt.Sprintf("FAIL!!! Transaction NOT stored in Block")
 	}
 	myStr += fmt.Sprintf("\nCH_Block = %d, UUID = %s, InvokeTransactionResult = %s\n", height-1, nonHashData.TransactionResult[0].Uuid, invRes)
@@ -89,7 +100,8 @@ func main() {
 	lstutil.Logger("calling Transaction_Detail(url,invRes):  ")
 	chaincode.Transaction_Detail(url, invRes)
 
-	lstutil.Logger("\n\n*********** END BasicFuncExistingNetworkLST ***************\n\n")
+	if overallTestPass { myStr = "PASS" } else { myStr = "FAIL" }
+	lstutil.Logger(fmt.Sprintf("\n\n*********** END BasicFuncExistingNetworkLST OVERALL TEST RESULT = %s ***************\n\n", myStr))
 }
 
 func setupNetwork() {
@@ -134,6 +146,7 @@ func userRegisterTest(url string, username string) {
 	if strings.Contains(status, "200") && strings.Contains(response, username + " is already logged in") {
 		myStr += fmt.Sprintf ("PASS: %s User Registration was already done successfully", username)
 	} else {
+		overallTestPass = false
 		myStr += fmt.Sprintf ("FAIL!!! %s User Registration was NOT already done\n status = %s\n response = %s", username, status, response)
 	}
 	lstutil.Logger(myStr)
@@ -144,6 +157,7 @@ func userRegisterTest(url string, username string) {
 	if ((strings.Contains(status, "200")) == false) {
 		lstutil.Logger("RegisterUser API Negative TEST PASS: CONFIRMED that user <ghostuserdoesnotexist> is unregistered as expected")
 	} else {
+		overallTestPass = false
 		lstutil.Logger(fmt.Sprintf("RegisterUser API Negative TEST FAIL!!! User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response))
 	}
 
@@ -156,6 +170,7 @@ func userRegisterTest(url string, username string) {
 	if strings.Contains(status, "200") && strings.Contains(response, ecertUser + " is already logged in") {
 		myEcertStr += fmt.Sprintf ("PASS: %s ecert User Registration was already done successfully", ecertUser)
 	} else {
+		overallTestPass = false
 		myEcertStr += fmt.Sprintf ("FAIL!!! %s ecert User Registration was NOT already done\n status = %s\n response = %s\n", username, status, response)
 	}
 	lstutil.Logger(myEcertStr)
@@ -167,6 +182,7 @@ func userRegisterTest(url string, username string) {
 	if ((strings.Contains(status, "200")) == false) {
 		lstutil.Logger("UserRegister_ecert API Negative TEST PASS: CONFIRMED that user <ghostuserdoesnotexist> is unregistered as expected")
 	} else {
+		overallTestPass = false
 		lstutil.Logger(fmt.Sprintf("UserRegister_ecert API Negative TEST FAIL!!! User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response))
 	}
 }
@@ -206,6 +222,7 @@ func queryAllHostsToGetCurrentCounter(txName string) (counter int64) {		// using
 		}
 	}
 	if failedCount > F {
+		overallTestPass = false
 		lstutil.Logger(fmt.Sprintf("%s TEST STARTUP FAILURE!!! Failed to query %s peers. RERUN when at least %d/%d peers are running, in order to be able to reach consensus.", txName, failedCount, ((N-1)/3)*2+1, N ))
 	} else {
 		var consensus_counter int64
@@ -223,6 +240,7 @@ func queryAllHostsToGetCurrentCounter(txName string) (counter int64) {		// using
 			counter = consensus_counter
 			lstutil.Logger(fmt.Sprintf("%s TEST PASS STARTUP: %d/%d peers reached consensus: current count = %d", txName, N-failedCount, N, consensus_counter))
 		} else {
+		overallTestPass = false
 			lstutil.Logger(fmt.Sprintf("%s TEST FAIL upon STARTUP: peers cannot reach consensus on current count", txName))
 		}
 	}
@@ -245,6 +263,7 @@ func queryAllHosts(txName string, expected_count int64) {		// using ratnakar myC
         	lstutil.Logger(fmt.Sprintf("QueryOnHost %d %s after %s: expected_count=%d, Actual a%s = %s", peerNumber, result, txName, expected_count, counterIdxStr, valueStr))
 	}
 	if failedCount > (N-1)/3 {
+		overallTestPass = false
 		lstutil.Logger(fmt.Sprintf("%s TEST FAIL!!!  TOO MANY PEERS (%d) FAILED to obtain the correct count, so network consensus failed!!!\n(If fewer than %d/%d peers are running, then the network does not have enough running nodes to reach consensus.)", txName, failedCount,  ((N-1)/3)*2+1, N ))
 	} else {
 		lstutil.Logger(fmt.Sprintf("%s TEST PASS.  %d/%d peers reached consensus on the correct count", txName, N-failedCount, N))
@@ -301,8 +320,7 @@ func query(txName string, expectedA int, expectedB int) {	// using example02
 }
 */
 
-func getHeight() {
-
+func getHeight_deprecated() {
 	ht0, _ := chaincode.GetChainHeight(threadutil.GetPeer(0))
 	ht1, _ := chaincode.GetChainHeight(threadutil.GetPeer(1))
 	ht2, _ := chaincode.GetChainHeight(threadutil.GetPeer(2))
@@ -312,11 +330,49 @@ func getHeight() {
 		lstutil.Logger(fmt.Sprintf("CHAIN HEIGHT TEST PASS : Results in A value match on all Peers after deploy and single invoke:"))
 		lstutil.Logger(fmt.Sprintf("  Height Verified: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3))
 	} else {
+		overallTestPass = false
 		lstutil.Logger(fmt.Sprintf("CHAIN HEIGHT TEST FAIL!!! value in chain height DOES NOT MATCH ON ALL PEERS after deploy and single invoke:"))
 		lstutil.Logger(fmt.Sprintf("  All heights DO NOT MATCH expected value: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3))
 	}
-
 }
+
+
+func getHeight(expectedToMatch int) {
+
+        ht0, _ := chaincode.GetChainHeight("PEER0")
+        ht1, _ := chaincode.GetChainHeight("PEER1")
+        ht2, _ := chaincode.GetChainHeight("PEER2")
+        ht3, _ := chaincode.GetChainHeight("PEER3")
+
+        numPeers := peernetwork.GetNumberOfPeers(myNetwork)
+        if numPeers != 4 { fmt.Println(fmt.Sprintf("TEST FAILURE: TODO: Must fix code %d peers, rather than default=4 peers in network!!!", numPeers)) }
+        // before declaring failure, we will first check if we at least have consensus, with enough nodes with the correct height
+        agree := 1
+        if (ht0 == ht1) { agree++ }
+        if (ht0 == ht2) { agree++ }
+        if (ht0 == ht3) { agree++ }
+        if agree < numPeers - ((numPeers-1) / 3) {
+                agree = 1
+                if (ht1 == ht2) { agree++ }
+                if (ht1 == ht3) { agree++ }
+        }
+
+        if (ht0 == expectedToMatch) && (ht1 == expectedToMatch) && (ht2 == expectedToMatch) && (ht3 == expectedToMatch) {
+                myStr := fmt.Sprintf("CHAIN HEIGHT TEST PASS : value match on all Peers, after deploy and single invoke:\n")
+                myStr += fmt.Sprintf("  Height Verified: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3)
+                lstutil.Logger(myStr)
+        } else if agree >= numPeers - ((numPeers-1) / 3) {
+                myStr := fmt.Sprintf("CHAIN HEIGHT TEST PASS : value match on enough Peers for consensus, after deploy and single invoke:\n")
+                myStr += fmt.Sprintf("  Height Verified: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3)
+                lstutil.Logger(myStr)
+        } else {
+                overallTestPass = false
+                myStr := fmt.Sprintf("CHAIN HEIGHT TEST FAIL : value in chain height DOES NOT MATCH expected value %d ON ALL PEERS after deploy and single invoke:\n", expectedToMatch)
+                myStr += fmt.Sprintf("  All heights DO NOT MATCH expected value: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3)
+                lstutil.Logger(myStr)
+        }
+}
+
 
 func getBlockTxInfo(blockNumber int) {
 	errTransactions := 0
