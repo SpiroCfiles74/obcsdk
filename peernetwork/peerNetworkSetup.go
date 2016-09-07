@@ -43,6 +43,7 @@ type ChainCode struct {
 }
 
 var peerNetwork PeerNetwork
+var FirstUser string
 
 const USER = "ibmadmin"
 const PASSWORD = "m0115jan"
@@ -412,6 +413,7 @@ func initializePeers() (peers []Peer, name string) {
 
 	fmt.Println("Getting and Initializing Peer details from network")
 	peerDetails, userDetails, Name := initNetworkCredentials()
+	FirstUser = userDetails[0].USER
 	//userDetails := initializeUsers()
 	numOfPeersOnNetwork := len(peerDetails)
 	numOfUsersOnNetwork := len(userDetails)

@@ -207,8 +207,8 @@ func NetworkPeers(url string) (string, string) {
 */
 func UserRegister_Status(url string, username string) (responseBody string, status string){
 	responseBody, status = peerrest.GetChainInfo(url + "/registrar/" + username)
-	fmt.Println("UserRegister_Status() chain info responseStatus = ", status)
-	if verbose { fmt.Println("UserRegister_Status() chain info responseBody = ", responseBody) }
+	fmt.Println("  UserRegister_Status() chain info responseStatus = ", status)
+	if verbose { fmt.Println("  UserRegister_Status() chain info responseBody = ", responseBody) }
 	return responseBody, status
 }
 
@@ -219,8 +219,8 @@ func UserRegister_Status(url string, username string) (responseBody string, stat
 func UserRegister_ecertDetail(url string, username string) (response string, status string) {
 	var body string
 	body,status = peerrest.GetChainInfo(url + "/registrar/" + username + "/ecert")
-	fmt.Println("UserRegister_ecertDetail() chain info responseStatus = ", status)
-	if verbose { fmt.Println("UserRegister_ecertDetail() chain info responseBody = ", body) }
+	fmt.Println("  UserRegister_ecertDetail() chain info responseStatus = ", status)
+	if verbose { fmt.Println("  UserRegister_ecertDetail() chain info responseBody = ", body) }
 	return body, status
 }
 

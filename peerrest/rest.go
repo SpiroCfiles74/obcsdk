@@ -15,8 +15,9 @@ import (
 // Calling GetChainInfo according to http or https api according to the value in env variable "NETWORK"
 // "NETWORK" = "LOCAL" - would use a network with http protocol
 // "NETWORK" = "Z" - would use https protocol
+
 func GetChainInfo(url string) (respBody string, respStatus string){
-	if os.Getenv("NET_COMM_PROTOCOL") == "HTTPS" { /* http */
+	if os.Getenv("NET_COMM_PROTOCOL") == "HTTPS" || os.Getenv("NETWORK") == "Z" {
 		respBody, respStatus = GetChainInfo_HTTPS(url)
 	} else  {
 		respBody, respStatus = GetChainInfo_HTTP(url)
@@ -38,14 +39,14 @@ func GetChainInfo_HTTP(url string) (respBody string, respStatus string) {
 	response, err := httpclient.Get(url)
 
 	if err != nil {
-		fmt.Printf("%s", err)
-		return err.Error(), "Error from GET request"
+		fmt.Println("Error from httpclient.GET request: ", err)
+		return err.Error(), "Error from httpclient.GET request"
 	} else {
 		defer response.Body.Close()
 		contents, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			fmt.Printf("%s", err)
-			return err.Error(), "Error from GET request"
+			fmt.Println("Error from ioutil.ReadAll during GET request: ", err)
+			return err.Error(), "Error from ioutil.ReadAll during GET request"
 		}
 		return string(contents), response.Status
 	}
@@ -65,17 +66,17 @@ func GetChainInfo_HTTPS(url string) (respBody string, respStatus string) {
 	         TLSClientConfig:    &tls.Config{RootCAs: nil},
 	         DisableCompression: true,
         }
-        httpclient := &http.Client{ Timeout: time.Second * 10, Transport: tr }
-        response, err := httpclient.Get(url)
+        httpsclient := &http.Client{ Timeout: time.Second * 10, Transport: tr }
+        response, err := httpsclient.Get(url)
 	if err != nil {
-			fmt.Printf("%s", err)
-			return err.Error(), "Error from GET request"
+			fmt.Println("ERROR from httpsclient.GET request: ", err)
+			return err.Error(), "ERROR from httpsclient.GET request"
 	} else {
 		defer response.Body.Close()
 		contents, err := ioutil.ReadAll(response.Body)
 	        if err != nil {
-			fmt.Printf("%s", err)
-			return err.Error(), "Error from GET request"
+			fmt.Println("ERROR from https ioutil.ReadAll during GET request: ", err)
+			return err.Error(), "ERROR from https ioutil.ReadAll during GET request"
 		}
 		return string(contents), response.Status
 	}
@@ -83,10 +84,10 @@ func GetChainInfo_HTTPS(url string) (respBody string, respStatus string) {
 
 // Calling GetChainInfo according to http or https api according to the value in env variable "NETWORK"
 // "NETWORK" = "LOCAL" - would use a network with http protocol
-// "NETWORK" = "Z" - would use https protocol
+// "NETWORK" = "Z" || "NET_COMM_PROTOCOL" = "HTTPS" - we would use https protocol
 
 func PostChainAPI(url string, payLoad []byte) (respBody string, respStatus string){
-	if os.Getenv("NET_COMM_PROTOCOL") == "HTTPS" { /* http */
+	if os.Getenv("NET_COMM_PROTOCOL") == "HTTPS" || os.Getenv("NETWORK") == "Z" {
 		respBody, respStatus = PostChainAPI_HTTPS(url, payLoad)
 	} else  {
 		respBody, respStatus = PostChainAPI_HTTP(url, payLoad)

@@ -249,6 +249,7 @@ done
 # Writing Peer data into a file for Go SDK
 
 cd $WORKDIR
+echo "creating file ../automation/networkcredentials"
 touch networkcredentials
 echo "{" > $WORKDIR/networkcredentials
 echo "   \"PeerData\" :  [" >> $WORKDIR/networkcredentials

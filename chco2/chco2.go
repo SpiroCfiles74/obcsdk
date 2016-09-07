@@ -137,7 +137,7 @@ func setup_part1(testName string, started time.Time) {
 
 	CurrentTestName = testName
 	RanToCompletion = false
-	Verbose = false			// See also:  "verbose" in chaincode/const.go for lower level functions
+	Verbose = true			// See also:  "verbose" in chaincode/const.go for lower level functions
 	Stop_on_error = false
 	queryTestsPass = true
 	chainHeightTestsPass = true
@@ -1001,11 +1001,9 @@ func RestartPeers(peerNumsToStopStart []int) {
 		}
 		if (rootPeer) {
 			// sleep extra when stopping/starting primary/root peer
-			//if (Verbose) { fmt.Println("Sleep 60 secs") }
 			fmt.Println("Sleep extra 60 secs because restarting potential primary") 
 			time.Sleep(60000 * time.Millisecond) 
 		} else {
-			//if (Verbose) { fmt.Println("Sleep 30 secs") }
 			fmt.Println("Sleep extra 30 secs")
 			time.Sleep(30000 * time.Millisecond) 
 		}

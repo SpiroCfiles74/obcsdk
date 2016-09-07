@@ -50,24 +50,25 @@ func Init() {
 }
 
 func GetURL(ip, port string) string {
-    var url string
-    if os.Getenv("NET_COMM_PROTOCOL") == "HTTPS" {
-        url = "https://" + ip + ":" + port
-    } else {
-    	url = "http://" + ip + ":" + port
-    }
-    return url
+	var url string
+	if os.Getenv("NET_COMM_PROTOCOL") == "HTTPS" || os.Getenv("NETWORK") == "Z" {
+		url = "https://" + ip + ":" + port
+	} else {
+		url = "http://" + ip + ":" + port
+	}
+	return url
 }
 
 /*
    Registers each user on the network based on the content of ThisNetwork.Peers.
 */
-func RegisterUsers() {
+func RegisterUsers() bool {
 	if verbose { fmt.Println("\nRegisterUsers: register list of all users in all peers in network") }
 
 	//testuser := peernetwork.AUser(ThisNetwork)
 	Peers = ThisNetwork.Peers
 	i := 0
+	passResult := true
 	for i < len(Peers) {
 		successfuls := 0
 		userList := Peers[i].UserData
@@ -80,14 +81,19 @@ func RegisterUsers() {
 			errStatusStr := register(url, user, secret)
 			if errStatusStr == "" { successfuls++ } else { fmt.Println("ERROR registering user:", user, " err:", errStatusStr) }
 		}
+		if successfuls != len(userList) { passResult = false }
 		fmt.Println("\nRegisterUsers(): Done Registering ", successfuls, "/", len(userList), " users on ", Peers[i].PeerDetails["name"], "\n")
 		i++
 	}
+	return passResult
 }
 
 
-func RegisterCustomUsers() {
+func RegisterCustomUsers() bool {
+
 	if verbose { fmt.Println("\nRegisterCustomUsers: register all users in all peers in network, plus custom users") }
+
+	passResult := true
 
 	Peers = ThisNetwork.Peers
 
@@ -114,7 +120,10 @@ func RegisterCustomUsers() {
 						fmt.Println(msgStr)
 						errStatusStr := register(url, user, secret)
 						if errStatusStr == "" { extraUsers++
-						} else { fmt.Println("ERROR registering custom user:", user, " err:", errStatusStr) }
+						} else {
+							fmt.Println("ERROR registering custom user:", user, " err:", errStatusStr)
+							passResult = false
+						}
 					}
 				} else {
 					// custom users in local network
@@ -125,13 +134,18 @@ func RegisterCustomUsers() {
 						fmt.Println(msgStr)
 						errStatusStr := register(url, user, secret)
 						if errStatusStr == "" { extraUsers++
-						} else { fmt.Println("ERROR registering custom user:", user, " err:", errStatusStr) }
+						} else {
+							fmt.Println("ERROR registering custom user:", user, " err:", errStatusStr)
+							passResult = false
+						}
 					}
 				}
 			}
 		}
-		fmt.Println("\nRegisterCustomUsers(): Done Registering ", successfuls, "/", len(userList), " regular users and ", extraUsers, "/",threadutil.NumberCustomUsersOnLastPeer, " extraUsers on ", Peers[i].PeerDetails["name"], "\n")
+		if successfuls != len(userList) { passResult = false }
+		fmt.Println("\nRegisterCustomUsers(): Done Registering ", successfuls, "/", len(userList), " regular users and ", extraUsers, "/", threadutil.NumberCustomUsersOnLastPeer, " extraUsers on ", Peers[i].PeerDetails["name"], "\n")
 	}
+	return passResult
 }
 
 func RegisterUsers2() {

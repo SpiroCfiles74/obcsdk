@@ -16,10 +16,10 @@ var f *os.File
 var myNetwork peernetwork.PeerNetwork
 var url string
 var counter int64
-var overallTestPass bool
+var subTestsFailures int
 
 func main() {
-	overallTestPass = true
+	subTestsFailures = 0
 	lstutil.TESTNAME = "BasicFuncExistingNetworkLST"
 	lstutil.InitLogger(lstutil.TESTNAME)
 	lstutil.Logger("\n\n*********** " + lstutil.TESTNAME + " ***************")
@@ -29,13 +29,10 @@ func main() {
 	setupNetwork()
 
 	lstutil.Logger("\n===== userRegisterTest =====")
-	//get a URL details to get info n chainstats/transactions/blocks etc.
-	//aPeer, _ := peernetwork.APeer(myNetwork)
-	//url = "http://" + aPeer.PeerDetails["ip"] + ":" + aPeer.PeerDetails["port"]
-
-	user_ip, user_port, user_name, err := peernetwork.PeerOfThisUser(myNetwork, "test_user0")
+	lstutil.Logger("userRegisterTest: FirstUser=" + peernetwork.FirstUser)
+	user_ip, user_port, user_name, err := peernetwork.PeerOfThisUser(myNetwork, peernetwork.FirstUser)
 	check(err)
-	url = "http://" + user_ip + ":" + user_port
+	url = chaincode.GetURL(user_ip, user_port)
 	userRegisterTest(url, user_name)
 
 	lstutil.Logger("\n===== NetworkPeers Test =====")
@@ -44,7 +41,7 @@ func main() {
 	if strings.Contains(status, "200") {
 		myStr += "PASS. Successful "
 	} else {
-		overallTestPass = false
+		subTestsFailures++
 		myStr += "FAIL!!! Error "
 	}
 	myStr += fmt.Sprintf("NetworkPeers response body:\n%s\n", response)
@@ -55,7 +52,7 @@ func main() {
         if strings.Contains(status, "200") {
                 lstutil.Logger("ChainStats Rest API TEST PASS.")
         } else {
-                overallTestPass = false
+                subTestsFailures++
                 lstutil.Logger("ChainStats Rest API TEST FAIL!!!")
         }
 
@@ -63,7 +60,6 @@ func main() {
         height := chaincode.Monitor_ChainHeight(url) // and save the height; it will be needed below for getHeight()
 
 	lstutil.Logger("\n===== Deploy Test =====")
-	//lstutil.DeployChaincode()  // includes sleep
 	counter = lstutil.DeployChaincode()  // includes sleep
 	height++
 	queryAllHosts("DEPLOY", counter)
@@ -85,7 +81,7 @@ func main() {
 	if strings.Contains(nonHashData.TransactionResult[0].Uuid, invRes) {
 		myStr += fmt.Sprintf("PASS: Transaction Successfully stored in Block")
 	} else {
-		overallTestPass = false
+		subTestsFailures++
 		myStr += fmt.Sprintf("FAIL!!! Transaction NOT stored in Block")
 	}
 	myStr += fmt.Sprintf("\nCH_Block = %d, UUID = %s, InvokeTransactionResult = %s\n", height-1, nonHashData.TransactionResult[0].Uuid, invRes)
@@ -95,12 +91,16 @@ func main() {
 		//getBlockTxInfo(height)
 
 	lstutil.Logger("\n===== Get Transaction_Detail Test =====")
-	lstutil.Logger("input url:  " + url)
-	lstutil.Logger("input invRes:  " + invRes)
-	lstutil.Logger("calling Transaction_Detail(url,invRes):  ")
+	lstutil.Logger("  input url:  " + url)
+	lstutil.Logger("  input invRes:  " + invRes)
+	lstutil.Logger("  calling Transaction_Detail(url,invRes):  ")
 	chaincode.Transaction_Detail(url, invRes)
 
-	if overallTestPass { myStr = "PASS" } else { myStr = "FAIL" }
+	if subTestsFailures == 0 {
+		myStr = "PASS"
+	} else {
+        	myStr = fmt.Sprintf("FAIL (failed %d sub-tests)", subTestsFailures)
+	}
 	lstutil.Logger(fmt.Sprintf("\n\n*********** END BasicFuncExistingNetworkLST OVERALL TEST RESULT = %s ***************\n\n", myStr))
 }
 
@@ -111,28 +111,45 @@ func setupNetwork() {
 	// lstutil.Logger("Setup a new network of peers (after killing old ones) using local_fabric script")
 	// peernetwork.SetupLocalNetwork(4, false)
 
-	lstutil.Logger("===== Get existing Network Credentials ===== ")
-        peernetwork.GetNC_Local()
+	// When running BasicFunc test on local network, the local_fabric shell script creates
+	// networkcredentials file. When running this with existing network, create it yourself by
+	// putting the service_credentials from the Z network into serv_creds_file and executing
+	//	"./update_z.py -b -f <serv_creds_file>"
+	// to put the networkcredentials file in automation/ folder.
+	// Note: you can skip calling GetNC_Local here if you first ensure the networkcredentials
+	// file has already been copied to ../util/NetworkCredentials.json
 
-	lstutil.Logger("===== Connect to existing network - InitNetwork =====")
+	lstutil.Logger("----- Get existing Network Credentials ----- ")
+        peernetwork.GetNC_Local()  // cp ../automation/networkcredentials ../util/NetworkCredentials.json
+
+	lstutil.Logger("----- Connect to existing network - InitNetwork -----")
         myNetwork = chaincode.InitNetwork()
 
-        lstutil.Logger("===== InitChainCodes =====")
+        lstutil.Logger("----- InitChainCodes -----")
         chaincode.InitChainCodes()
 	time.Sleep(50000 * time.Millisecond)
 
-        lstutil.Logger("===== RegisterUsers =====")
-        chaincode.RegisterUsers()
+        lstutil.Logger("----- RegisterUsers -----")
+        if !chaincode.RegisterUsers() {
+		lstutil.Logger("\nERROR: FAILED TO REGISTER one or more users in NetworkCredentials.json file\n")
+		subTestsFailures++
+        }
 
-        //lstutil.Logger("===== RegisterCustomUsers =====")
-        //chaincode.RegisterCustomUsers()
+        //lstutil.Logger("----- RegisterCustomUsers -----")
+        //if !chaincode.RegisterCustomUsers() {
+	//	lstutil.Logger("\nERROR: FAILED TO REGISTER one or more CUSTOM users\n")
+	//	subTestsFailures++
+        //}
+		
 
 	time.Sleep(10000 * time.Millisecond)
 	//peernetwork.PrintNetworkDetails(myNetwork)
 	peernetwork.PrintNetworkDetails()
 	numPeers := peernetwork.GetNumberOfPeers(myNetwork)
 
-	lstutil.Logger(fmt.Sprintf("Network running successfully with %d peers with pbft and security+privacy enabled\n", numPeers))
+	if subTestsFailures == 0 {
+		lstutil.Logger(fmt.Sprintf("Successfully connected to network with %d peers with pbft and security+privacy enabled\n", numPeers))
+	}
 }
 
 // arg = a username that was already registered; this func confirms if it was successful
@@ -146,23 +163,23 @@ func userRegisterTest(url string, username string) {
 	if strings.Contains(status, "200") && strings.Contains(response, username + " is already logged in") {
 		myStr += fmt.Sprintf ("PASS: %s User Registration was already done successfully", username)
 	} else {
-		overallTestPass = false
+		subTestsFailures++
 		myStr += fmt.Sprintf ("FAIL!!! %s User Registration was NOT already done\n status = %s\n response = %s", username, status, response)
 	}
 	lstutil.Logger(myStr)
-
 	time.Sleep(1000 * time.Millisecond)
+
 	lstutil.Logger("\n----- RegisterUser Negative Test -----")
 	response, status = chaincode.UserRegister_Status(url, "ghostuserdoesnotexist")
 	if ((strings.Contains(status, "200")) == false) {
 		lstutil.Logger("RegisterUser API Negative TEST PASS: CONFIRMED that user <ghostuserdoesnotexist> is unregistered as expected")
 	} else {
-		overallTestPass = false
+		subTestsFailures++
 		lstutil.Logger(fmt.Sprintf("RegisterUser API Negative TEST FAIL!!! User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response))
 	}
+	time.Sleep(1000 * time.Millisecond)
 
  /*
-	time.Sleep(1000 * time.Millisecond)
 	lstutil.Logger("\n----- UserRegister_ecert Test -----")
 	ecertUser := "lukas"
 	response, status = chaincode.UserRegister_ecertDetail(url, ecertUser)
@@ -170,21 +187,22 @@ func userRegisterTest(url string, username string) {
 	if strings.Contains(status, "200") && strings.Contains(response, ecertUser + " is already logged in") {
 		myEcertStr += fmt.Sprintf ("PASS: %s ecert User Registration was already done successfully", ecertUser)
 	} else {
-		overallTestPass = false
+		subTestsFailures++
 		myEcertStr += fmt.Sprintf ("FAIL!!! %s ecert User Registration was NOT already done\n status = %s\n response = %s\n", username, status, response)
 	}
 	lstutil.Logger(myEcertStr)
+	time.Sleep(1000 * time.Millisecond)
  */
 
-	time.Sleep(1000 * time.Millisecond)
 	lstutil.Logger("\n----- UserRegister_ecert Negative Test -----")
 	response, status = chaincode.UserRegister_ecertDetail(url, "ghostuserdoesnotexist")
 	if ((strings.Contains(status, "200")) == false) {
 		lstutil.Logger("UserRegister_ecert API Negative TEST PASS: CONFIRMED that user <ghostuserdoesnotexist> is unregistered as expected")
 	} else {
-		overallTestPass = false
+		subTestsFailures++
 		lstutil.Logger(fmt.Sprintf("UserRegister_ecert API Negative TEST FAIL!!! User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response))
 	}
+	time.Sleep(5000 * time.Millisecond)
 }
 
 /*
@@ -222,7 +240,7 @@ func queryAllHostsToGetCurrentCounter(txName string) (counter int64) {		// using
 		}
 	}
 	if failedCount > F {
-		overallTestPass = false
+		subTestsFailures++
 		lstutil.Logger(fmt.Sprintf("%s TEST STARTUP FAILURE!!! Failed to query %s peers. RERUN when at least %d/%d peers are running, in order to be able to reach consensus.", txName, failedCount, ((N-1)/3)*2+1, N ))
 	} else {
 		var consensus_counter int64
@@ -240,7 +258,7 @@ func queryAllHostsToGetCurrentCounter(txName string) (counter int64) {		// using
 			counter = consensus_counter
 			lstutil.Logger(fmt.Sprintf("%s TEST PASS STARTUP: %d/%d peers reached consensus: current count = %d", txName, N-failedCount, N, consensus_counter))
 		} else {
-		overallTestPass = false
+		subTestsFailures++
 			lstutil.Logger(fmt.Sprintf("%s TEST FAIL upon STARTUP: peers cannot reach consensus on current count", txName))
 		}
 	}
@@ -263,7 +281,7 @@ func queryAllHosts(txName string, expected_count int64) {		// using ratnakar myC
         	lstutil.Logger(fmt.Sprintf("QueryOnHost %d %s after %s: expected_count=%d, Actual a%s = %s", peerNumber, result, txName, expected_count, counterIdxStr, valueStr))
 	}
 	if failedCount > (N-1)/3 {
-		overallTestPass = false
+		subTestsFailures++
 		lstutil.Logger(fmt.Sprintf("%s TEST FAIL!!!  TOO MANY PEERS (%d) FAILED to obtain the correct count, so network consensus failed!!!\n(If fewer than %d/%d peers are running, then the network does not have enough running nodes to reach consensus.)", txName, failedCount,  ((N-1)/3)*2+1, N ))
 	} else {
 		lstutil.Logger(fmt.Sprintf("%s TEST PASS.  %d/%d peers reached consensus on the correct count", txName, N-failedCount, N))
@@ -330,7 +348,7 @@ func getHeight_deprecated() {
 		lstutil.Logger(fmt.Sprintf("CHAIN HEIGHT TEST PASS : Results in A value match on all Peers after deploy and single invoke:"))
 		lstutil.Logger(fmt.Sprintf("  Height Verified: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3))
 	} else {
-		overallTestPass = false
+		subTestsFailures++
 		lstutil.Logger(fmt.Sprintf("CHAIN HEIGHT TEST FAIL!!! value in chain height DOES NOT MATCH ON ALL PEERS after deploy and single invoke:"))
 		lstutil.Logger(fmt.Sprintf("  All heights DO NOT MATCH expected value: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3))
 	}
@@ -339,10 +357,10 @@ func getHeight_deprecated() {
 
 func getHeight(expectedToMatch int) {
 
-        ht0, _ := chaincode.GetChainHeight("PEER0")
-        ht1, _ := chaincode.GetChainHeight("PEER1")
-        ht2, _ := chaincode.GetChainHeight("PEER2")
-        ht3, _ := chaincode.GetChainHeight("PEER3")
+        ht0, _ := chaincode.GetChainHeight(threadutil.GetPeer(0))
+        ht1, _ := chaincode.GetChainHeight(threadutil.GetPeer(1))
+        ht2, _ := chaincode.GetChainHeight(threadutil.GetPeer(2))
+        ht3, _ := chaincode.GetChainHeight(threadutil.GetPeer(3))
 
         numPeers := peernetwork.GetNumberOfPeers(myNetwork)
         if numPeers != 4 { fmt.Println(fmt.Sprintf("TEST FAILURE: TODO: Must fix code %d peers, rather than default=4 peers in network!!!", numPeers)) }
@@ -366,7 +384,7 @@ func getHeight(expectedToMatch int) {
                 myStr += fmt.Sprintf("  Height Verified: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3)
                 lstutil.Logger(myStr)
         } else {
-                overallTestPass = false
+                subTestsFailures++
                 myStr := fmt.Sprintf("CHAIN HEIGHT TEST FAIL : value in chain height DOES NOT MATCH expected value %d ON ALL PEERS after deploy and single invoke:\n", expectedToMatch)
                 myStr += fmt.Sprintf("  All heights DO NOT MATCH expected value: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3)
                 lstutil.Logger(myStr)
