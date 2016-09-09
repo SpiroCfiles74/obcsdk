@@ -51,15 +51,13 @@ func RandomString(strlen int) string {
 	return string(result)
 }
 
-var argA = []string{"a"}
-var argCounter = []string{"counter"}
-
 // Utility function to deploy chaincode available @ http://urlmin.com/4r76d
-func DeployChaincode() {
+func DeployChaincode() (cntr int64) {
 	var funcArgs = []string{CHAINCODE_NAME, INIT}
-	var args = []string{argA[0], RandomString(1024), argCounter[0], "0"}
+	cntr = 0
+	var chaincodeDeployArgs = []string{"a", RandomString(1024), "counter", strconv.Itoa(int(cntr))}
 	//call chaincode deploy function to do actual deployment
-	deployID, err := chaincode.Deploy(funcArgs, args)
+	deployID, err := chaincode.Deploy(funcArgs, chaincodeDeployArgs)
 	if err != nil {
 		Logger(fmt.Sprintf("DeployChaincode() returned (deployID=%s) and (Non-nil error=%s). Time to panic!\n", deployID, err))
 		panic(err)
@@ -72,6 +70,7 @@ func DeployChaincode() {
 	if ntwk != "" && ntwk != "LOCAL" { sleepTime += 90 }
 	Logger(fmt.Sprintf("<<<<<< DeployID=%s. Need to give it some time; sleep for %d secs >>>>>>", deployID, sleepTime))
 	Sleep(sleepTime)
+	return cntr
 }
 
 // Utility function to invoke on chaincode available @ http://urlmin.com/4r76d
@@ -140,7 +139,7 @@ func TearDown(counter int64) {
 	val1, val2 := QueryChaincode(counter)
 	Logger(fmt.Sprintf("========= After Query values counter=%d, a%s = %s\n", counter, val2, val1))
 	newVal, err := strconv.ParseInt(val2, 10, 64)
-	if err != nil { Logger(fmt.Sprintf("Failed to convert %s to int64\n Error: %s\n", val2, err)) }
+	if err != nil { Logger(fmt.Sprintf("TearDown() Failed to convert val2 <%s> to int64\n Error: %s\n", val2, err)) }
 
 	//TODO: Block size again depends on the Block configuration in pbft config file
 	//Test passes when 2 * block height match with total transactions, else fails
@@ -155,7 +154,7 @@ func TearDown(counter int64) {
 		val1, val2 := QueryChaincode(counter)
 		Logger(fmt.Sprintf("========= After Query values counter=%d, a%s = %s\n", counter, val2, val1))
 		newVal, err := strconv.ParseInt(val2, 10, 64)
-		if err != nil { Logger(fmt.Sprintf("Failed to convert %s to int64\n Error: %s\n", val2, err)) }
+		if err != nil { Logger(fmt.Sprintf("TearDown() Failed to convert %s to int64\n ERROR: %s\n", val2, err)) }
 		if err == nil && newVal == counter {
 			Logger(fmt.Sprintf("\n######### %s TEST PASSED ######### Inserted %d records\n", TESTNAME, counter))
 		} else {

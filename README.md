@@ -7,7 +7,7 @@ A test framework for testing Blockchain with GoSDK (written in Go Language)
 Clone to the src directory where GO is installed (use either $GOROOT/src or $GOPATH/src).
 
 	$ cd $GOPATH/src
-	$ git clone https://github.com/scottz64/obcsdk.git -o obcsdk
+	$ git clone https://github.com/scottz64/obcsdk.git
 
 Enclosed local_fabric bash scripts will create docker containers to run the peers.
 For more information, 
@@ -25,7 +25,7 @@ to setup a peer network.
 - Go to the test directories and execute the tests. Good luck!
 ```
 	$ cd obcsdk/chcotest
-	$ go run BasicFunc.go
+	$ go run BasicFuncNewNetwork.go
 	 
 	Run Consensus Acceptance Tests and two long-run tests:
 	$ cd obcsdk/CAT
@@ -59,12 +59,15 @@ running other tests in other networks that could use HTTPS,
 the Z network and its usernames/passwords
 - (Ledger Stress Tests only): set the correct chaincode name in lstutil/util.go
 to change it from "mycc" (special version of example02 that increases the ledger)
-to whatever is deployed on the actual Z network you are using; and before running
+to whatever is deployed on the actual Z network you are using. Before running
 any tests, rebuild:  "cd ledgerstresstest; ../automation/go_build_all.sh"
 ```
 	For example:
 
-	$ cd CAT; NET_COMM_PROTOCOL=HTTPS go run CAT_101*.go
+	$ cd ../CAT; NET_COMM_PROTOCOL=HTTPS go run CAT_101*.go
 
-	$ cd ledgerstresstest; NETWORK=Z NET_COMM_PROTOCOL=HTTPS go run LST_1Client1Peer.go
+	$ cd ../ledgerstresstest
+	$ export NETWORK=Z ; export NET_COMM_PROTOCOL=HTTPS
+	$ go run BasicFuncExistingNetwork.go
+	$ go run LST_1Client1Peer.go
 ```

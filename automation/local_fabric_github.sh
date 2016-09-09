@@ -26,11 +26,15 @@
 #       -?/-h- Prints Usage
 #
 # SAMPLE :
+#       ./local_fabric.sh -n 4 -s -c x86_64-0.6.0-SNAPSHOT-f3c9a45 -l debug -m pbft
 #       ./local_fabric.sh -n 4 -s -c 346f9fb -l debug -m pbft
 # ------------------------------------------------------------------
 
+# `commit# 821a3c7` has been uploaded to `rameshthoomu` docker hub account.. Please download `local_fabric.sh` script from rameshthoomu github account... Please change image source to rameshthoomu/peer and rameshthoomu/membersrvc
+
 PEER_IMAGE=rameshthoomu/peer
 MEMBERSRVC_IMAGE=rameshthoomu/membersrvc
+#REST_PORT=7050 for GERRIT
 REST_PORT=5000
 USE_PORT=30000
 PBFT_MODE=batch
@@ -40,6 +44,7 @@ WORKDIR=$(pwd)
 membersrvc_setup()
 {
 curl -L https://raw.githubusercontent.com/hyperledger/fabric/master/membersrvc/membersrvc.yaml -o membersrvc.yaml
+# curl -L https://raw.githubusercontent.com/hyperledger/fabric/v0.6/membersrvc/membersrvc.yaml -o membersrvc.yaml
 
 local NUM_PEERS=$1
 local IP=$2
@@ -204,8 +209,8 @@ echo "--------> Pulling Base Docker Images from Docker Hub"
 #Pulling latest docker image from rameshthoomu/baseimage repository
 docker pull rameshthoomu/baseimage:latest
 docker tag rameshthoomu/baseimage:latest hyperledger/fabric-baseimage:latest
-docker pull rameshthoomu/peer:$COMMIT
-docker pull rameshthoomu/membersrvc:$COMMIT
+docker pull $PEER_IMAGE:$COMMIT
+docker pull $MEMBERSRVC_IMAGE:$COMMIT
 
 #curl -L https://github.com/rameshthoomu/fabric/blob/master/scripts/provision/common.sh -o common.sh
 #curl -L https://raw.githubusercontent.com/rameshthoomu/fabric/master/scripts/provision/docker.sh -o docker.sh

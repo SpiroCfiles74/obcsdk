@@ -137,7 +137,7 @@ func setup_part1(testName string, started time.Time) {
 
 	CurrentTestName = testName
 	RanToCompletion = false
-	Verbose = true			// See also:  "verbose" in chaincode/const.go for lower level functions
+	Verbose = false			// See also:  "verbose" in chaincode/const.go for lower level functions
 	Stop_on_error = false
 	queryTestsPass = true
 	chainHeightTestsPass = true

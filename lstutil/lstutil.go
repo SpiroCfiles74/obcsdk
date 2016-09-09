@@ -131,7 +131,7 @@ func Init() {
 	initNetwork()
 
 	//Deploy chaincode
-	DeployChaincode()
+	counter = DeployChaincode()
 }
 
 // use this func when using single thread per peer

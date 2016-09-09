@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"obcsdk/peernetwork"
 	"os"
@@ -71,7 +72,7 @@ func RegisterUsers() bool {
 	passResult := true
 	for i < len(Peers) {
 		successfuls := 0
-		userList := Peers[i].UserData
+		userList := Peers[i].UserData // this contains the users in the database, not necessarily registered
 		for user, secret := range userList {
 			url := GetURL(Peers[i].PeerDetails["ip"], Peers[i].PeerDetails["port"])
 			if verbose {
@@ -82,7 +83,7 @@ func RegisterUsers() bool {
 			if errStatusStr == "" { successfuls++ } else { fmt.Println("ERROR registering user:", user, " err:", errStatusStr) }
 		}
 		if successfuls != len(userList) { passResult = false }
-		fmt.Println("\nRegisterUsers(): Done Registering ", successfuls, "/", len(userList), " users on ", Peers[i].PeerDetails["name"], "\n")
+		fmt.Println("RegisterUsers(): Done Registering ", successfuls, "/", len(userList), " users on ", Peers[i].PeerDetails["name"], "\n")
 		i++
 	}
 	return passResult
@@ -143,7 +144,7 @@ func RegisterCustomUsers() bool {
 			}
 		}
 		if successfuls != len(userList) { passResult = false }
-		fmt.Println("\nRegisterCustomUsers(): Done Registering ", successfuls, "/", len(userList), " regular users and ", extraUsers, "/", threadutil.NumberCustomUsersOnLastPeer, " extraUsers on ", Peers[i].PeerDetails["name"], "\n")
+		fmt.Println("RegisterCustomUsers(): Done Registering ", successfuls, "/", len(userList), " regular users and ", extraUsers, "/", threadutil.NumberCustomUsersOnLastPeer, " extraUsers on ", Peers[i].PeerDetails["name"], "\n")
 	}
 	return passResult
 }
@@ -165,7 +166,7 @@ func RegisterUsers2() {
 			errStatusStr := register(url, user, secret)
 			if errStatusStr != "" { fmt.Println(errStatusStr) }
 		}
-		fmt.Println("\nRegisterUsers2(): Done Registering ", len(userList), "users on ", Peers[i].PeerDetails["name"], "\n")
+		fmt.Println("RegisterUsers2(): Done Registering ", len(userList), "users on ", Peers[i].PeerDetails["name"], "\n")
 	}
 }
 
@@ -609,24 +610,27 @@ func QueryOnHost(args []string, queryargs []string) (id string, err error) {
 	} else if len(args) == 4 {
 		tagName = args[3]
 	}
+	if verbose {
+		fmt.Println("Inside QueryOnHost, input args ccName,funcName,host,tagName: ",ccName,funcName,host,tagName)
+	}
 	qryargs := queryargs
 	var err1 error
 	var txId string
 	ChainCodeDetails, Versions, err1 = peernetwork.GetCCDetailByName(ccName, LibCC)
 	if err1 != nil {
-		fmt.Println("Inside QueryOnHost: ", err1)
+		fmt.Println("Inside QueryOnHost: peernetwork.GetCCDetailByName returned error:", err1)
 		log.Fatal("No Chain Code Details we cannot proceed")
 		return "", errors.New("No Chain Code Details we cannot proceed")
 	}
 	restCallName := "query"
 	ip, port, auser, err2 := peernetwork.AUserFromThisPeer(ThisNetwork, host)
 	if err2 != nil {
-		fmt.Println("Inside Query: ", err2)
+		fmt.Println("Inside QueryOnHost: peernetwork.AUserFromThisPeer (host=" + host + ") returned error:", err2)
 		return "", err2
 	} else {
 		url := GetURL(ip, port)
 		if verbose {
-			msgStr0 := fmt.Sprintf("** Calling %s on chaincode %s with args %s on  %s as %s on %s", funcName, ccName, qryargs, url, auser, host)
+			msgStr0 := fmt.Sprintf("** Calling %s on chaincode %s with args %s on url %s as user %s on host %s", funcName, ccName, qryargs, url, auser, host)
 			fmt.Println(msgStr0)
 		}
 		if (len(tagName) > 0) {
@@ -659,13 +663,13 @@ func GetBlockTrxInfoByHost(host string, block int) (bsNonHash NonHashData, err e
 	//respBody, status := peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block))
 	ip, port, _, err2 := peernetwork.AUserFromThisPeer(ThisNetwork, host)
 	if err2 != nil {
-		fmt.Println("Inside GetBlockTrxInfoByHost: ", err2)
+		fmt.Println("Inside GetBlockTrxInfoByHost(), AUserFromThisPeer <" +host+ "> returned err:", err2)
 		var emptyNonHashData NonHashData
 		return emptyNonHashData, err2
 	} else {
 		url := GetURL(ip, port)
 		bsNonHashData := ChaincodeBlockTrxInfo(url, block)
-		fmt.Println(bsNonHashData)
+		if verbose { fmt.Println("GetBlockTrxInfoByHost() host=" +host+ " block=" +strconv.Itoa(block)+ "\n NonHashData=",bsNonHashData) }
 		return bsNonHashData, nil
 	}
 }
@@ -739,3 +743,4 @@ func DeployWithCCPATH(args []string, depargs []string) error {
 
 }
 **************************************************/
+

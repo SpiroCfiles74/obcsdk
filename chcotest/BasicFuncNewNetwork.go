@@ -30,7 +30,7 @@ func main() {
 	defer f.Close()
 	writer = bufio.NewWriter(f)
 
-	myStr := fmt.Sprintf("\n\n*********** BEGIN BASICFUNC.go ***************")
+	myStr := fmt.Sprintf("\n\n*********** BEGIN BasicFuncNewNetwork with example02 ***************")
 	fmt.Println(myStr)
 	fmt.Fprintln(writer, myStr)
 
@@ -71,7 +71,7 @@ func main() {
 
 	fmt.Println("\n===== Deploy Test =====")
 	deploy()
-	time.Sleep(60000 * time.Millisecond)
+	time.Sleep(30000 * time.Millisecond)
 
 	query("DEPLOY", curra, currb)
 
@@ -89,16 +89,24 @@ func main() {
 
 	fmt.Println("\n===== GetBlockStats API Test =====")
 	//chaincode.BlockStats(url, height)
-	nonHashData, _ := chaincode.GetBlockTrxInfoByHost("PEER0", height-1)
+	//nonHashData, _ := chaincode.GetBlockTrxInfoByHost("PEER0", height-1)
+	nonHashData, _ := chaincode.GetBlockTrxInfoByHost("PEER0", height)
 
-	if strings.Contains(nonHashData.TransactionResult[0].Uuid, invRes) {
+	if nonHashData.TransactionResult != nil && strings.Contains(nonHashData.TransactionResult[0].Uuid, invRes) {
 		myStr = fmt.Sprintf("\nGetBlocks API TEST PASS: Transaction Successfully stored in Block")
+		myStr += fmt.Sprintf("\n CH_Block = %d, UUID = %s, InvokeTransactionResult = %s", height, nonHashData.TransactionResult[0].Uuid, invRes)
+		fmt.Println(myStr)
 	} else {
 		overallTestPass = false
-		myStr = fmt.Sprintf("\nGetBlocks API TEST FAIL: Transaction NOT stored in Block")
+                myStr = fmt.Sprintf("\nGetBlocks API TEST FAIL: Transaction NOT stored in CH_Block=%d, InvokeTransactionResult=%s", height, invRes)
+		if nonHashData.TransactionResult != nil {
+			myStr += fmt.Sprintf("\n UUID = %s", nonHashData.TransactionResult[0].Uuid)
+		} else {
+			myStr += fmt.Sprintf("\n TransactionResult is nil!")
+		}
+		fmt.Println(myStr)
+		getBlockTxInfo(0)
 	}
-	myStr += fmt.Sprintf("\nCH_Block = %d, UUID = %s, InvokeTransactionResult = %s\n", height-1, nonHashData.TransactionResult[0].Uuid, invRes)
-	fmt.Printf(myStr)
 	fmt.Fprintf(writer, myStr)
 	writer.Flush()
 
@@ -110,21 +118,18 @@ func main() {
 
 	resultStr := "PASS"
 	if !overallTestPass { resultStr = "FAIL" }
-	myStr = fmt.Sprintf("\n\n*********** END BASICFUNC.go OVERALL TEST RESULT = %s ***************\n\n", resultStr)
+	myStr = fmt.Sprintf("\n\n*********** END BasicFuncNewNetwork OVERALL TEST RESULT = %s ***************\n\n", resultStr)
 	fmt.Println(myStr)
 	fmt.Fprintln(writer, myStr)
 	writer.Flush()
 }
 
 func setupNetwork() {
-
-
-	//fmt.Println("Working with an existing network")
-	fmt.Println("Setting up a local network with 4 peers with security")
+	fmt.Println("Setting up a local network with 4 peers with security, using local_fabric to create ../automation/networkcredentials")
 	peernetwork.SetupLocalNetwork(4, true)
 	myNetwork = chaincode.InitNetwork()
 	chaincode.InitChainCodes()
-	time.Sleep(50000 * time.Millisecond)
+	time.Sleep(30000 * time.Millisecond)
 	chaincode.RegisterUsers()
 	//peernetwork.PrintNetworkDetails(myNetwork)
 	peernetwork.PrintNetworkDetails()
@@ -298,12 +303,13 @@ func getHeight() {
 func getBlockTxInfo(blockNumber int) {
 	errTransactions := 0
 	height, _ := chaincode.GetChainHeight("PEER0")
-	myStr := fmt.Sprintf("\n############### Total Blocks # %d\n", height)
+	myStr := fmt.Sprintf("\n++++++++++ getBlockTxInfo() Total Blocks # %d\n", height)
 	fmt.Printf(myStr)
 	fmt.Fprintf(writer, myStr)
 
 	for i := 1; i < height; i++ {
-		//fmt.Printf("\n============================== Current BLOCKS %d ==========================\n", i)
+	    //if blockNumber == 0 || blockNumber == i {
+		fmt.Printf("\n+++++ Current BLOCK %d +++++\n", i)
 		nonHashData, _ := chaincode.GetBlockTrxInfoByHost("PEER0", i)
 		length := len(nonHashData.TransactionResult)
 		for j := 0; j < length; j++ {
@@ -315,6 +321,7 @@ func getBlockTxInfo(blockNumber int) {
 				errTransactions++
 			}
 		}
+	    //}
 	}
 	if errTransactions > 0 {
 		myStr = fmt.Sprintf("\nTotal Blocks ERRORS # %d\n", errTransactions)

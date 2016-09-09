@@ -55,14 +55,18 @@ func main() {
                 subTestsFailures++
                 lstutil.Logger("ChainStats Rest API TEST FAIL!!!")
         }
+	lstutil.Logger(fmt.Sprintf("  ChainStats response status: %s\n  ChainStats response body: %s\n", status, response))
 
 	counter = queryAllHostsToGetCurrentCounter(lstutil.TESTNAME)
         height := chaincode.Monitor_ChainHeight(url) // and save the height; it will be needed below for getHeight()
 
+	lstutil.Logger("\n===== SKIP Deploy Test =====")
+    /*
 	lstutil.Logger("\n===== Deploy Test =====")
 	counter = lstutil.DeployChaincode()  // includes sleep
 	height++
 	queryAllHosts("DEPLOY", counter)
+    */
 
 	lstutil.Logger("\n===== Invoke Test =====")
 	invRes := lstutil.InvokeChaincode()  // increments counter inside
@@ -171,11 +175,18 @@ func userRegisterTest(url string, username string) {
 
 	lstutil.Logger("\n----- RegisterUser Negative Test -----")
 	response, status = chaincode.UserRegister_Status(url, "ghostuserdoesnotexist")
-	if ((strings.Contains(status, "200")) == false) {
-		lstutil.Logger("RegisterUser API Negative TEST PASS: CONFIRMED that user <ghostuserdoesnotexist> is unregistered as expected")
-	} else {
+	if (strings.Contains(status, "200")) {
 		subTestsFailures++
 		lstutil.Logger(fmt.Sprintf("RegisterUser API Negative TEST FAIL!!! User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response))
+	} else {
+		if strings.Contains(status, "401") { // Unauthorized
+			// Did not find the specified username, and no error occurred while trying;
+			// this is a good expected result for our test.
+			lstutil.Logger("RegisterUser API Negative TEST PASS: CONFIRMED that user <ghostuserdoesnotexist> is unregistered as expected")
+		} else {
+			// Did not find the specified username, and we encountered some other error while trying
+			lstutil.Logger(fmt.Sprintf("RegisterUser API Negative TEST FAIL!!! ERROR while searching for non-existant user!\n status = %s\n response = %s\n", status, response))
+		}
 	}
 	time.Sleep(1000 * time.Millisecond)
 
@@ -221,6 +232,7 @@ func invoke() string {						// using example02
 }
 */
 
+// e.g.  counter = queryAllHostsToGetCurrentCounter(lstutil.TESTNAME)
 func queryAllHostsToGetCurrentCounter(txName string) (counter int64) {		// using ratnakar myCC, modified example02
 	// loop through and query all hosts to find consensus and determine what the current counter value is.
 	counter = 0
@@ -229,19 +241,20 @@ func queryAllHostsToGetCurrentCounter(txName string) (counter int64) {		// using
 	F := (N-1)/3
 	currValues := make([]int64, N)
 	for peerNumber := 0 ; peerNumber < N ; peerNumber++ {
-        	_, counterIdxStr := lstutil.QueryChaincodeOnHost(peerNumber, counter)
+        	valueStr, counterIdxStr := lstutil.QueryChaincodeOnHost(peerNumber, counter)
         	newVal, err := strconv.ParseInt(counterIdxStr, 10, 64)
         	if err != nil {
-			lstutil.Logger(fmt.Sprintf("Failed to convert %s to int64\n Error: %s\n", counterIdxStr, err))
+			lstutil.Logger(fmt.Sprintf("queryAllHostsToGetCurrentCounter() Failed to convert counterIdxStr <%s> to int64\n Error: %s\n", counterIdxStr, err))
 			currValues[peerNumber] = 0
 			failedCount++
 		} else {
 			currValues[peerNumber] = newVal
 		}
+        	lstutil.Logger(fmt.Sprintf("QueryChaincodeOnHost %d: counter=%d, a%s = %s", peerNumber, counter, counterIdxStr, valueStr))
 	}
 	if failedCount > F {
 		subTestsFailures++
-		lstutil.Logger(fmt.Sprintf("%s TEST STARTUP FAILURE!!! Failed to query %s peers. RERUN when at least %d/%d peers are running, in order to be able to reach consensus.", txName, failedCount, ((N-1)/3)*2+1, N ))
+		lstutil.Logger(fmt.Sprintf("%s TEST STARTUP FAILURE!!! Failed to query %d peers. RERUN when at least %d/%d peers are running, in order to be able to reach consensus.", txName, failedCount, ((N-1)/3)*2+1, N ))
 	} else {
 		var consensus_counter int64
 		consensus_counter = 0
@@ -265,6 +278,7 @@ func queryAllHostsToGetCurrentCounter(txName string) (counter int64) {		// using
 	return counter
 }
 
+// e.g.	 queryAllHosts("DEPLOY", ledgerCounter)
 func queryAllHosts(txName string, expected_count int64) {		// using ratnakar myCC, modified example02
 	// loop through and query all hosts
 	failedCount := 0
@@ -273,7 +287,7 @@ func queryAllHosts(txName string, expected_count int64) {		// using ratnakar myC
 		result := "SUCCESS"
         	valueStr, counterIdxStr := lstutil.QueryChaincodeOnHost(peerNumber, expected_count)
         	newVal, err := strconv.ParseInt(counterIdxStr, 10, 64)
-        	if err != nil { lstutil.Logger(fmt.Sprintf("Failed to convert %s to int64\n Error: %s\n", counterIdxStr, err)) }
+        	if err != nil { lstutil.Logger(fmt.Sprintf("queryAllHosts() Failed to convert counterIdxStr <%s> to int64\n Error: %s\n", counterIdxStr, err)) }
         	if err != nil || newVal != expected_count {
 			result = "FAILURE"
 			failedCount++

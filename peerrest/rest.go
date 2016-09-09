@@ -35,7 +35,7 @@ func GetChainInfo_HTTP(url string) (respBody string, respStatus string) {
 	//TODO : define a logger
 	//fmt.Println("GetChainInfo_HTTP :", url)
 
-	httpclient := &http.Client{ Timeout: time.Second * 10 }
+	httpclient := &http.Client{ Timeout: time.Second * 20 }
 	response, err := httpclient.Get(url)
 
 	if err != nil {
@@ -66,7 +66,7 @@ func GetChainInfo_HTTPS(url string) (respBody string, respStatus string) {
 	         TLSClientConfig:    &tls.Config{RootCAs: nil},
 	         DisableCompression: true,
         }
-        httpsclient := &http.Client{ Timeout: time.Second * 10, Transport: tr }
+        httpsclient := &http.Client{ Timeout: time.Second * 20, Transport: tr }
         response, err := httpsclient.Get(url)
 	if err != nil {
 			fmt.Println("ERROR from httpsclient.GET request: ", err)
@@ -113,7 +113,7 @@ func PostChainAPI_HTTP(url string, payLoad []byte) (respBody string, respStatus 
 	if veryverbose {
 		fmt.Println("PostChainAPI() calling http.Client.Do to url=" + url) 
 	}
-	httpclient := &http.Client{ Timeout: time.Second * 10 }
+	httpclient := &http.Client{ Timeout: time.Second * 20 }
 	resp, err := httpclient.Do(req)
 	if veryverbose {
 		fmt.Println("PostChainAPI()  AFTER  http.Client.Do(req)")
@@ -155,7 +155,7 @@ func PostChainAPI_HTTPS(url string, payLoad []byte) (respBody string, respStatus
 	         //TLSClientConfig:    &tls.Config{RootCAs: nil},
 	         DisableCompression: true,
         }
-        httpclient := &http.Client{ Transport: tr, Timeout: time.Second * 10 }
+        httpclient := &http.Client{ Transport: tr, Timeout: time.Second * 20 }
 	if veryverbose {
 		fmt.Println("PostChainAPI()_HTTPS calling http.Client.Post=" + url) 
 	}

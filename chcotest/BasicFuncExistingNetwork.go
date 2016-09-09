@@ -31,7 +31,7 @@ func main() {
 	defer f.Close()
 	writer = bufio.NewWriter(f)
 
-	myStr := fmt.Sprintf("\n\n*********** BEGIN chcotest/BasicFuncExistingNetwork ***************")
+	myStr := fmt.Sprintf("\n\n*********** BEGIN chcotest/BasicFuncExistingNetwork with example02 ***************")
 	fmt.Println(myStr)
 	fmt.Fprintln(writer, myStr)
 
@@ -121,13 +121,13 @@ func main() {
 	//chaincode.BlockStats(url, height)
 	nonHashData, _ := chaincode.GetBlockTrxInfoByHost("PEER0", height-1)
 
-	if strings.Contains(nonHashData.TransactionResult[0].Uuid, invRes) {
+	if nonHashData.TransactionResult != nil && strings.Contains(nonHashData.TransactionResult[0].Uuid, invRes) {
 		myStr = fmt.Sprintf("\nGetBlocks API TEST PASS: Transaction Successfully stored in Block")
+		myStr += fmt.Sprintf("\nCH_Block = %d, UUID = %s, InvokeTransactionResult = %s\n", height-1, nonHashData.TransactionResult[0].Uuid, invRes)
 	} else {
 		testPartsFailures++
-		myStr = fmt.Sprintf("\nGetBlocks API TEST FAIL: Transaction NOT stored in Block")
+		myStr = fmt.Sprintf("\nGetBlocks API TEST FAIL: Transaction NOT stored in CH_Block=%d, InvokeTransactionResult=%s", height-1, invRes)
 	}
-	myStr += fmt.Sprintf("\nCH_Block = %d, UUID = %s, InvokeTransactionResult = %s\n", height-1, nonHashData.TransactionResult[0].Uuid, invRes)
 	fmt.Printf(myStr)
 	fmt.Fprintf(writer, myStr)
 	writer.Flush()
@@ -153,12 +153,12 @@ func setupNetwork() {
 	fmt.Println("===== Working with an existing network: Retrieving network information and connecting to it =====")
 
 	// Create ../util/NetworkCredentials.json
-	//     Copy file from ../automation/networkcredentials (which is created by local_fabric shell script -
+	// For NETWORK=Z: Copy file from ../automation/networkcredentials (which is created by local_fabric shell script -
 	// or you must run "./update_z.py -b -f service_credentials_5a088be5-276c-42b3-b550-421f3f27b6ab.json" to generate it and then
 	//     put it in automation/networkcredentials yourself -
 	// or else just skip GetNC_Local and run the update_z.py command and put the output yourself into ../util/NetworkCredentials.json)
 	// 
-        fmt.Println("----- Get existing Network Credentials ----- ")
+        fmt.Println("----- Get existing Network Credentials from ../automation/networkcredentials ----- ")
         peernetwork.GetNC_Local()
 
         fmt.Println("----- Connect to existing network - InitNetwork -----")

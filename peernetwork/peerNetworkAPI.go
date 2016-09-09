@@ -19,27 +19,26 @@ func PrintNetworkDetails() {
 	i := 0
 	for i < len(Peers) {
 
-		msgStr := fmt.Sprintf("ip: %s port: %s name %s ", Peers[i].PeerDetails["ip"], Peers[i].PeerDetails["port"], Peers[i].PeerDetails["name"])
+		msgStr := fmt.Sprintf("  ip: %s port: %s name: %s ", Peers[i].PeerDetails["ip"], Peers[i].PeerDetails["port"], Peers[i].PeerDetails["name"])
 		fmt.Println(msgStr)
 		userList := ThisNetwork.Peers[i].UserData
-		fmt.Println("Users:")
+		fmt.Println("  users:")
 		for user, secret := range userList {
-			msgStr := fmt.Sprintf("user: %s secret: %s", user, secret)
+			msgStr := fmt.Sprintf("    user: %s , secret: %s", user, secret)
 			fmt.Println(msgStr)
-			//fmt.Println(user, secret)
 		}
 		i++
 	}
-	fmt.Println("Available Chaincodes :")
+	fmt.Println("\nAvailable Chaincodes :")
 	libChainCodes := InitializeChainCodes()
 	for k, v := range libChainCodes.ChainCodes {
-		fmt.Println("\nChaincode :", k)
-		fmt.Println("\nDetail :\n")
-		for i, j := range v.Detail {
-			msgStr := fmt.Sprintf("user: %s secret: %s", i, j)
+		fmt.Println("Chaincode :", k)
+		fmt.Println("Detail :")
+		for fieldname, value := range v.Detail {
+			msgStr := fmt.Sprintf("  %s  %s", fieldname, value)
 			fmt.Println(msgStr)
 		}
-		fmt.Println("\n")
+		//fmt.Println("\n")
 	}
 
 }
@@ -187,7 +186,7 @@ func AUserFromAPeer(thisPeer Peer) (ip string, port string, user string, err err
 }
 
 /*
- gets a user from a Peer with the given IP on the PeerNetwork
+ gets a user from a Peer with the given IP or host name on the PeerNetwork
 */
 func AUserFromThisPeer(thisNetwork PeerNetwork, host string) (ip string, port string, user string, err error) {
 
@@ -199,17 +198,20 @@ func AUserFromThisPeer(thisNetwork PeerNetwork, host string) (ip string, port st
 	var err1 error
 
 	//get a random peer that has at a minimum one userData and one peerDetails
-	for peerIter := range Peers {
-		if Peers[peerIter].State == RUNNING {
-		//if Peers[peerIter].State == 0 || Peers[peerIter].State == 2 || Peers[peerIter].State == 4 {
+	//for p := range Peers {
+	for p := 0; p < len(Peers); p++  {
+		//fmt.Println("AUserFromThisPeer: peer %d state %d",p,Peers[p].State)
+		//if Peers[p].State == 0 || Peers[p].State == 2 || Peers[p].State == 4 {
+		if Peers[p].State == RUNNING || Peers[p].State == STARTED || Peers[p].State == UNPAUSED {
 				if (strings.Contains(host, ":")) {
-					if strings.Contains(Peers[peerIter].PeerDetails["ip"], host) {
-						aPeer = &Peers[peerIter]
+					//host: ip address
+					if strings.Contains(Peers[p].PeerDetails["ip"], host) {
+						aPeer = &Peers[p]
 					}
 				}else { //host: "vp1"
-					if strings.Contains(Peers[peerIter].PeerDetails["name"], host) {
+					if strings.Contains(Peers[p].PeerDetails["name"], host) {
 						//fmt.Println("Inside name IP resolution")
-						aPeer = &Peers[peerIter]
+						aPeer = &Peers[p]
 					}
 				}
 		}
@@ -223,7 +225,7 @@ func AUserFromThisPeer(thisNetwork PeerNetwork, host string) (ip string, port st
 		}
 		return aPeer.PeerDetails["ip"], aPeer.PeerDetails["port"], u, err1
 	}else {
-			errStr = fmt.Sprintf("%s, Not found on network", host)
+			errStr = fmt.Sprintf("Peer (host=%s) Not Found running on thisNetwork:%s,%s,%s,%s", host, Peers[0].PeerDetails["name"], Peers[1].PeerDetails["name"],Peers[2].PeerDetails["name"],Peers[3].PeerDetails["name"])
 			return "", "", "", errors.New(errStr)
 	}
 }

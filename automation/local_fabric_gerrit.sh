@@ -7,8 +7,15 @@
 # DESCRIPTION:
 # The purpose of this script is to spinup peers in local machine using docker.
 # Peers launches on tested peer and membersrvc docker images and latest hyperledger/fabric
-# base image. Script pulls these images from rameshthoomu docker hub account. Take the
-# latest commit of peer and membersrvc from rameshthoomu docker hub account.
+# base image.
+#### Script pulls these images from rameshthoomu docker hub account. Take the
+#### latest commit of peer and membersrvc from rameshthoomu docker hub account.
+
+# This script is related to gerrit code only; the port numbers are varying between gerrit and github.
+# If you are using this to test on gerrit code, please use `gerritlatest` tag for baseimage and
+# take the commits from https://hub.docker.com/u/hyperledger/.
+# Ramesh is not pushing any gerrit peer and membersrvc images to `rameshthoomu` docker hub account...
+
 
 # Pre-condition: Install docker in your local machine and start docker daemon
 
@@ -29,8 +36,25 @@
 #       ./local_fabric.sh -n 4 -s -c 346f9fb -l debug -m pbft
 # ------------------------------------------------------------------
 
-PEER_IMAGE=hyperledger/fabric-peer
-MEMBERSRVC_IMAGE=hyperledger/fabric-membersrvc
+### COMMIT=821a3c7 is the v0.6 Sep 7th build
+### hyperledger fabric (gerrit) branch v06 images 821a3c7 are stored in github/rameshthoomu/.
+### To run them in local environment, try one of these:
+###   local_fabric_gerrit.sh -c 821a3c7 -n 4 -f 1 -l error -m pbft -b 2 -s
+###   export COMMIT=821a3c7; export REPOSITORY_SOURCE=GERRIT; go_record.sh ../CAT/testtemplate.go ../chcotest/BasicFuncNewNetwork.go
+### To run latest gerrit hyperledger fabric master images, in local env:
+###   export COMMIT=latest; export REPOSITORY_SOURCE=GERRIT; go run ../CAT/testtemplate.go ../chcotest/BasicFuncNewNetwork.go
+### To run tests in Z network on v05 (COMMIT=3e0e80a) or v6 (COMMIT=821a3c7) - still with example02, just like all the examples above:
+###   # First run update.py script to generate network credentials file for the Z or Starter or HSBN network; then:
+###   export NET_COMM_PROTOCOL=HTTPS; export NETWORK=Z; go run ../chcotest/BasicFuncExistingNetwork.go;
+###   export NET_COMM_PROTOCOL=HTTPS; export NETWORK=Z; go_record.sh ../CAT/testtemplate.go
+### To run tests in Z network on v05 or v06, with mycc (instead of example02):
+###   export NETWORK=Z; go run ../ledgerstresstest/BasicFuncExistingNetworkLST.go; go run ../ledgerstresstest/LST*.go
+
+
+#PEER_IMAGE=hyperledger/fabric-peer
+#MEMBERSRVC_IMAGE=hyperledger/fabric-membersrvc
+PEER_IMAGE=rameshthoomu/peer
+MEMBERSRVC_IMAGE=rameshthoomu/membersrvc
 REST_PORT=7050
 USE_PORT=30000
 CA_PORT=7054
@@ -203,11 +227,21 @@ echo "Is Security and Privacy enabled $SECURITY"
 
 echo "--------> Pulling Base Docker Images from Docker Hub"
 
+199,201c213,223
+---
+
 #Pulling latest docker image from rameshthoomu/baseimage repository
 docker pull rameshthoomu/baseimage:latest
 docker tag rameshthoomu/baseimage:latest hyperledger/fabric-baseimage:latest
-docker pull hyperledger/fabric-peer:$COMMIT
-docker pull hyperledger/fabric-membersrvc:$COMMIT
+docker pull $PEER_IMAGE:$COMMIT
+docker pull $MEMBERSRVC_IMAGE:$COMMIT
+
+# If you are using this to test on gerrit code, please use `gerritlatest` tag for baseimage and
+# take the commits from https://hub.docker.com/u/hyperledger/.
+#docker pull hyperledger/fabric-baseimage:gerritlatest
+#docker pull hyperledger/fabric-baseimage:latest
+#docker tag rameshthoomu/baseimage:latest hyperledger/fabric-baseimage:latest
+
 
 #curl -L https://github.com/rameshthoomu/fabric/blob/master/scripts/provision/common.sh -o common.sh
 #curl -L https://raw.githubusercontent.com/rameshthoomu/fabric/master/scripts/provision/docker.sh -o docker.sh
