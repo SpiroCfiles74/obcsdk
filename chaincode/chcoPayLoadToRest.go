@@ -79,8 +79,10 @@ func Monitor_ChainHeight(url string) int {
 		//curHash string `json:"currentBlockHash"`
 		//prevHash string `json:"previousBlockHash"`
 	}
-	fmt.Println("Monitor_ChainHeight() chain info status: ", status)
-	if verbose { fmt.Println("Monitor_ChainHeight() chain info respBody: ", respBody) }
+	if verbose {
+		fmt.Println("Monitor_ChainHeight() chain info status: ", status)
+		fmt.Println("Monitor_ChainHeight() chain info respBody: ", respBody)
+	}
 	resCh := new(ChainMsg)
 	err := json.Unmarshal([]byte(respBody), &resCh)
 	if err != nil {
@@ -559,11 +561,11 @@ func genPayLoadForChaincode(PL chan []byte, pathName string, funcName string,
 
 func register(url string, user string, secret string) string {
 	payLoad := make(chan []byte)
-	fmt.Println("From Register ", url, user, secret)
+	// fmt.Println("register() url,user,secret:", url, user, secret)
 	go genRegPayLoad(payLoad, user, secret)
 	regPayLoad := <-payLoad
 	regUrl := url + "/registrar"
-	msgStr := fmt.Sprintf("**Sending Rest Request to : %s", regUrl)
+	msgStr := fmt.Sprintf("register() **Sending Rest Request to %s user=%s secret=%s", regUrl, user, secret)
 	fmt.Println(msgStr)
 	respBody, status := peerrest.PostChainAPI(regUrl, regPayLoad)
 	fmt.Println(respBody)
@@ -574,7 +576,7 @@ func genRegPayLoad(payLoad chan []byte, user string, secret string) {
 	//fmt.Println("\nRegistering user : ", user + " with secret :", secret)
 	registerJsonPayLoad := RegisterJsonPart1 + user + RegisterJsonPart2 + secret + RegisterJsonPart3
 	regPayLoadInBytes := []byte(registerJsonPayLoad)
-	fmt.Println("Register PayLoad \n", registerJsonPayLoad)
+	if verbose { fmt.Println("Register PayLoad \n", registerJsonPayLoad) }
 	payLoad <- regPayLoadInBytes
 }
 
