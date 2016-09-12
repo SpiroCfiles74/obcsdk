@@ -32,7 +32,7 @@ const (
 	// 	100 invokes per sec in zACI LPAR environment,
 	//	and 3 x those numbers for Queries.
 
-	TransPerSecRate = 40
+	TransPerSecRate = 80
 
 	// Increase this for more traffic
 
@@ -147,7 +147,7 @@ func setup_part1(testName string, started time.Time) {
 	CHsMustMatchExpected = false 	// ChainHeight values (CH) must match the internal counter = "expected" value (currCH)
 	AllRunningNodesMustMatch = true // values should match on ALL avail nodes - not just enough nodes for consensus;
 					// set true after sending enough invokes to ensure all nodes caught up; not sure how many,
-					// or why, so most testcases should set this to false after the inital setup and query is done.
+					// or why, so most testcases should set this to false after the initial setup and query is done.
 
 	//---------------------------------------------------------------------------------------------------------------
 	// set defaults for ENV variables
@@ -170,8 +170,8 @@ func setup_part1(testName string, started time.Time) {
 
 					// Others that we may use in future:
 					//  CORE_PBFT_GENERAL_TIMEOUT_BATCH - batch timeout value, use s for seconds, default=[2s]
-					//  CORE_PBFT_GENERAL_LOGMULTIPLIER - logmultiplier [4]
-					//  CORE_PBFT_GENERAL_K             - checkpoint period K [10]
+	logmultiplier = 4		//  CORE_PBFT_GENERAL_LOGMULTIPLIER - logmultiplier [4]
+	K = 10				//  CORE_PBFT_GENERAL_K             - checkpoint period K [10]
 
 
 	//---------------------------------------------------------------------------------------------------------------
@@ -179,6 +179,11 @@ func setup_part1(testName string, started time.Time) {
 	//---------------------------------------------------------------------------------------------------------------
 
 	var envvar string
+	envvar = strings.ToUpper(os.Getenv("CHCO2_VERBOSE"))
+	if envvar == "TRUE" {
+		Verbose = true
+		// See also:  "verbose" in chaincode/const.go for lower level functions
+	}
 	envvar = strings.TrimSpace(os.Getenv("CORE_PBFT_GENERAL_N"))
 	if envvar != "" { NumberOfPeersInNetwork, _ = strconv.Atoi(envvar) }
 	envvar = strings.TrimSpace(os.Getenv("CORE_PBFT_GENERAL_F"))
@@ -214,10 +219,18 @@ func setup_part1(testName string, started time.Time) {
 			//NumberOfPeersInNetwork = 4 // we could reset it, but then we wouldn't see how the fabric reacts...
 		}
 	}
-	// InvokesRequiredForCatchUp really should be (K * batchsize * logmultiplier). But it gets so big for
-	// larger networks and slows down our tests. (That is one reason why we set batchsize to 2.)
-	InvokesRequiredForCatchUp = 	(NumberOfPeersInNetwork * 25) 	// this seems to be enough in most cases
 
+	envvar = strings.ToUpper(os.Getenv("CHCO2_FULL_CATCHUP"))
+	if envvar == "TRUE" {
+		// InvokesRequiredForCatchUp really should be (K * batchsize * logmultiplier) to ensure recovery.
+		// (Although sometimes, depending on timing and state transitions, I wonder if maybe even that is not enough???)
+		InvokesRequiredForCatchUp = (K * batchsize * logmultiplier)
+	} else {
+		// Since it gets so big for larger networks and slows down our tests. (That is one reason why
+		// we set a default batchsize of 2 for these consensus tests.) And we often do not need it to be
+		// the maximum for tests to pass, so let's just try this, which seems to be enough in most cases:
+		InvokesRequiredForCatchUp = (NumberOfPeersInNetwork * 25)
+	}
 
 	// validate F and related items
 
@@ -272,6 +285,9 @@ func setup_part1(testName string, started time.Time) {
 }
 
 func setup_part2_network() {
+    if strings.ToUpper(os.Getenv("CHCO2_EXISTING_NETWORK")) == "TRUE" {
+	fmt.Println("chco2.setup_part2_network(): CHCO2_EXISTING_NETWORK is true, so we will NOT create a new network. Hopefully the same env vars were used when the BYO Network was previously created.")
+    } else {
 	fmt.Println("Creating a local docker network with # peers = ", NumberOfPeersInNetwork)
 	peernetwork.SetupLocalNetworkWithMoreOptions(
 		NumberOfPeersInNetwork,	//  CORE_PBFT_GENERAL_N
@@ -284,6 +300,7 @@ func setup_part2_network() {
 		batchsize )		//  CORE_PBFT_GENERAL_BATCHSIZE
 
 	if (Verbose) { fmt.Println("Sleep 10 secs extra after setup_part2 created network") }; time.Sleep(10000 * time.Millisecond)
+    }
 }
 
 func setup_part3_verifyNetworkAndDeployCC() {
@@ -317,9 +334,70 @@ func setup_part3_verifyNetworkAndDeployCC() {
 		fmt.Println("Setup() ERROR: Cannot find any running peer for Deploy!!!!!!!!!!")
 	} else {
 		DeployInit(peerNum)
+
+		if strings.ToUpper(os.Getenv("CHCO2_EXISTING_NETWORK")) == "TRUE" {
+			// STANDARD (RE)DEPLOYMENT OVERRIDE:
+			// Useful for rerunning this testcase and others, to use the existing network with existing deployment
+			// (by using same standard numbers), rather than creating yet another deployment for the existing peers...
+			// but that means the values for A and B will not be reset to 1 million, because they already exist with
+			// other values, so we need to go find the actual CURRENT values for A & B
+
+			success := QueryAllHostsToGetCurrentValues(&currA, &currB, &currCH)
+			if !success {
+				fmt.Println("setup_part3_verify: CANNOT find consensus in existing network; chainheight/A/B invoke and query tests will fail to match expected values, if those are enforced for this testcase...")
+				// panic(errors.New("setup_part3_verify: CANNOT find consensus in existing network"))
+			}
+		}
+
 		InvokeOnEachPeer(1)
 		QueryAllPeers("STEP SETUP, after initial Deployment followed by 1 Invoke on each peer")
 	}
+}
+
+
+func QueryAllHostsToGetCurrentValues(a *int, b *int, ch *int) bool {		// using example02
+	found_consensus := false
+	N := NumberOfPeersInNetwork	//  CORE_PBFT_GENERAL_N
+	F := NumberOfPeersOkToFail	//  CORE_PBFT_GENERAL_F
+	var ht []int
+	ht = make([]int, N)
+	runningPeerCounter := 0
+        qArgsa := []string{"a"}
+        qArgsb := []string{"b"}
+	qAPIArgs := []string{"example02", "query", "PEER0"}
+	// loop through and query all hosts to determine the current values
+	for n:=0; n < N; n++ {
+		qData[n].resA = 0
+		qData[n].resB = 0
+		ht[n] = 0
+		if peerIsRunning(n) {
+			runningPeerCounter++
+			ht[n], _ = chaincode.GetChainHeight("PEER" + strconv.Itoa(n))
+			qAPIArgs = []string{ "example02", "query", "PEER"+strconv.Itoa(n) }
+			chco2_QueryOnHost(qAPIArgs, qArgsa, qArgsb, &qData[n].resA, &qData[n].resB)
+		}
+        	if Verbose { fmt.Println(fmt.Sprintf("QueryAllHostsToGetCurrentValues() found on Peer %d :  A=%d, B=%d, CH=%d", n, qData[n].resA, qData[n].resB, ht[n])) }
+	}
+
+	// loop through to determine if we have consensus, and obtain the consensus values
+	if runningPeerCounter > 2*F {
+		// ok, we have a enough peers running to have a chance to find consensus
+		for i := 0 ; i <= F ; i++ {
+			candidate_cntr := 1
+			candidate_A := qData[i].resA
+			candidate_B := qData[i].resB
+			candidate_CH := ht[i]
+			for j := i+1 ; j < N ; j++ {
+				if qData[j].resA == candidate_A && qData[j].resB == candidate_B && ht[j] == candidate_CH { candidate_cntr++ }
+				if Verbose { fmt.Println("QueryAllHostsToGetCurrentValues(): values match on peers ", i, j) }
+			}
+			if candidate_cntr >= N-F { *a = candidate_A; *b = candidate_B; *ch = candidate_CH; found_consensus = true; break }
+		}
+	}
+
+	if !found_consensus { fmt.Println("QueryAllHostsToGetCurrentValues(): CANNOT FIND CONSENSUS! The best we can do is returning A, B, CH: ", *a, *b, *ch) }
+
+	return found_consensus
 }
 
 // end Setup functions

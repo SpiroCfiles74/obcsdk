@@ -67,9 +67,10 @@ echo -e "CORE_PBFT_GENERAL_F, max number of nodes that can fail while still have
 # the hyperledger/fabric nodes or local_fabric.sh
 
 echo -e "DOCKER STOP_OR_PAUSE MODE used by GO tests when disrupting network CA and PEER nodes: $STOP_OR_PAUSE"
-
 echo -e "REPOSITORY_SOURCE used by GO SDK to retrieve the fabric COMMIT image: $REPOSITORY_SOURCE"
-
+echo -e "CHCO2_VERBOSE: $CHCO2_VERBOSE"
+echo -e "CHCO2_FULL_CATCHUP: $CHCO2_FULL_CATCHUP"
+echo -e "CHCO2_EXISTING_NETWORK: $CHCO2_EXISTING_NETWORK"
 
 # Finally, let's show the commands parameters passed to each docker container
 # when we execute "docker run" with the commands "peer node start"

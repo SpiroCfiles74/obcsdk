@@ -56,8 +56,8 @@ func main() {
 	chaincode.ChainStats(url)
 
 	var inita, initb, curra, currb int
-	inita = 111 
-	initb = 0  
+	inita = 100
+	initb = 200
 	curra = inita
 	currb = initb
         testRunStatus = false

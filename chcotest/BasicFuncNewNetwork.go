@@ -64,13 +64,13 @@ func main() {
 	chaincode.ChainStats(url)
 
 	var inita, initb, curra, currb int
-	inita = 100
-	initb = 900
+	inita = 1000000  // standard initial value 1 million
+	initb = 1000000  // standard initial value 1 million
 	curra = inita
 	currb = initb
 
 	fmt.Println("\n===== Deploy Test =====")
-	deploy()
+	deploy(inita,initb)
 	time.Sleep(30000 * time.Millisecond)
 
 	query("DEPLOY", curra, currb)
@@ -198,10 +198,10 @@ func userRegisterTest(url string, username string) {
 	time.Sleep(5000 * time.Millisecond)
 }
 
-func deploy() {							// using example02
+func deploy(initA int, initB int) {							// using example02
 	fmt.Println("\nPOST/Chaincode: Deploying chaincode at the beginning ....")
 	dAPIArgs0 := []string{"example02", "init"}
-	depArgs0 := []string{"a", "100", "b", "900"}
+	depArgs0 := []string{"a", strconv.Itoa(initA), "b", strconv.Itoa(initB)}
 	chaincode.Deploy(dAPIArgs0, depArgs0)
 	time.Sleep(30000 * time.Millisecond) // minimum delay required, works fine in local environment
 }

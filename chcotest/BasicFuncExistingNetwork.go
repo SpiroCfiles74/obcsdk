@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 	"math/rand"
+	"obcsdk/chco2"
 )
 
 var f *os.File
@@ -24,7 +25,7 @@ func main() {
 	var err error
 	f, err = os.OpenFile("/tmp/hyperledgerBetaTestrun_Output", os.O_RDWR|os.O_APPEND, 0660)
         if ( err != nil) {
-          fmt.Println("Output file does not exist creating one ..")
+          fmt.Println("Output file does not exist creating one at /tmp/hyperledgerBetaTestrun_Output")
           f, err = os.Create("/tmp/hyperledgerBetaTestrun_Output")
         }
 	//check(err)
@@ -80,17 +81,31 @@ func main() {
 	// and this deploy test would fail if we run this testcase multiple times on same network.
 
 	var inita, initb, curra, currb int
+	deployStandard := false;
 
-	// generate random values for "a" and "b" between 0-9999
-	// use NewSource instead of simply rand.Intn(10000), so it is different each time the program runs
+	if strings.ToUpper(os.Getenv("CHCO2_EXISTING_NETWORK")) == "TRUE" {
+		deployStandard = true;
+		// STANDARD (RE)DEPLOYMENT OVERRIDE:
+		// Useful for rerunning this testcase and for others to use the existing network with existing deployment
+		// (by using same standard numbers), rather than creating yet another deployment for the existing peers...
+		// we can use: 1 million / 1 million (or could use the popular 100/200):
+		inita = 1000000
+		initb = 1000000
+		fmt.Println("CHCO2_EXISTING_NETWORK is true, so we will redeploy with the standard deployment values (1M/1M) for this testcase chcotest/BasicFuncExistingNetwork.")
+	} else {
+		// RANDOM DEPLOYMENT A&B values
+		// For a unique deployment test, to create a NEW deployment, let's generate random values for "a" and "b" between 0-9999.
+		// (We don't need too many deployments created...)
+		// Use NewSource instead of simply rand.Intn(10000), so it is different each time the program runs
 
-	s1 := rand.NewSource(time.Now().UnixNano()) // generate a new seed for "a"
-	r1 := rand.New(s1)
-	inita = r1.Intn(10000)
+		s1 := rand.NewSource(time.Now().UnixNano()) // generate a new seed for "a"
+		r1 := rand.New(s1)
+		inita = r1.Intn(10000)
 
-	s2 := rand.NewSource(time.Now().UnixNano()) // generate a new seed for b
-	r2 := rand.New(s2)
-	initb = r2.Intn(10000)
+		s2 := rand.NewSource(time.Now().UnixNano()) // generate a new seed for b
+		r2 := rand.New(s2)
+		initb = r2.Intn(10000)
+	}
 
 	curra = inita
 	currb = initb
@@ -102,6 +117,15 @@ func main() {
 	deploy(inita,initb)		// deploy sleeps for 30 secs too
 	height++
 	time.Sleep(30000 * time.Millisecond)
+
+	if deployStandard {
+		// go get the actual CURRENT values for A & B
+		success := chco2.QueryAllHostsToGetCurrentValues(&curra, &currb, &height)
+		if !success {
+			fmt.Println("setup_part3_verify: WARNING: CANNOT find consensus in existing network; A/B/chainheight values will likely fail to match expected values, current actual: ", curra, currb, height)
+			// panic(errors.New("setup_part3_verify: CANNOT find consensus in existing network"))
+		}
+	}
 
 	query("DEPLOY", curra, currb)
 

@@ -60,13 +60,14 @@ func main() {
 	counter = queryAllHostsToGetCurrentCounter(lstutil.TESTNAME)
         height := chaincode.Monitor_ChainHeight(url) // and save the height; it will be needed below for getHeight()
 
-	lstutil.Logger("\n===== SKIP Deploy Test =====")
-    /*
+
+ 	lstutil.Logger("\n===== SKIP Deploy Test =====")
+ /*
 	lstutil.Logger("\n===== Deploy Test =====")
 	counter = lstutil.DeployChaincode()  // includes sleep
 	height++
 	queryAllHosts("DEPLOY", counter)
-    */
+ */
 
 	lstutil.Logger("\n===== Invoke Test =====")
 	invRes := lstutil.InvokeChaincode()  // increments counter inside
@@ -219,7 +220,7 @@ func userRegisterTest(url string, username string) {
 /*
 func deploy() {							// using example02
 	dAPIArgs0 := []string{"example02", "init"}
-	depArgs0 := []string{"a", "100", "b", "900"}
+	depArgs0 := []string{"a", "1000000", "b", "1000000"}
 	chaincode.Deploy(dAPIArgs0, depArgs0)
 	time.Sleep(30000 * time.Millisecond) // minimum delay required, works fine in local environment
 }
