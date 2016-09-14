@@ -1178,6 +1178,11 @@ func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
 
 	// PREcondition: peer node is running
 
+	// We sleep now only if we have consensus and the invokes can be processed now;
+	// otherwise we will sleep when we empty the queue later when consensus is resumed...
+	// Get the sleep time based on number of transactions.
+	mustSleep := enoughPeersRunningForConsensus()
+
 	invArgs := []string{"a", "b", "1"}
 	iAPIArgs := []string{"example02", "invoke", nodename}
 	for j:=1; j <= num_invokes; j++ {
@@ -1186,17 +1191,26 @@ func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
 		//fmt.Println("\nFrom Invoke invRes ", invRes)
 		(*currA)--
 		(*currB)++
+		// if Verbose {
+			// Show some progress... and sleep as we go as needed...
+			// Print . for 10 invokes; Print + for 100 invokes; Print newline after 1000 invokes.
+			if j % 10 == 0 {
+				if j % 100 == 0 {
+					fmt.Printf("+")
+					if j % 1000 == 0 { fmt.Println(" ") }
+				} else {
+					fmt.Printf(".")
+				}
+			}
+			if mustSleep && (j % TransPerSecRate == 0) { time.Sleep( 1000 * time.Millisecond) }
+		// }
 	}
 
-	if enoughPeersRunningForConsensus() {
-
-		// We sleep now only if we have consensus and they can be processed now;
-		// otherwise we will sleep when we empty the queue later when consensus is resumed...
-		// Get the sleep time based on number of transactions.
-
-		if (Verbose) { fmt.Println("Sleep some after sending " + strconv.Itoa(num_invokes) + " invokes ...") }
-		time.Sleep( sleepTimeForTrans(num_invokes) )
-	}
+	//If we don't sleep above, as we go, then sleep just once here (for the full/longer time)
+	//if mustSleep {
+	//	if (Verbose) { fmt.Println("Sleep some after sending " + strconv.Itoa(num_invokes) + " invokes ...") }
+	//	time.Sleep( sleepTimeForTrans(num_invokes) )
+	//}
 }
 
 func validPeerQueryResults(a int, b int, resA int, resB int, nodename string) bool {

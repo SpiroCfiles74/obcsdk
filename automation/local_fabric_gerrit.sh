@@ -52,10 +52,10 @@
 ###   export NETWORK=Z; go run ../ledgerstresstest/BasicFuncExistingNetworkLST.go; go run ../ledgerstresstest/LST*.go
 
 
-#PEER_IMAGE=hyperledger/fabric-peer
-#MEMBERSRVC_IMAGE=hyperledger/fabric-membersrvc
-PEER_IMAGE=rameshthoomu/peer
-MEMBERSRVC_IMAGE=rameshthoomu/membersrvc
+PEER_IMAGE=hyperledger/fabric-peer
+MEMBERSRVC_IMAGE=hyperledger/fabric-membersrvc
+#PEER_IMAGE=rameshthoomu/peer
+#MEMBERSRVC_IMAGE=rameshthoomu/membersrvc
 REST_PORT=7050
 USE_PORT=30000
 CA_PORT=7054
@@ -228,21 +228,16 @@ echo "Is Security and Privacy enabled $SECURITY"
 
 echo "--------> Pulling Base Docker Images from Docker Hub"
 
-199,201c213,223
----
-
-#Pulling latest docker image from rameshthoomu/baseimage repository
-docker pull rameshthoomu/baseimage:latest
-docker tag rameshthoomu/baseimage:latest hyperledger/fabric-baseimage:latest
-docker pull $PEER_IMAGE:$COMMIT
-docker pull $MEMBERSRVC_IMAGE:$COMMIT
-
-# If you are using this to test on gerrit code, please use `gerritlatest` tag for baseimage and
-# take the commits from https://hub.docker.com/u/hyperledger/.
-#docker pull hyperledger/fabric-baseimage:gerritlatest
+echo Docker PULL baseimage...
 #docker pull hyperledger/fabric-baseimage:latest
 #docker tag rameshthoomu/baseimage:latest hyperledger/fabric-baseimage:latest
-
+# If you are using this to test on gerrit code, please use `gerritlatest` tag for baseimage and
+# take the commits from https://hub.docker.com/u/hyperledger/.
+docker pull rameshthoomu/baseimage:gerritlatest
+docker tag rameshthoomu/baseimage:gerritlatest hyperledger/fabric-baseimage:latest
+echo Docker PULL peer and membersrvc images ...
+docker pull $PEER_IMAGE:$COMMIT
+docker pull $MEMBERSRVC_IMAGE:$COMMIT
 
 #curl -L https://github.com/rameshthoomu/fabric/blob/master/scripts/provision/common.sh -o common.sh
 #curl -L https://raw.githubusercontent.com/rameshthoomu/fabric/master/scripts/provision/docker.sh -o docker.sh

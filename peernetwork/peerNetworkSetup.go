@@ -178,6 +178,7 @@ func SetupLocalNetworkWithMoreOptions(
 
 	fmt.Println("exec.Command: ", script_cmd, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13 )
 	cmd =        exec.Command(    script_cmd, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13 )
+	fmt.Println("exec.Command done")
 
 	var stdoutBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
@@ -190,6 +191,9 @@ func SetupLocalNetworkWithMoreOptions(
 	os.Chdir(pwd)
 	pwd, _ = os.Getwd()
 	//fmt.Println("Returned to starting directory pwd: ", pwd)
+	//errStr := "SetupLocalNetworkWithMoreOptions done"
+	//fmt.Println(errStr)
+	//log.Fatal(errors.New(errStr))
 }
 
 func GetNC_Local() {
