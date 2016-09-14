@@ -80,7 +80,7 @@ func InvokeChaincode() (invokeResponse string) {
         return invokeResponse
 }
 
-// this func just uses the specified user on the last peer as defined in threadutil.GetUser(...)
+// this func just uses the specified user 
 func invokeChaincodeWithUser(user string) {
 	counter++
 	arg1Construct := []string{CHAINCODE_NAME, INVOKE, user}
@@ -88,7 +88,7 @@ func invokeChaincodeWithUser(user string) {
 	_, _ = chaincode.InvokeAsUser(arg1Construct, arg2Construct)
 }
 
-// this func uses a user on the specified peer as defined in threadutil.GetPeer(...)
+// this func finds and uses a username on the specified peer
 func invokeChaincodeOnPeer(peer string) {
         counter++
         arg1Construct := []string{CHAINCODE_NAME, INVOKE, peer}

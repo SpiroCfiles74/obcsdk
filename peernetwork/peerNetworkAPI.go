@@ -394,7 +394,7 @@ func PausePeerLocal(thisNetwork PeerNetwork, peer string) {
 	cmd := "docker pause " + peer
         out, err := exec.Command("/bin/sh", "-c", cmd).Output()
         if (err != nil) {
-			fmt.Println("PausePeerLocal: Could not Pause PEER " + peer)
+			fmt.Println("PausePeerLocal: Could not Pause peer " + peer)
 			fmt.Println(out)
 			log.Fatal(err)
 		} else {
@@ -434,7 +434,7 @@ func UnpausePeerLocal(thisNetwork PeerNetwork, peer string) {
 	cmd := "docker unpause " + peer
         out, err := exec.Command("/bin/sh", "-c", cmd).Output()
         if (err != nil) {
-			fmt.Println("UnpausePeerLocal: Could not Unpause PEER " + peer)
+			fmt.Println("UnpausePeerLocal: Could not Unpause peer " + peer)
 			fmt.Println(out)
 			log.Fatal(err)
         } else {

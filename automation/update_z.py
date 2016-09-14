@@ -96,7 +96,7 @@ def saveData_BM(peerList, user_info):
         else:
             index = index_match.group('num')
 
-        data['PeerData'].append( {'name': 'PEER%s' % str(index),
+        data['PeerData'].append( {'name': 'vp%s' % str(index),
                                   'api-port': str(peerInfo["api_port"]),
                                   'api-host': peerInfo['api_host']} )
         data['PeerGrpc'].append( {'api-host': peerInfo['api_host'],

@@ -16,6 +16,7 @@ import (
 	"bufio"
 	"obcsdk/chaincode"
 	"obcsdk/peernetwork"
+	"obcsdk/threadutil"
 )
 
 var f *os.File
@@ -95,7 +96,7 @@ func InvokeLoop(numPeers int, numReq int) {
 		k := 1
 		for j < numPeers {
 			k = 1
-			currPeer := "PEER" + strconv.Itoa(j)
+			currPeer := threadutil.GetPeer(j)
 			iAPIArgsCurrPeer := []string{"example02", "invoke", currPeer}
 			for k <= numReq {
 				go chaincode.InvokeOnPeer(iAPIArgsCurrPeer, invArgs0)
@@ -103,7 +104,7 @@ func InvokeLoop(numPeers int, numReq int) {
 			}
 			m := j - 1
 			for m >= 0 {
-				loopPeer := "PEER" + strconv.Itoa(m)
+				loopPeer := threadutil.GetPeer(m)
 				iAPIArgsLoopPeer := []string{"example02", "invoke", loopPeer}
 				k = 1
 				for k <= numReq {

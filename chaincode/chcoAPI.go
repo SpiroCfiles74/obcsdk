@@ -218,7 +218,7 @@ func Deploy(args []string, depargs []string) (id string, err error)  {
 		//fmt.Println(msgStr)
 		restCallName := "deploy"
 		peer, auser := peernetwork.AUserFromNetwork(ThisNetwork)
-	if verbose { fmt.Println("Value in deploying peer.State (0=RUNNING): ", peer.State) }
+		if verbose { fmt.Println( fmt.Sprintf("Deploying peer %s, peer.State (0=RUNNING): %d", peer.PeerDetails["name"], peer.State)) }
 		url := GetURL(peer.PeerDetails["ip"], peer.PeerDetails["port"])
 		if verbose {
 			msgStr := fmt.Sprintf("chcoAPI.Deploy() ** Initializing and deploying chaincode %s on network with args %s", ChainCodeDetails["path"], dargs)

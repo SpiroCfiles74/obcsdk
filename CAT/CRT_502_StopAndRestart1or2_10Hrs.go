@@ -27,11 +27,11 @@ import (
 	"obcsdk/chco2"
 	"fmt"
 	"strconv"
+	"obcsdk/threadutil"
 	// "bufio"
 	// "obcsdk/chaincode"
 	// "obcsdk/peernetwork"
 	// "log"
-
 	//"os/signal"
 	//"syscall"
 )
@@ -145,9 +145,9 @@ func main() {
 	// chco2.InvokeOnEachPeer( chco2.DefaultInvokesPerPeer )
 	// InvokeOnThisPeer( 100, 0 )
 	// chco2.StopPeers( []int{ 99 } )
-	// chco2.QueryAllPeers( "STEP 6, after STOP PEERs " + strconv.Itoa(99) )
+	// chco2.QueryAllPeers( "STEP 6, after STOP Peers " + strconv.Itoa(99) )
 	// chco2.RestartPeers( []int{ j, k } )
-	// chco2.QueryAllPeers( "STEP 9, after RESTART PEERs " + strconv.Itoa(j) + ", " + strconv.Itoa(k) )
+	// chco2.QueryAllPeers( "STEP 9, after RESTART Peers " + strconv.Itoa(j) + ", " + strconv.Itoa(k) )
 	// if (chco2.Verbose) { fmt.Println("Sleep extra 60 secs") }
 	// time.Sleep(chco2.SleepTimeSeconds(60))
 	// time.Sleep(chco2.SleepTimeMinutes(1))
@@ -186,7 +186,7 @@ func main() {
                                 } else {            chco2.StopPeers([]int{ doubleDown, j }) }
 
 				chco2.InvokeOnEachPeer(chco2.DefaultInvokesPerPeer)
-                                chco2.QueryAllPeers("STEP 6, cycle=" + strconv.Itoa(cycle+1) + "/" + strconv.Itoa(numCycles) + ", after STOP TWO PEERS " + strconv.Itoa(j) + " " + strconv.Itoa(doubleDown))
+                                chco2.QueryAllPeers("STEP 6, cycle=" + strconv.Itoa(cycle+1) + "/" + strconv.Itoa(numCycles) + ", after STOP TWO Peers " + strconv.Itoa(j) + " " + strconv.Itoa(doubleDown))
 
                                 // SDK limitation requires listing the lower one first, same as above
                                 if doubleDown > j { chco2.RestartPeers([]int{ j, doubleDown })
@@ -195,15 +195,15 @@ func main() {
                                 // if (chco2.Verbose) { fmt.Println("Sleep extra 1 min after restarted 2 peers") } time.Sleep(60000 * time.Millisecond)
 
 				chco2.Invokes( chco2.InvokesRequiredForCatchUp )
-                                chco2.QueryAllPeers("STEP 9, cycle=" + strconv.Itoa(cycle+1) + "/" + strconv.Itoa(numCycles) + ", after RESTART TWO PEERS " + strconv.Itoa(j) + " " + strconv.Itoa(doubleDown))
+                                chco2.QueryAllPeers("STEP 9, cycle=" + strconv.Itoa(cycle+1) + "/" + strconv.Itoa(numCycles) + ", after RESTART TWO Peers " + strconv.Itoa(j) + " " + strconv.Itoa(doubleDown))
 
                         } else {
                                 chco2.StopPeers([]int{ j })
 				chco2.InvokeOnEachPeer(chco2.DefaultInvokesPerPeer)
-                                chco2.QueryAllPeers("STEP 6, cycle=" + strconv.Itoa(cycle+1) + "/" + strconv.Itoa(numCycles) + ", after STOP PEER" + strconv.Itoa(j))
+                                chco2.QueryAllPeers("STEP 6, cycle=" + strconv.Itoa(cycle+1) + "/" + strconv.Itoa(numCycles) + ", after STOP Peer " + threadutil.GetPeer(j))
                                 chco2.RestartPeers([]int{ j })
 				chco2.Invokes( chco2.InvokesRequiredForCatchUp )
-                                chco2.QueryAllPeers("STEP 9, cycle=" + strconv.Itoa(cycle+1) + "/" + strconv.Itoa(numCycles) + ", after RESTART PEER" + strconv.Itoa(j))
+                                chco2.QueryAllPeers("STEP 9, cycle=" + strconv.Itoa(cycle+1) + "/" + strconv.Itoa(numCycles) + ", after RESTART Peer " + threadutil.GetPeer(j))
                         }
                         j++
                 }

@@ -302,7 +302,6 @@ func changeState_devops(url string, path string, restCallName string, args []str
 // query a target chaincode.
 func changeState_chaincode(url string, path string, restCallName string,
 	args []string, user string, funcName string) string {
-
 	//	fmt.Println("changeState_chaincode: ", path, user, args)
 
 	//  Build a payload for the REST API call
@@ -318,7 +317,7 @@ func changeState_chaincode(url string, path string, restCallName string,
 	}
 
 	//  issue REST call
-	respBody, _ := peerrest.PostChainAPI(restUrl, depPayLoad)
+	respBody, respStatus := peerrest.PostChainAPI(restUrl, depPayLoad)
 
 	//	commented for less output messages
 	//	fmt.Println("Response from changeState_chaincode() REST call peerrest.PostChainAPI: >> ")
@@ -328,7 +327,19 @@ func changeState_chaincode(url string, path string, restCallName string,
 	res := new(restCallResult_T)
 	err := json.Unmarshal([]byte(respBody), &res)
 	if err != nil {
-		log.Fatal("Error in unmarshalling: ", err)
+		errMsg := fmt.Sprintf("\nchangeState_chaincode() ERROR in json.Unmarshal !!!!!\n")
+		errMsg += fmt.Sprintf("  path:                      %s\n", path)
+		errMsg += fmt.Sprintf("  restCallName:              %s\n", restCallName)
+		errMsg += fmt.Sprintf("  args:                      %s\n", args)
+		errMsg += fmt.Sprintf("  user:                      %s\n", user)
+		errMsg += fmt.Sprintf("  funcName:                  %s\n", funcName)
+		errMsg += fmt.Sprintf("  respStatus:                %s\n", respStatus)
+		errMsg += fmt.Sprintf("  respBody:                  %s\n", respBody)
+		errMsg += fmt.Sprintf("  Sent Rest Request to url:  %s\n", restUrl)
+		errMsg += fmt.Sprintf("  json.Unmarshal result:     %s\n", res)
+		errMsg += fmt.Sprintf("  json.Unmarshal error:      %s\n", err)
+		fmt.Println(errMsg)
+		log.Fatal("changeState_chaincode: ERROR in Unmarshalling! ", err)
 	}
 	if verbose { fmt.Println("res = ", *res) }
 
@@ -405,7 +416,7 @@ func readState_chaincode(url string, path string, restCallName string, args []st
 	msgStr += fmt.Sprintf("**Sending Rest Request to : %s", restUrl)
 	if verbose { fmt.Println(msgStr) }
 
-	respBody, _ := peerrest.PostChainAPI(restUrl, depPayLoad)
+	respBody, respStatus := peerrest.PostChainAPI(restUrl, depPayLoad)
 
 	//	commented for less output messages
 	//	fmt.Println("Response from readState_chaincode() REST call peerrest.PostChainAPI: >>>")
@@ -414,7 +425,19 @@ func readState_chaincode(url string, path string, restCallName string, args []st
 	res := new(restCallResult_T)
 	err := json.Unmarshal([]byte(respBody), &res)
 	if err != nil {
-		log.Fatal("Error in unmarshalling: ", err)
+		errMsg := fmt.Sprintf("\nchangeState_chaincode() ERROR in json.Unmarshal !!!!!\n")
+		errMsg += fmt.Sprintf("  path:                      %s\n", path)
+		errMsg += fmt.Sprintf("  restCallName:              %s\n", restCallName)
+		errMsg += fmt.Sprintf("  args:                      %s\n", args)
+		errMsg += fmt.Sprintf("  user:                      %s\n", user)
+		errMsg += fmt.Sprintf("  funcName:                  %s\n", funcName)
+		errMsg += fmt.Sprintf("  respStatus:                %s\n", respStatus)
+		errMsg += fmt.Sprintf("  respBody:                  %s\n", respBody)
+		errMsg += fmt.Sprintf("  Sent Rest Request to url:  %s\n", restUrl)
+		errMsg += fmt.Sprintf("  json.Unmarshal result:     %s\n", res)
+		errMsg += fmt.Sprintf("  json.Unmarshal error:      %s\n", err)
+		fmt.Println(errMsg)
+		log.Fatal("readState_chaincode: ERROR in Unmarshalling! ", err)
 	}
 	if verbose { fmt.Println("res = ", *res) }
 	//	fmt.Println("result=", res.Result)

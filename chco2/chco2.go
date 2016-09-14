@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"obcsdk/chaincode"
 	"obcsdk/peernetwork"
+	"obcsdk/threadutil"
 	"strconv"
 	"strings"
 	"time"
@@ -28,8 +29,8 @@ const (
 	// process the queued transactions per second - based on your test environment processing rate speeds.
 	// Expected network processing time: as of 7/14/16 we can support a little more than the following
 	// (for a 10-minute test run on v0.5):
-	// 	 50 invokes sec in vagrant/docker environment on PC,
-	// 	100 invokes per sec in zACI LPAR environment,
+	// 	 80/sec invokes in vagrant/docker environment on PC,
+	// 	100/sec invokes in zACI LPAR environment, or more if using different client threads,
 	//	and 3 x those numbers for Queries.
 
 	TransPerSecRate = 80
@@ -50,7 +51,7 @@ const (
 var Writer *bufio.Writer
 var url string
 var MyNetwork peernetwork.PeerNetwork
-var Verbose bool
+var Verbose bool	// Another option: go edit  "verbose" in chaincode/const.go for more info about lower level functions operation
 var Stop_on_error bool
 var RanToCompletion bool
 var CurrentTestName string
@@ -166,7 +167,7 @@ func setup_part1(testName string, started time.Time) {
 	batchsize = 2			//  CORE_PBFT_GENERAL_BATCHSIZE - max # Tx sent in each batch for ordering; we override the default [500]
 	batchTimeout = "2s"		//  CORE_PBFT_GENERAL_TIMEOUT_BATCH=2s
 	batchtimeout = 2		//    - default 2 in v0.5 Jun 2016, default 1 in gerrit fabric Aug 2016
-	pauseInsteadOfStop = false	//  STOP_OR_PAUSE               - MODE used by GO tests when disrupting network CA and PEER nodes [STOP|PAUSE]
+	pauseInsteadOfStop = false	//  STOP_OR_PAUSE               - MODE used by GO tests when disrupting network CA and Peer nodes [STOP|PAUSE]
 
 					// Others that we may use in future:
 					//  CORE_PBFT_GENERAL_TIMEOUT_BATCH - batch timeout value, use s for seconds, default=[2s]
@@ -179,10 +180,8 @@ func setup_part1(testName string, started time.Time) {
 	//---------------------------------------------------------------------------------------------------------------
 
 	var envvar string
-	envvar = strings.ToUpper(os.Getenv("CHCO2_VERBOSE"))
-	if envvar == "TRUE" {
-		Verbose = true
-		// See also:  "verbose" in chaincode/const.go for lower level functions
+	if strings.ToUpper(os.Getenv("CHCO2_VERBOSE")) == "TRUE" {
+		Verbose = true 	// Another option: edit  "verbose" in chaincode/const.go for more info about lower level functions operation
 	}
 	envvar = strings.TrimSpace(os.Getenv("CORE_PBFT_GENERAL_N"))
 	if envvar != "" { NumberOfPeersInNetwork, _ = strconv.Atoi(envvar) }
@@ -263,6 +262,7 @@ func setup_part1(testName string, started time.Time) {
 
 	if pauseInsteadOfStop { fmt.Println("All STOPS and STARTS will be executed with Docker PAUSE and UNPAUSE") }
 
+	fmt.Println("INFO: setup_part1(): TransPerSecRate = ", TransPerSecRate)
 
 	//---------------------------------------------------------------------------------------------------------------
 	// create and initialize storage slices for queued transactions counters, now that we know size of "N"
@@ -286,7 +286,7 @@ func setup_part1(testName string, started time.Time) {
 
 func setup_part2_network() {
     if strings.ToUpper(os.Getenv("CHCO2_EXISTING_NETWORK")) == "TRUE" {
-	fmt.Println("chco2.setup_part2_network(): CHCO2_EXISTING_NETWORK is true, so we will NOT create a new network. Hopefully the same env vars were used when the BYO Network was previously created.")
+	fmt.Println("chco2.setup_part2_network(): CHCO2_EXISTING_NETWORK is TRUE, which means:\n (1) we will NOT create a new network, and\n (2) we will IGNORE the COMMIT image and a few other env vars, and\n (3) we will use the existing Network as previously created.")
     } else {
 	fmt.Println("Creating a local docker network with # peers = ", NumberOfPeersInNetwork)
 	peernetwork.SetupLocalNetworkWithMoreOptions(
@@ -329,10 +329,12 @@ func setup_part3_verifyNetworkAndDeployCC() {
 
 	// find highest numbered running peer; deploy; and send one invoke request to each peer
         peerNum := NumberOfPeersInNetwork-1
-        for ; peerNum >= 0; peerNum-- { if peerIsRunning(peerNum) { break } }
+        for ; peerNum >= 0; peerNum-- { if peerIsRunning(peerNum,MyNetwork) { break } }
 	if peerNum < 0 {
 		fmt.Println("Setup() ERROR: Cannot find any running peer for Deploy!!!!!!!!!!")
 	} else {
+		if Verbose { fmt.Println("setup_part3_verify, before deploy: A/B/chainheight values: ", currA, currB, currCH) }
+
 		DeployInit(peerNum)
 
 		if strings.ToUpper(os.Getenv("CHCO2_EXISTING_NETWORK")) == "TRUE" {
@@ -342,12 +344,13 @@ func setup_part3_verifyNetworkAndDeployCC() {
 			// but that means the values for A and B will not be reset to 1 million, because they already exist with
 			// other values, so we need to go find the actual CURRENT values for A & B
 
-			success := QueryAllHostsToGetCurrentValues(&currA, &currB, &currCH)
+			success := QueryAllHostsToGetCurrentValues(MyNetwork, &currA, &currB, &currCH)
 			if !success {
-				fmt.Println("setup_part3_verify: CANNOT find consensus in existing network; chainheight/A/B invoke and query tests will fail to match expected values, if those are enforced for this testcase...")
+				fmt.Println("setup_part3_verify: CANNOT find consensus in existing network; chainheight/A/B invoke and query tests will likely fail to match expected values!!!")
 				// panic(errors.New("setup_part3_verify: CANNOT find consensus in existing network"))
 			}
 		}
+		if Verbose { fmt.Println("setup_part3_verify, AFTER deploy,QueryAllHosts: A/B/chainheight values: ", currA, currB, currCH) }
 
 		InvokeOnEachPeer(1)
 		QueryAllPeers("STEP SETUP, after initial Deployment followed by 1 Invoke on each peer")
@@ -355,53 +358,63 @@ func setup_part3_verifyNetworkAndDeployCC() {
 }
 
 
-func QueryAllHostsToGetCurrentValues(a *int, b *int, ch *int) bool {		// using example02
+// This func can be used by chco2 funcs as well as external funcs such as chcotest/BasicFuncExistingNetwork.go
+// that have their own network (and which did not call chco2 setup/init functions)
+
+func QueryAllHostsToGetCurrentValues(mynetwork peernetwork.PeerNetwork, a *int, b *int, ch *int) bool {		// using example02
+
 	found_consensus := false
-	N := NumberOfPeersInNetwork	//  CORE_PBFT_GENERAL_N
-	F := NumberOfPeersOkToFail	//  CORE_PBFT_GENERAL_F
+	N := peernetwork.GetNumberOfPeers(mynetwork)	// CORE_PBFT_GENERAL_N ; in chco2, this is same as NumberOfPeersInNetwork
+	F := (N - 1) / 3				// Max value for F (if CORE_PBFT_GENERAL_F is actually set lower than F and
+							//   if the current number of available peers is somewhere in between, then
+							//   we may be OK here but the testcase could conceivably still fail later)
+	var queryData []peerQData			// queried values for A and B for each peer
+	queryData = make([]peerQData, N)		// queried values for block chain height for each peer
 	var ht []int
 	ht = make([]int, N)
 	runningPeerCounter := 0
         qArgsa := []string{"a"}
         qArgsb := []string{"b"}
-	qAPIArgs := []string{"example02", "query", "PEER0"}
+	qAPIArgs := []string{"example02", "query", threadutil.GetPeer(0)}
+
 	// loop through and query all hosts to determine the current values
 	for n:=0; n < N; n++ {
-		qData[n].resA = 0
-		qData[n].resB = 0
+		queryData[n].resA = 0
+		queryData[n].resB = 0
 		ht[n] = 0
-		if peerIsRunning(n) {
+		if peerIsRunning(n,mynetwork) {
 			runningPeerCounter++
-			ht[n], _ = chaincode.GetChainHeight("PEER" + strconv.Itoa(n))
-			qAPIArgs = []string{ "example02", "query", "PEER"+strconv.Itoa(n) }
-			chco2_QueryOnHost(qAPIArgs, qArgsa, qArgsb, &qData[n].resA, &qData[n].resB)
+			ht[n], _ = chaincode.GetChainHeight(threadutil.GetPeer(n))
+			qAPIArgs = []string{ "example02", "query", threadutil.GetPeer(n) }
+			chco2_QueryOnHost(qAPIArgs, qArgsa, qArgsb, &queryData[n].resA, &queryData[n].resB)
 		}
-        	if Verbose { fmt.Println(fmt.Sprintf("QueryAllHostsToGetCurrentValues() found on Peer %d :  A=%d, B=%d, CH=%d", n, qData[n].resA, qData[n].resB, ht[n])) }
+        	if Verbose { fmt.Println(fmt.Sprintf("QueryAllHosts() found on Peer %d :  A=%d, B=%d, CH=%d", n, queryData[n].resA, queryData[n].resB, ht[n])) }
 	}
 
 	// loop through to determine if we have consensus, and obtain the consensus values
 	if runningPeerCounter > 2*F {
-		// ok, we have a enough peers running to have a chance to find consensus
+		// there are enough peers running to have a chance to find consensus
 		for i := 0 ; i <= F ; i++ {
 			candidate_cntr := 1
-			candidate_A := qData[i].resA
-			candidate_B := qData[i].resB
+			candidate_A := queryData[i].resA
+			candidate_B := queryData[i].resB
 			candidate_CH := ht[i]
 			for j := i+1 ; j < N ; j++ {
-				if qData[j].resA == candidate_A && qData[j].resB == candidate_B && ht[j] == candidate_CH { candidate_cntr++ }
-				if Verbose { fmt.Println("QueryAllHostsToGetCurrentValues(): values match on peers ", i, j) }
+				if queryData[j].resA == candidate_A && queryData[j].resB == candidate_B && ht[j] == candidate_CH {
+					candidate_cntr++
+					if Verbose { fmt.Println("QueryAllHosts(): values match on peers ", i, j) }
+				}
 			}
-			if candidate_cntr >= N-F { *a = candidate_A; *b = candidate_B; *ch = candidate_CH; found_consensus = true; break }
+			if candidate_cntr >= 2*F+1 { *a = candidate_A; *b = candidate_B; *ch = candidate_CH; found_consensus = true; break }
 		}
-	}
+	} else { fmt.Println("QueryAllHosts(): NOT ENOUGH RUNNING Peers TO FIND CONSENSUS! #running/#total = ", runningPeerCounter, N) }
 
-	if !found_consensus { fmt.Println("QueryAllHostsToGetCurrentValues(): CANNOT FIND CONSENSUS! The best we can do is returning A, B, CH: ", *a, *b, *ch) }
+	if !found_consensus { fmt.Println("QueryAllHosts(): CANNOT FIND CONSENSUS!") }
+
+	if Verbose { fmt.Println("QueryAllHosts() returning: A, B, CH, found_consensus? : ", *a, *b, *ch, found_consensus) }
 
 	return found_consensus
 }
-
-// end Setup functions
-
 
 func TestsCurrentlyPass() bool {
 	rc := true
@@ -426,9 +439,7 @@ func WaitAndConfirm(sleepExtra int) {
 	}
 }
 
-
 func CatchUpAndConfirm() {
-
 	// Calling this is optional. If you just care about a "current status", to see if
 	// everything eventually catches up and synchronizes, then call this method;
 	// it will send enough invokes to ensure all active nodes catch up, and then
@@ -485,12 +496,10 @@ func CatchUpAndConfirm() {
 	} else { if (Verbose) { fmt.Println("CatchUpAndConfirm: CANNOT try, because not enough peers for consensus are running") } }
 }
 
-
 func DeployNew(a int, b int) {
 	peer := NumberOfPeersInNetwork-1	// default is to use the last node in the network (this is how the chaincode.Deploy code works when it chooses any peer)
 	DeployNewOnPeer(a, b, peer)
 }
-
 
 func DeployNewOnPeer(a int, b int, peer int) {
 	if peer < 0 || peer >= NumberOfPeersInNetwork {
@@ -499,7 +508,7 @@ func DeployNewOnPeer(a int, b int, peer int) {
 	strA := strconv.Itoa(a)
 	strB := strconv.Itoa(b)
 	if initA == strA && initB == strB {
-		fmt.Println("\nPOST/Chaincode: NEW DEPLOY, on PEER" + strconv.Itoa(peer) + ", using SAME INIT VALUES (and therefore no new chaincode instance, so this will be ignored), A=" + strA + " B=" + strB)
+		fmt.Println("\nPOST/Chaincode: NEW DEPLOY, on peer " + threadutil.GetPeer(peer) + ", using SAME INIT VALUES (and therefore no new chaincode instance, so this will be ignored), A=" + strA + " B=" + strB)
 		// same values for A and B ==>
 		// the request will be mapped to same hash ==>
 		// there will NOT be a new network deployed with new values ==>
@@ -517,10 +526,9 @@ func DeployNewOnPeer(a int, b int, peer int) {
 	DeployInit(peer)
 }
 
-
 func DeployInit(peerNum int) {
-	peerStr := strconv.Itoa(peerNum)
-	fmt.Println("\nPOST/Chaincode: DEPLOY chaincode on PEER" + peerStr + ", A=" + initA + " B=" + initB)
+	peerStr := threadutil.GetPeer(peerNum)
+	fmt.Println("\nPOST/Chaincode: DEPLOY chaincode on peer " + peerStr + ", A=" + initA + " B=" + initB)
 	dAPIArgs := []string{"example02", "init", peerStr}
 	depArgs := []string{"a", initA, "b", initB}
 	txId, err := chaincode.DeployOnPeer(dAPIArgs, depArgs)
@@ -530,7 +538,6 @@ func DeployInit(peerNum int) {
 	incrHeightCount(1, peerNum)
 	setQueuedTransactionCounter(1)
 }
-
 
 func Invokes(totalNumInvokes int) {
 	// count the num running peers, and determine numInvokes to send to each peer
@@ -549,15 +556,15 @@ func Invokes(totalNumInvokes int) {
 	runningPeerCounter := 0
 	firstOne := true
         for peerNum := 0; runningPeerCounter < numPeersRunning && peerNum < NumberOfPeersInNetwork; peerNum++ {
-        	if peerIsRunning(peerNum) {
+        	if peerIsRunning(peerNum,MyNetwork) {
 			runningPeerCounter++
 			if firstOne {
 				firstOne = false
-				doInvoke(&currA, &currB, numInvokesPerPeer + extras, "PEER" + strconv.Itoa(peerNum))
+				doInvoke(&currA, &currB, numInvokesPerPeer + extras, threadutil.GetPeer(peerNum))
 				incrHeightCount(numInvokesPerPeer + extras, peerNum)
 				if numInvokesPerPeer == 0 { break }
 			} else {
-				doInvoke(&currA, &currB, numInvokesPerPeer, "PEER" + strconv.Itoa(peerNum))
+				doInvoke(&currA, &currB, numInvokesPerPeer, threadutil.GetPeer(peerNum))
 				incrHeightCount(numInvokesPerPeer, peerNum)
 			}
 		}
@@ -570,13 +577,12 @@ func Invokes(totalNumInvokes int) {
 	}
 }
 
-
 func InvokeOnEachPeer(numInvokesPerPeer int) {
 	runningPeerCounter := 0
         fmt.Println("\nPOST/Chaincode: INVOKEs (" + strconv.Itoa(numInvokesPerPeer) + ") being sent to each running peer")
         for peerNum := 0; peerNum < NumberOfPeersInNetwork; peerNum++ {
-        	if peerIsRunning(peerNum) {
-			doInvoke(&currA, &currB, numInvokesPerPeer, "PEER" + strconv.Itoa(peerNum))
+        	if peerIsRunning(peerNum,MyNetwork) {
+			doInvoke(&currA, &currB, numInvokesPerPeer, threadutil.GetPeer(peerNum))
 			incrHeightCount(numInvokesPerPeer, peerNum)
 			runningPeerCounter++
 		}
@@ -588,13 +594,12 @@ func InvokeOnEachPeer(numInvokesPerPeer int) {
 	}
 }
 
-
 func invokeOnAnyPeer(totalNumInvokes int) {
         fmt.Println("\nPOST/Chaincode: INVOKEs (%d) using first available peer", strconv.Itoa(totalNumInvokes))
 	sent := false
         for peerNum := 0; peerNum < NumberOfPeersInNetwork; peerNum++ {
-        	if peerIsRunning(peerNum) {
-			doInvoke(&currA, &currB, totalNumInvokes, "PEER" + strconv.Itoa(peerNum))
+        	if peerIsRunning(peerNum,MyNetwork) {
+			doInvoke(&currA, &currB, totalNumInvokes, threadutil.GetPeer(peerNum))
 			incrHeightCount(totalNumInvokes, 0)
         		setQueuedTransactionCounter(totalNumInvokes)
 			sent = true
@@ -604,20 +609,18 @@ func invokeOnAnyPeer(totalNumInvokes int) {
 	if !sent { fmt.Println("invokeOnAnyPeer: WARNING: CANNOT send INVOKEs; no peers are running!") }
 }
 
-
 func InvokesUniqueOnEveryPeer() {
 	powerOf2 := 1
 	for i := 0 ; i < NumberOfPeersInNetwork ; i++ {
-       		if peerIsRunning(i) { InvokeOnThisPeer( powerOf2, i ) }
+       		if peerIsRunning(i,MyNetwork) { InvokeOnThisPeer( powerOf2, i ) }
 		powerOf2 = powerOf2 * 2
 	}
 }
 
-
 func InvokeOnThisPeer(totalNumInvokes int, peerNum int) {
         fmt.Println("\nPOST/Chaincode: INVOKEs (" + strconv.Itoa(totalNumInvokes) + ") using peer " + strconv.Itoa(peerNum))
-       	if peerIsRunning(peerNum) {
-		doInvoke(&currA, &currB, totalNumInvokes, "PEER" + strconv.Itoa(peerNum))
+       	if peerIsRunning(peerNum,MyNetwork) {
+		doInvoke(&currA, &currB, totalNumInvokes, threadutil.GetPeer(peerNum))
 		incrHeightCount(totalNumInvokes, 0)
         	setQueuedTransactionCounter(totalNumInvokes)
 	} else {
@@ -625,13 +628,12 @@ func InvokeOnThisPeer(totalNumInvokes int, peerNum int) {
 	}
 }
 
-
 func incrHeightCount(numInvokesOnThisPeer int, thisPeerNum int) {
 
 	// PREcondition: The associated peer should be RUNNING, otherwise we won't be called (and
 	// we shouldn't be queueing up any transactions since the peer isn't there to receive them and queue them).
 
-        if !peerIsRunning(thisPeerNum) { return }
+        if !peerIsRunning(thisPeerNum,MyNetwork) { return }
 
 	// Our current height count actually represents the actual height count.
 	// We have NOT already incremented our height counter for these transactions; we will do that now
@@ -646,7 +648,6 @@ func incrHeightCount(numInvokesOnThisPeer int, thisPeerNum int) {
 		qtransPerPeerForCH[thisPeerNum] += numInvokesOnThisPeer
 	}
 }
-
 
 func countChainBlocks(numInvokesOnThisPeer int) {
         // NOTE: to be called ONLY from incrHeightCount
@@ -666,12 +667,11 @@ func countChainBlocks(numInvokesOnThisPeer int) {
         // since a peer node rejoined the network, then we need to count all the queued CH transactions of running nodes.
         // (This may not be precisely correct in all crazy scenarios, but should serve most cases.)
 
-
 // ### NOTE: this code may be simplified and this LOOP would not be needed if we call this function incrHeightCount for every running peer already...
 
         peerNum := 0
         for peerNum < NumberOfPeersInNetwork {
-                if peerIsRunning(peerNum) {
+                if peerIsRunning(peerNum,MyNetwork) {
                         if (qtransPerPeerForCH[peerNum] > 0) {
                                 // Calculate the number of chain blocks needed for all these transactions
                                 // on this peer's queue. Since the queue was not empty, the peer probably
@@ -688,13 +688,9 @@ func countChainBlocks(numInvokesOnThisPeer int) {
                 }
                 peerNum++
         }
-
         if (Verbose) { fmt.Println("Increment current ChainHeightBlockCount (" + strconv.Itoa(currCH) + "): + newBlocks(" + strconv.Itoa(newBlocks) + ") + queuedBlocks(" + strconv.Itoa(queuedBlocks) + ")" ) }
-
         currCH += newBlocks + queuedBlocks
-
 }
-
 
 func setQueuedTransactionCounter(numTrans int) {
 	// Our current A and B counters do not always exactly correspond to the actual A & B chaincode values.
@@ -717,16 +713,13 @@ func setQueuedTransactionCounter(numTrans int) {
 	}
 }
 
-
 func SleepTimeSeconds(secs int) time.Duration {
 	return ( time.Duration(secs) * 1000 * time.Millisecond )
 }
 
-
 func SleepTimeMinutes(mins int) time.Duration {
 	return ( time.Duration(mins) * SleepTimeSeconds(60) )
 }
-
 
 func sleepTimeForTrans(nTrans int) time.Duration {
 	// Given the number of transactions to be processed, determine the sleep for an amount of time (seconds)
@@ -754,25 +747,25 @@ func sleepTimeForTrans(nTrans int) time.Duration {
 	return ( SleepTimeSeconds(numSecs) )
 }
 
+// This func can be used by chco2 funcs as well as external funcs such as chcotest/BasicFuncExistingNetwork.go
+// that have their own network (and which did not call chco2 setup/init functions)
 
-func peerIsRunning(peerNum int) bool {
-	if peerNum < len(MyNetwork.Peers) {
-		if (MyNetwork.Peers[peerNum].State == peernetwork.RUNNING) {
+func peerIsRunning(peerNum int, mynetwork peernetwork.PeerNetwork) bool {
+	if peerNum < len(mynetwork.Peers) {
+		if (mynetwork.Peers[peerNum].State == peernetwork.RUNNING) {
 			return true
 		}
 	}
 	return false
 }
 
-
 func getNumberOfPeersRunning() int {
 	numPeersRunning := 0
 	for i:=0; i < NumberOfPeersInNetwork; i++ {		//  NumberOfPeersInNetwork is len(MyNetwork.Peers)
-		if peerIsRunning(i) { numPeersRunning++ }
+		if peerIsRunning(i,MyNetwork) { numPeersRunning++ }
 	}
 	return numPeersRunning
 }
-
 
 func enoughPeersRunningForConsensus() bool {
 	if (getNumberOfPeersRunning() >= NumberOfPeersNeededForConsensus) { 		// or MinNumberOfPeersNeededForConsensus ???
@@ -780,7 +773,6 @@ func enoughPeersRunningForConsensus() bool {
 	}
 	return false
 }
-
 
 func QueryAllPeers(stepName string) {
 
@@ -798,17 +790,16 @@ func QueryAllPeers(stepName string) {
 	fmt.Println("\nPOST/Chaincode: QUERY all running peers for a and b, and chainheight\n" + stepName)
         qArgsa := []string{"a"}
         qArgsb := []string{"b"}
-	qAPIArgs := []string{"example02", "query", "PEER0"}
+	qAPIArgs := []string{"example02", "query", threadutil.GetPeer(0) }
 	n := 0
 	for n=0; n < NumberOfPeersInNetwork; n++ {
 		qData[n].resA = 0
 		qData[n].resB = 0
-		if peerIsRunning(n) {
-			qAPIArgs = []string{ "example02", "query", "PEER"+strconv.Itoa(n) }
+		if peerIsRunning(n,MyNetwork) {
+			qAPIArgs = []string{ "example02", "query", threadutil.GetPeer(n) }
 			chco2_QueryOnHost(qAPIArgs, qArgsa, qArgsb, &qData[n].resA, &qData[n].resB)
 		}
 	}
-
 
 // TODO: here we may need to add code -
 // but DO WE NEED TO KNOW IF AN INVOKE HAS OCCURRED TOO (SINCE ANY NODE WAS RESTARTED)?
@@ -818,8 +809,6 @@ func QueryAllPeers(stepName string) {
 // (The Invoke is not needed to clear the backlog of queued transactions;
 // an Invoke is needed only to help get a newly started/joined node up to speed.)
 
-
-
 	// Validate all the query results obtained from all the peers; are they what is needed for success?
 
 	if QsMustMatchExpected {
@@ -827,8 +816,8 @@ func QueryAllPeers(stepName string) {
 		// "expected" values (currA & currB), plus-or-minus the queued transactions counters
 		passedCount := 0
 		for n=0; n < NumberOfPeersInNetwork; n++ {
-			if peerIsRunning(n) {
-				if validPeerQueryResults(currA+qtrans, currB-qtrans, qData[n].resA, qData[n].resB, "PEER"+strconv.Itoa(n)) {passedCount++}
+			if peerIsRunning(n,MyNetwork) {
+				if validPeerQueryResults(currA+qtrans, currB-qtrans, qData[n].resA, qData[n].resB, threadutil.GetPeer(n)) {passedCount++}
 			}
 		}
 		printQtrans()
@@ -838,7 +827,7 @@ func QueryAllPeers(stepName string) {
 				// FAILURE
                			myStr := fmt.Sprintf("FAILED QUERY TEST: the required peers do NOT match!!!!!!!!!!\nEXPECTED A/B: %9d %9d.\nACTUALs:", currA, currB)
         			for n = 0; n < NumberOfPeersInNetwork; n++ {
-        				if peerIsRunning(n) { myStr += fmt.Sprintf("\nPEER%2d        %9d %9d", n, qData[n].resA, qData[n].resB) }
+        				if peerIsRunning(n,MyNetwork) { myStr += fmt.Sprintf("\nPeer%2d        %9d %9d", n, qData[n].resA, qData[n].resB) }
 				}
                			fmt.Println(myStr)
 
@@ -847,14 +836,14 @@ func QueryAllPeers(stepName string) {
 				// PASS, Match Expected
 				myStr := fmt.Sprintf("PASSED QUERY TEST: Expected A/B (%d/%d) MATCHED on enough/appropriate Peers. ACTUALs (node:A/B): ", currA, currB)
         			for n = 0; n < NumberOfPeersInNetwork; n++ {
-        				if peerIsRunning(n) { myStr += fmt.Sprintf("%d:%d/%d ", n, qData[n].resA, qData[n].resB) }
+        				if peerIsRunning(n,MyNetwork) { myStr += fmt.Sprintf("%d:%d/%d ", n, qData[n].resA, qData[n].resB) }
 				}
                			fmt.Println(myStr)
 			}
 		} else {
 				myStr := fmt.Sprintf("SKIPPED QUERY VALIDATION: not enough peer nodes running for consensus. Expected A/B (%d/%d). ACTUALs (node:A/B): ", currA, currB)
         			for n = 0; n < NumberOfPeersInNetwork; n++ {
-        				if peerIsRunning(n) { myStr += fmt.Sprintf("%d:%d/%d ", n, qData[n].resA, qData[n].resB) }
+        				if peerIsRunning(n,MyNetwork) { myStr += fmt.Sprintf("%d:%d/%d ", n, qData[n].resA, qData[n].resB) }
 				}
                			fmt.Println(myStr)
 		}
@@ -890,14 +879,14 @@ func QueryAllPeers(stepName string) {
 				// PASS, Consensus
 				myStr := fmt.Sprintf("PASSED QUERY TEST: Enough (%d) peers agree for Consensus (required=%d) with values A/B %d/%d. It is not required to match expected values A/B %d/%d. ACTUALs (node:A/B): ", consensusValueCount, NumberOfPeersNeededForConsensus, consensusValueA, consensusValueB, currA, currB)
         			for n = 0; n < NumberOfPeersInNetwork; n++ {
-        				if peerIsRunning(n) { myStr += fmt.Sprintf("%d:%d/%d ", n, qData[n].resA, qData[n].resB) }
+        				if peerIsRunning(n,MyNetwork) { myStr += fmt.Sprintf("%d:%d/%d ", n, qData[n].resA, qData[n].resB) }
 				}
                			fmt.Println(myStr)
 			} else {
 				// FAILURE
                			myStr := fmt.Sprintf("FAILED QUERY TEST: peers do not agree!!!!!!!!!! (even though it is NOT required to match Expected A/B %d/%d.\nACTUALs:", currA, currB)
         			for n = 0; n < NumberOfPeersInNetwork; n++ {
-        				if peerIsRunning(n) { myStr += fmt.Sprintf("\nPEER%2d        %9d %9d", n, qData[n].resA, qData[n].resB) }
+        				if peerIsRunning(n,MyNetwork) { myStr += fmt.Sprintf("\nPeer%2d        %9d %9d", n, qData[n].resA, qData[n].resB) }
 				}
                			fmt.Println(myStr)
 
@@ -907,7 +896,7 @@ func QueryAllPeers(stepName string) {
 		} else {
 				myStr := fmt.Sprintf("SKIPPED QUERY VALIDATION: not enough peer nodes running for consensus. It is not required to match expected values A/B %d/%d. ACTUALs (node:A/B): ", currA, currB)
         			for n = 0; n < NumberOfPeersInNetwork; n++ {
-        				if peerIsRunning(n) { myStr += fmt.Sprintf("%d:%d/%d ", n, qData[n].resA, qData[n].resB) }
+        				if peerIsRunning(n,MyNetwork) { myStr += fmt.Sprintf("%d:%d/%d ", n, qData[n].resA, qData[n].resB) }
 				}
                			fmt.Println(myStr)
 		}
@@ -920,7 +909,6 @@ func QueryAllPeers(stepName string) {
 	}
 }
 
-
 func printQtrans() {
         if (Verbose) {
                 myOutStr := fmt.Sprintf(" qtrans (total) = %5d", qtrans)
@@ -930,7 +918,6 @@ func printQtrans() {
                 fmt.Println(myOutStr)
         }
 }
-
 
 func handleQueryFailure(stepName string) {
 	queryTestsPass = false
@@ -942,7 +929,6 @@ func handleQueryFailure(stepName string) {
 	}
 }
 
-
 func handleChainHeightFailure(stepName string) {
 	chainHeightTestsPass = false
 	if ( Stop_on_error && EnforceChainHeightTestsPass ) {
@@ -953,16 +939,15 @@ func handleChainHeightFailure(stepName string) {
 	}
 }
 
-
 func StopPeers(peerNumsToStopStart []int) {
 	rootPeer := false
 	if (len(peerNumsToStopStart) == 0) {
-		if pauseInsteadOfStop { fmt.Println("\nPAUSE PEERS:  [none requested]")
-		} else {                fmt.Println("\nSTOP PEERS:  [none requested]") }
+		if pauseInsteadOfStop { fmt.Println("\nPAUSE Peers:  [none requested]")
+		} else {                fmt.Println("\nSTOP Peers:  [none requested]") }
 	} else {
 		myOutStr := fmt.Sprintf("\n")
-		if pauseInsteadOfStop { myOutStr += fmt.Sprintf("PAUSE PEERS():")
-		} else {                myOutStr += fmt.Sprintf("STOP PEERS():") }
+		if pauseInsteadOfStop { myOutStr += fmt.Sprintf("PAUSE Peers():")
+		} else {                myOutStr += fmt.Sprintf("STOP Peers():") }
 
 		var peersToStopStart []string
 		peersToStopStart = make([]string, NumberOfPeersInNetwork)
@@ -971,17 +956,17 @@ func StopPeers(peerNumsToStopStart []int) {
 		i:= 0
 		for i < len(peerNumsToStopStart) {
 			peerNum := peerNumsToStopStart[i]
-			peerName := fmt.Sprintf("PEER%d", peerNum)
+			peerName := fmt.Sprintf(threadutil.GetPeer(peerNum))
 			myOutStr += "  " + peerName
 			if peerNum >= len(MyNetwork.Peers) { 	// if peerName is not in (MyNetwork.Peers)
-				myOutStr += fmt.Sprintf(" --> PEER NOT FOUND! Returning without touching any peer nodes!")
+				myOutStr += fmt.Sprintf(" --> Peer NOT FOUND! Returning without touching any peer nodes!")
 				fmt.Println(myOutStr)
 				return 
 			} else {
 				if (MyNetwork.Peers[peerNum].State != peernetwork.RUNNING) {
 					myOutStr += fmt.Sprintf("(alreadyNotRUNNING)")
 				} else {
-					if (peerNum == 0) || ((peerNum==1) && !peerIsRunning(0) && !rootPeer) {
+					if (peerNum == 0) || ((peerNum==1) && !peerIsRunning(0,MyNetwork) && !rootPeer) {
 						// TODO: enhance for larger networks when more nodes could be down.
 
 						rootPeer = true	// we are impacting the primary/root peer
@@ -1017,16 +1002,15 @@ func StopPeers(peerNumsToStopStart []int) {
 	}
 }
 
-
 func RestartPeers(peerNumsToStopStart []int) {
 	rootPeer := false
 	if (len(peerNumsToStopStart) == 0) {
-		if pauseInsteadOfStop { fmt.Println("\nUNPAUSE PEERS:  [none requested]")
-		} else {                fmt.Println("\nRESTART PEERS:  [none requested]") }
+		if pauseInsteadOfStop { fmt.Println("\nUNPAUSE Peers:  [none requested]")
+		} else {                fmt.Println("\nRESTART Peers:  [none requested]") }
 	} else {
 		myOutStr := fmt.Sprintf("\n")
-		if pauseInsteadOfStop { myOutStr += fmt.Sprintf("UNPAUSE PEERS():")
-		} else {                myOutStr += fmt.Sprintf("RESTART PEERS():") }
+		if pauseInsteadOfStop { myOutStr += fmt.Sprintf("UNPAUSE Peers():")
+		} else {                myOutStr += fmt.Sprintf("RESTART Peers():") }
 
 		var peersToStopStart []string
 		peersToStopStart = make([]string, NumberOfPeersInNetwork)
@@ -1035,17 +1019,17 @@ func RestartPeers(peerNumsToStopStart []int) {
 		i:= 0
 		for i < len(peerNumsToStopStart) {
 			peerNum := peerNumsToStopStart[i]
-			peerName := fmt.Sprintf("PEER%d", peerNum)
+			peerName := fmt.Sprintf(threadutil.GetPeer(peerNum))
 			myOutStr += "  " + peerName
 			if peerNum >= len(MyNetwork.Peers) { 	// if peerName is not in (MyNetwork.Peers)
-				myOutStr += fmt.Sprintf(" --> PEER NOT FOUND! Returning without touching any peer nodes!")
+				myOutStr += fmt.Sprintf(" --> Peer NOT FOUND! Returning without touching any peer nodes!")
 				fmt.Println(myOutStr)
 				return 
 			}
 			if (MyNetwork.Peers[peerNum].State == peernetwork.RUNNING) {
 				myOutStr += fmt.Sprintf("(alreadyRUNNING)")
 			}
-			if (peerNum == 0) || ((peerNum==1) && !peerIsRunning(0)) {
+			if (peerNum == 0) || ((peerNum==1) && !peerIsRunning(0,MyNetwork)) {
 					// TODO: enhance "if" check for larger networks when more nodes could be down.
 
 					rootPeer = true		// we are impacting the primary/root peer0
@@ -1088,21 +1072,17 @@ func RestartPeers(peerNumsToStopStart []int) {
 	}
 }
 
-
 // currently unused:
 // to call:  if !buildPeersList(peerNumsToStopStart, &peersToStopStart, &myOutStr) { return }
 func buildPeersList(peerNumsToStopStart []int, peersToStopStart *[]string, myOutStr *string) bool {
 		i := 0
 		for i < len(peerNumsToStopStart) {
 			peerNum := peerNumsToStopStart[i]
-			//peerNumAscii := strconv.Itoa(peerNum)
-			//peerName := fmt.Sprintf("PEER%s", peerNumAscii)
-			peerName := fmt.Sprintf("PEER%d", peerNum)
-			// *myOutStr = *myOutStr + fmt.Sprintf("  %s", peerName)
+			peerName := fmt.Sprintf(threadutil.GetPeer(peerNum))
 			*myOutStr = *myOutStr + "  " + peerName
 			(*peersToStopStart)[i] = peerName
 			if peerNum >= len(MyNetwork.Peers) { 	// if peerName is not in (MyNetwork.Peers)
-				*myOutStr = *myOutStr + fmt.Sprintf(" --> PEER NOT FOUND! Returning without touching any peer nodes!")
+				*myOutStr = *myOutStr + fmt.Sprintf(" --> Peer NOT FOUND! Returning without touching any peer nodes!")
 				fmt.Println(myOutStr)
 				return false
 			}
@@ -1112,19 +1092,16 @@ func buildPeersList(peerNumsToStopStart []int, peersToStopStart *[]string, myOut
 		return true
 }
 
-
 func StopMemberServices() {
 	fmt.Println("\n\n\n\nSTOP MemberServices (caserver)!\n\n\n")
 	//peernetwork.StopMemberServices(MyNetwork)
 	peernetwork.StopPeerLocal(MyNetwork, "caserver")
 }
 
-
 func RestartMemberServices() {
 	fmt.Println("\n\n\n\nRESTART MemberServices (caserver)!\n\n\n")
 	peernetwork.StartPeerLocal(MyNetwork, "caserver")
 }
-
 
 func TimeTrack(start time.Time, name string) {
 	//fmt.Println("+++ENTERED_TIMETRACK+++")
@@ -1155,7 +1132,6 @@ func TimeTrack(start time.Time, name string) {
 	restore_all()
 }
 
-
 func restore_all() {
 
 //	// This is what we really want to do:    docker ps -aq -f status=paused | xargs docker unpause  1>/dev/null 2>&1
@@ -1176,8 +1152,8 @@ func restore_all() {
 			// peernetwork.UnpausePeerLocal(MyNetwork, strconv.Itoa(i))
 			// fmt.Println("restore_all(): unpause peer" + strconv.Itoa(i)) 
 			// peernetwork.UnpausePeerLocal(MyNetwork, "peer" + strconv.Itoa(i))
-			fmt.Println("restore_all(): unpause PEER" + strconv.Itoa(i)) 
-			peernetwork.UnpausePeerLocal(MyNetwork, "PEER" + strconv.Itoa(i))
+			fmt.Println("restore_all(): unpause peer " + threadutil.GetPeer(i)) 
+			peernetwork.UnpausePeerLocal(MyNetwork, threadutil.GetPeer(i))
 		}
 //		if (MyNetwork.Peers[i].State == peernetwork.STOPPED) {
 //			// do not leave any nodes stopped
@@ -1185,7 +1161,6 @@ func restore_all() {
 //		}
 	}
 }
-
 
 func clean_up() {
 }
@@ -1196,7 +1171,6 @@ func chco2_QueryOnHost(apiArgs00 []string, argsA []string, argsB []string, resAI
 	*resAI, _ = strconv.Atoi(resA)
 	*resBI, _ = strconv.Atoi(resB)
 }
-
 
 func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
 
@@ -1224,7 +1198,6 @@ func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
 		time.Sleep( sleepTimeForTrans(num_invokes) )
 	}
 }
-
 
 func validPeerQueryResults(a int, b int, resA int, resB int, nodename string) bool {
 	var passfail bool
@@ -1260,42 +1233,41 @@ func validPeerQueryResults(a int, b int, resA int, resB int, nodename string) bo
 	return passfail
 }
 
-
 func QueryMatch(currA int, currB int) { 	// legacy previous API
         qArgsa := []string{"a"}
         qArgsb := []string{"b"}
         fmt.Println("\nPOST/Chaincode: QUERY a and b >>>>>>>>>>> ")
-        qAPIArgs00 := []string{"example02", "query", "PEER0"}
+        qAPIArgs00 := []string{"example02", "query", threadutil.GetPeer(0)}
         res0A, _ := chaincode.QueryOnHost(qAPIArgs00, qArgsa)
         res0B, _ := chaincode.QueryOnHost(qAPIArgs00, qArgsb)
         res0AI, _ := strconv.Atoi(res0A)
         res0BI, _ := strconv.Atoi(res0B)
 
-        qAPIArgs01 := []string{"example02", "query", "PEER1"}
+        qAPIArgs01 := []string{"example02", "query", threadutil.GetPeer(1)}
         res1A, _ := chaincode.QueryOnHost(qAPIArgs01, qArgsa)
         res1B, _ := chaincode.QueryOnHost(qAPIArgs01, qArgsb)
         res1AI, _ := strconv.Atoi(res1A)
         res1BI, _ := strconv.Atoi(res1B)
 
-        qAPIArgs02 := []string{"example02", "query", "PEER2"}
+        qAPIArgs02 := []string{"example02", "query", threadutil.GetPeer(2)}
         res2A, _ := chaincode.QueryOnHost(qAPIArgs02, qArgsa)
         res2B, _ := chaincode.QueryOnHost(qAPIArgs02, qArgsb)
         res2AI, _ := strconv.Atoi(res2A)
         res2BI, _ := strconv.Atoi(res2B)
 
-        qAPIArgs03 := []string{"example02", "query", "PEER3"}
+        qAPIArgs03 := []string{"example02", "query", threadutil.GetPeer(3)}
         res3A, _ := chaincode.QueryOnHost(qAPIArgs03, qArgsa)
         res3B, _ := chaincode.QueryOnHost(qAPIArgs03, qArgsb)
         res3AI, _ := strconv.Atoi(res3A)
         res3BI, _ := strconv.Atoi(res3B)
 
         if (currA == res0AI) && (currB == res0BI) {
-                fmt.Println("Results in a and b match with Invoke values on PEER0: PASS")
+                fmt.Println("Results in a and b match with Invoke values on peer 0: PASS")
                 valueStr := fmt.Sprintf(" currA : %d, currB : %d, resA : %d , resB : %d", currA, currB, res0AI, res0BI)
                 fmt.Println(valueStr)
         } else {
                 fmt.Println("******************************")
-                fmt.Println("RESULTS DO NOT MATCH on PEER0 : FAIL")
+                fmt.Println("RESULTS DO NOT MATCH on peer 0 : FAIL")
                 valueStr := fmt.Sprintf(" currA : %d, currB : %d, resA : %d , resB : %d", currA, currB, res0AI, res0BI)
                 fmt.Println(valueStr)
 
@@ -1303,23 +1275,23 @@ func QueryMatch(currA int, currB int) { 	// legacy previous API
         }
 
         if (currA == res1AI) && (currB == res1BI) {
-                fmt.Println("Results in a and b match with Invoke values on PEER1: PASS")
+                fmt.Println("Results in a and b match with Invoke values on peer 1: PASS")
                 valueStr := fmt.Sprintf(" currA : %d, currB : %d, resA : %d , resB : %d", currA, currB, res1AI, res1BI)
                 fmt.Println(valueStr)
         } else {
                 fmt.Println("******************************")
-                fmt.Println("RESULTS DO NOT MATCH on PEER1 : FAIL")
+                fmt.Println("RESULTS DO NOT MATCH on peer 1 : FAIL")
                 valueStr := fmt.Sprintf(" currA : %d, currB : %d, resA : %d , resB : %d", currA, currB, res1AI, res1BI)
                 fmt.Println(valueStr)
                 fmt.Println("******************************")
         }
         if (currA == res2AI) && (currB == res2BI) {
-                fmt.Println("Results in a and b match with Invoke values on PEER2: PASS")
+                fmt.Println("Results in a and b match with Invoke values on peer 2: PASS")
                 valueStr := fmt.Sprintf(" currA : %d, currB : %d, resA : %d , resB : %d", currA, currB, res2AI, res2BI)
                 fmt.Println(valueStr)
         } else {
                 fmt.Println("******************************")
-                fmt.Println("RESULTS DO NOT MATCH on PEER2 : FAIL")
+                fmt.Println("RESULTS DO NOT MATCH on peer 2 : FAIL")
                 valueStr := fmt.Sprintf(" currA : %d, currB : %d, resA : %d , resB : %d", currA, currB, res2AI, res2BI)
                 fmt.Println(valueStr)
 
@@ -1327,26 +1299,24 @@ func QueryMatch(currA int, currB int) { 	// legacy previous API
         }
 
         if (currA == res3AI) && (currB == res3BI) {
-                fmt.Println("Results in a and b match with Invoke values on PEER3: PASS")
+                fmt.Println("Results in a and b match with Invoke values on peer 3: PASS")
                 valueStr := fmt.Sprintf(" currA : %d, currB : %d, resA : %d , resB : %d", currA, currB, res3AI, res3BI)
                 fmt.Println(valueStr)
         } else {
                 fmt.Println("******************************")
-                fmt.Println("RESULTS DO NOT MATCH on PEER3 : FAIL")
+                fmt.Println("RESULTS DO NOT MATCH on peer 3 : FAIL")
                 valueStr := fmt.Sprintf(" currA : %d, currB : %d, resA : %d , resB : %d", currA, currB, res3AI, res3BI)
                 fmt.Println(valueStr)
 
                 fmt.Println("******************************")
         }
 }
-
 
 func Check(e error) {
         if e != nil {
                 panic(e)
         }
 }
-
 
 func validChainHeights() bool {
 
@@ -1365,8 +1335,8 @@ func validChainHeights() bool {
 
 	runningPeerCounter := 0
         for peerNum := 0; peerNum < NumberOfPeersInNetwork; peerNum++ {
-        	if peerIsRunning(peerNum) {
-			ht[peerNum], _ = chaincode.GetChainHeight("PEER" + strconv.Itoa(peerNum))
+        	if peerIsRunning(peerNum,MyNetwork) {
+			ht[peerNum], _ = chaincode.GetChainHeight(threadutil.GetPeer(peerNum))
 			if (ht[peerNum] == currCH)  { matchedCount++ }
 			runningPeerCounter++
 		} else { ht[peerNum] = 0 }
@@ -1377,7 +1347,7 @@ func validChainHeights() bool {
 		testStatus = false
                	myStr := fmt.Sprintf("FAILED CHAIN HEIGHT TEST: required peers do NOT match expected ChainHeight (%d).  Actual CH: ", currCH)
         	for peerNum := 0; peerNum < NumberOfPeersInNetwork; peerNum++ {
-        		if peerIsRunning(peerNum) { myStr += fmt.Sprintf("PEER%d(%d) ", peerNum, ht[peerNum]) }
+        		if peerIsRunning(peerNum,MyNetwork) { myStr += fmt.Sprintf("%s(%d) ", threadutil.GetPeer(peerNum), ht[peerNum]) }
 		}
                	myStr += fmt.Sprintf("!!!!!!!!!!")
                	fmt.Println(myStr)					// always print to stdout
@@ -1389,7 +1359,7 @@ func validChainHeights() bool {
 		testStatus = true
 		myStr := fmt.Sprintf("PASSED CHAIN HEIGHT TEST: Expected height (%d) matched on enough/appropriate Peers. Actual CH: ", currCH)
         	for peerNum := 0; peerNum < NumberOfPeersInNetwork; peerNum++ {
-        		if peerIsRunning(peerNum) { myStr += fmt.Sprintf("PEER%d(%d) ", peerNum, ht[peerNum]) }
+        		if peerIsRunning(peerNum,MyNetwork) { myStr += fmt.Sprintf("%s(%d) ", threadutil.GetPeer(peerNum), ht[peerNum]) }
 		}
                 fmt.Println(myStr)					// always print to stdout
 		if (Stop_on_error && EnforceChainHeightTestsPass) {	// if we care, print status in results file too
@@ -1399,8 +1369,6 @@ func validChainHeights() bool {
         }
 	return testStatus
 }
-
-
 
 func validateAllChainHeights() bool {
 	testStatus 		:= true
@@ -1418,8 +1386,8 @@ func validateAllChainHeights() bool {
 	countMatchingExpectedValue := 0
 	runningPeerCounter := 0
         for peerNum := 0; peerNum < NumberOfPeersInNetwork; peerNum++ {
-        	if peerIsRunning(peerNum) {
-			ht[peerNum], _ = chaincode.GetChainHeight("PEER" + strconv.Itoa(peerNum))
+        	if peerIsRunning(peerNum,MyNetwork) {
+			ht[peerNum], _ = chaincode.GetChainHeight(threadutil.GetPeer(peerNum))
 			if (ht[peerNum] == currCH)  { countMatchingExpectedValue++ } 
 			runningPeerCounter++
 		} else { ht[peerNum] = 0 }
@@ -1429,7 +1397,6 @@ func validateAllChainHeights() bool {
 
 	if countMatchingExpectedValue < runningPeerCounter { allMatchExpectedCH = false }
 	if countMatchingExpectedValue < NumberOfPeersNeededForConsensus { enoughMatchExpectedCH = false }
-
 
 	//====================================================================================================================
 	// Determine whether "consensusFound" or "allMatchEachOther"
@@ -1448,11 +1415,11 @@ func validateAllChainHeights() bool {
 		matchCounter := 0
 		matchStartPoints := numPeersRunning - NumberOfPeersNeededForConsensus + 1
 		for n := 0 ; (n <= NumberOfPeersInNetwork - NumberOfPeersNeededForConsensus) && (matchStartPoints > 0) && !consensusFound; n++ {
-        		if peerIsRunning(n) {
+        		if peerIsRunning(n,MyNetwork) {
 				// we will try n times to start and compare
 				matchCounter = 1
 				for i := n+1 ; (i < NumberOfPeersInNetwork) ; i++ {
-        				if peerIsRunning(i) {
+        				if peerIsRunning(i,MyNetwork) {
 						if (ht[n] == ht[i]) { matchCounter++ } else { allMatchEachOther = false }
 					}
 				}
@@ -1468,7 +1435,7 @@ func validateAllChainHeights() bool {
 	if (!consensusPossible) {
 		myStr += fmt.Sprintf("SKIPPED CHAINHEIGHT VALIDATION: Only %d peer nodes running, but %d are required for consensus in this network of %d. Expected CH (%d). Actual CHs: ", numPeersRunning, NumberOfPeersNeededForConsensus, NumberOfPeersInNetwork, currCH)
         	for peerNum := 0; peerNum < NumberOfPeersInNetwork; peerNum++ {
-        		if peerIsRunning(peerNum) { myStr += fmt.Sprintf("PEER%d(%d) ", peerNum, ht[peerNum]) }
+        		if peerIsRunning(peerNum,MyNetwork) { myStr += fmt.Sprintf("%s(%d) ", threadutil.GetPeer(peerNum), ht[peerNum]) }
 		}
                 fmt.Println(myStr)					// always print to stdout
 	} else
@@ -1488,7 +1455,7 @@ func validateAllChainHeights() bool {
 			// SUCCESS
 			myStr += fmt.Sprintf("PASSED CHAIN HEIGHT TEST: matches on enough/appropriate Peers. Expected CH (%d). Actual CHs: ", currCH)
         		for peerNum := 0; peerNum < NumberOfPeersInNetwork; peerNum++ {
-        			if peerIsRunning(peerNum) { myStr += fmt.Sprintf("PEER%d(%d) ", peerNum, ht[peerNum]) }
+        			if peerIsRunning(peerNum,MyNetwork) { myStr += fmt.Sprintf("%s(%d) ", threadutil.GetPeer(peerNum), ht[peerNum]) }
 			}
                 	fmt.Println(myStr)					// always print to stdout
 
@@ -1497,7 +1464,7 @@ func validateAllChainHeights() bool {
 			testStatus = false
                		myStr += fmt.Sprintf("FAILED CHAIN HEIGHT TEST: enough required peers do NOT match. Expected ChainHeight (%d). Actual CHs: ", currCH)
         		for peerNum := 0; peerNum < NumberOfPeersInNetwork; peerNum++ {
-        			if peerIsRunning(peerNum) { myStr += fmt.Sprintf("PEER%d(%d) ", peerNum, ht[peerNum]) }
+        			if peerIsRunning(peerNum,MyNetwork) { myStr += fmt.Sprintf("%s(%d) ", threadutil.GetPeer(peerNum), ht[peerNum]) }
 			}
                		myStr += fmt.Sprintf("!!!!!!!!!!")
                		fmt.Println(myStr)					// always print to stdout

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"obcsdk/chaincode"
 	"obcsdk/peernetwork"
+	"obcsdk/threadutil"
 	"os"
 	"strconv"
 	"strings"
@@ -84,11 +85,11 @@ func main() {
 	deployStandard := false;
 
 	if strings.ToUpper(os.Getenv("CHCO2_EXISTING_NETWORK")) == "TRUE" {
-		deployStandard = true;
 		// STANDARD (RE)DEPLOYMENT OVERRIDE:
 		// Useful for rerunning this testcase and for others to use the existing network with existing deployment
 		// (by using same standard numbers), rather than creating yet another deployment for the existing peers...
 		// we can use: 1 million / 1 million (or could use the popular 100/200):
+		deployStandard = true
 		inita = 1000000
 		initb = 1000000
 		fmt.Println("CHCO2_EXISTING_NETWORK is true, so we will redeploy with the standard deployment values (1M/1M) for this testcase chcotest/BasicFuncExistingNetwork.")
@@ -105,27 +106,26 @@ func main() {
 		s2 := rand.NewSource(time.Now().UnixNano()) // generate a new seed for b
 		r2 := rand.New(s2)
 		initb = r2.Intn(10000)
+		fmt.Println("Deploy with the random values for this testcase chcotest/BasicFuncExistingNetwork: ", inita, initb)
 	}
 
 	curra = inita
 	currb = initb
 
-  	// curra = 100
-  	// currb = 200
-	// fmt.Println("\nSkipping Deployment, setting curra=100 currb=200, queryDEPLOY will pass only if those are the values in the existing network\nTODO: query the values first and use them instead of hardcode 100,200\n")
-
-	deploy(inita,initb)		// deploy sleeps for 30 secs too
+	fmt.Println("BasicFuncExistingNetwork, before deploy: A/B/chainheight values: ", curra, currb, height)
+	deploy(curra,currb)		// deploy sleeps for 30 secs too
 	height++
-	time.Sleep(30000 * time.Millisecond)
+	time.Sleep(30000 * time.Millisecond)	// sleep 30 secs more, since may not be a local network
 
 	if deployStandard {
-		// go get the actual CURRENT values for A & B
-		success := chco2.QueryAllHostsToGetCurrentValues(&curra, &currb, &height)
+		// go get the actual CURRENT values for A & B & CH
+		success := chco2.QueryAllHostsToGetCurrentValues(myNetwork, &curra, &currb, &height)
 		if !success {
-			fmt.Println("setup_part3_verify: WARNING: CANNOT find consensus in existing network; A/B/chainheight values will likely fail to match expected values, current actual: ", curra, currb, height)
-			// panic(errors.New("setup_part3_verify: CANNOT find consensus in existing network"))
+			fmt.Println("BasicFuncExistingNetwork: WARNING: CANNOT find actual values in network; A/B/chainheight values will likely fail to match expected values")
+			// panic(errors.New("BasicFuncExistingNetwork: CANNOT find consensus in existing network"))
 		}
 	}
+	fmt.Println("BasicFuncExistingNetwork, AFTER deploy,QueryAllHosts: A/B/chainheight values (expected): ", curra, currb, height)
 
 	query("DEPLOY", curra, currb)
 
@@ -143,7 +143,7 @@ func main() {
 
 	fmt.Println("\n===== GetBlockStats API Test =====")
 	//chaincode.BlockStats(url, height)
-	nonHashData, _ := chaincode.GetBlockTrxInfoByHost("PEER0", height-1)
+	nonHashData, _ := chaincode.GetBlockTrxInfoByHost(threadutil.GetPeer(0), height-1)
 
 	if nonHashData.TransactionResult != nil && strings.Contains(nonHashData.TransactionResult[0].Uuid, invRes) {
 		myStr = fmt.Sprintf("\nGetBlocks API TEST PASS: Transaction Successfully stored in Block")
@@ -282,10 +282,10 @@ func invoke() string {						// using example02
 
 func query(txName string, expectedA int, expectedB int) {
 
-	qAPIArgs00 := []string{"example02", "query", "PEER0"}
-	qAPIArgs01 := []string{"example02", "query", "PEER1"}
-	qAPIArgs02 := []string{"example02", "query", "PEER2"}
-	qAPIArgs03 := []string{"example02", "query", "PEER3"}
+	qAPIArgs00 := []string{"example02", "query", threadutil.GetPeer(0)}
+	qAPIArgs01 := []string{"example02", "query", threadutil.GetPeer(1)}
+	qAPIArgs02 := []string{"example02", "query", threadutil.GetPeer(2)}
+	qAPIArgs03 := []string{"example02", "query", threadutil.GetPeer(3)}
 	qArgsa := []string{"a"}
 	qArgsb := []string{"b"}
 
@@ -343,12 +343,12 @@ func query(txName string, expectedA int, expectedB int) {
 	}
 }
 
-func getHeight_deprecated(expected int) {
-
-	ht0, _ := chaincode.GetChainHeight("PEER0")
-	ht1, _ := chaincode.GetChainHeight("PEER1")
-	ht2, _ := chaincode.GetChainHeight("PEER2")
-	ht3, _ := chaincode.GetChainHeight("PEER3")
+/*
+// func getHeight_deprecated(expected int) {
+	ht0, _ := chaincode.GetChainHeight(threadutil.GetPeer(0))
+	ht1, _ := chaincode.GetChainHeight(threadutil.GetPeer(1))
+	ht2, _ := chaincode.GetChainHeight(threadutil.GetPeer(2))
+	ht3, _ := chaincode.GetChainHeight(threadutil.GetPeer(3))
 
 	if (ht0 == expected) && (ht1 == expected) && (ht2 == expected) && (ht3 == expected) {
 		myStr := fmt.Sprintf("CHAIN HEIGHT TEST PASS : Results in A value match on all Peers after deploy and single invoke:\n")
@@ -365,12 +365,14 @@ func getHeight_deprecated(expected int) {
 		writer.Flush()
 	}
 }
+ */
+
 func getHeight(expectedToMatch int) {
 
-	ht0, _ := chaincode.GetChainHeight("PEER0")
-	ht1, _ := chaincode.GetChainHeight("PEER1")
-	ht2, _ := chaincode.GetChainHeight("PEER2")
-	ht3, _ := chaincode.GetChainHeight("PEER3")
+	ht0, _ := chaincode.GetChainHeight(threadutil.GetPeer(0))
+	ht1, _ := chaincode.GetChainHeight(threadutil.GetPeer(1))
+	ht2, _ := chaincode.GetChainHeight(threadutil.GetPeer(2))
+	ht3, _ := chaincode.GetChainHeight(threadutil.GetPeer(3))
 
 	numPeers := peernetwork.GetNumberOfPeers(myNetwork)
 	if numPeers != 4 { fmt.Println(fmt.Sprintf("TEST FAILURE: TODO: Must fix code %d peers, rather than default=4 peers in network!!!", numPeers)) }
@@ -409,14 +411,14 @@ func getHeight(expectedToMatch int) {
 
 func getBlockTxInfo(blockNumber int) {
 	errTransactions := 0
-	height, _ := chaincode.GetChainHeight("PEER0")
+	height, _ := chaincode.GetChainHeight(threadutil.GetPeer(0))
 	myStr := fmt.Sprintf("\n############### Total Blocks # %d\n", height)
 	fmt.Printf(myStr)
 	fmt.Fprintf(writer, myStr)
 
 	for i := 1; i < height; i++ {
 		//fmt.Printf("\n============================== Current BLOCKS %d ==========================\n", i)
-		nonHashData, _ := chaincode.GetBlockTrxInfoByHost("PEER0", i)
+		nonHashData, _ := chaincode.GetBlockTrxInfoByHost(threadutil.GetPeer(0), i)
 		length := len(nonHashData.TransactionResult)
 		for j := 0; j < length; j++ {
 			// Print Error info only when transaction failed

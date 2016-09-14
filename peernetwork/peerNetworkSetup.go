@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"errors"
 	//"github.com/pkg/sftp"
 	//"golang.org/x/crypto/ssh"
 )
@@ -132,15 +133,22 @@ func SetupLocalNetworkWithMoreOptions(
         commit_envvar := strings.TrimSpace(os.Getenv("COMMIT"))
         if commit_envvar != "" { commitImage = commit_envvar }
 
-	// script should be located in the ../automation directory
-
+	// run script located in the ../automation directory
 	pwd, _ := os.Getwd()
-	//fmt.Println("peernetwork/peerNetworkSetup.go SetupLocalNetworkWithMoreOptions(): Initial pwd: ", pwd)
-	os.Chdir(pwd + "/../automation")
+	if strings.Contains(pwd, "obcsdk/") {
+		// good: it looks like we are probably in a testing subdirectory of obcsdk; hopefully it is an immediate subdirectory.
+		os.Chdir(pwd + "/../automation")
+	} else {
+		if strings.Contains(pwd, "obcsdk") {
+			// ok, we are IN ../obcsdk so lets work with that...
+			os.Chdir(pwd + "/automation")
+		} else {
+			fmt.Println("peernetwork/peerNetworkSetup.go SetupLocalNetworkWithMoreOptions(): ERROR: you must be in a subdirectory of obcsdk/ when running go tests:\ncurrent pwd: ", pwd)
+			panic(errors.New("ERROR: first cd to a test directory underneath obcsdk/ to run go tests"))
+		}
+	}
 	pwd_automation, _ := os.Getwd()
-
 	script_cmd := pwd_automation + script_name
-	//fmt.Println("Starting automation script to setup local network: ", script_cmd)
 
  // ================
  //   arg1,2     -c   - specific commit image [latest]
