@@ -24,6 +24,11 @@ to setup a peer network.
 - LOGFILES for all Peers are saved in the automation directory. Run go_record.sh (or local_fabric.sh) without parameters to get help with the options.
 - Go to the test directories and execute the tests. Good luck!
 ```
+	$  #  Examples how you can preload some of the environment vars, for local or for HSBN/Z network testing:
+	$  .   ../automation/ENVVARS_LOCAL
+	$  .   ../automation/ENVVARS_Z
+	$  export COMMIT=<commit>
+
 	$ cd obcsdk/chcotest
 	$ go run BasicFuncNewNetwork.go
 	 
