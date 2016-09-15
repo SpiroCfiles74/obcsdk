@@ -1223,7 +1223,8 @@ func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
 	if mustSleep {
 		if (Verbose) { fmt.Println("Sleep approx " + strconv.Itoa(num_invokes/TransPerSecRate) + "secs after sending " + strconv.Itoa(num_invokes) + " invokes ...") }
 		time.Sleep( sleepTimeForTrans(num_invokes) )
-	} else { time.Sleep( batchtimeout * time.Millisecond ) } 	// sleep at least 2 secs, to give time for the transactions to be batched and sent through (so any queries following immediately would be more likely to work)
+	} else { time.Sleep( time.Duration(batchtimeout)*time.Second ) } 	// sleep at least 2 secs, to give time for the transactions to be batched
+									// and sent through (so any queries following immediately would be more likely to work)
 }
 
 func validPeerQueryResults(a int, b int, resA int, resB int, nodename string) bool {
