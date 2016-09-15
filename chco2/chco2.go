@@ -90,6 +90,7 @@ var AllRunningNodesMustMatch bool
 var NetworkAlreadyRunning bool
 
 var LoggingLevel string
+var localNetwork bool
 var Security bool
 var ConsensusMode string
 var PbftMode string
@@ -158,6 +159,7 @@ func setup_part1(testName string, started time.Time) {
 	// default settings, so that our test code uses the same values as the running peers and we can
 	// tune our tests accordingly (e.g. counting transactions).
 
+	localNetwork = true
 	NumberOfPeersInNetwork = 4	//  CORE_PBFT_GENERAL_N         - number of validating peers in the network
 	NumberOfPeersOkToFail = 1	//  CORE_PBFT_GENERAL_F         - max # possible faulty nodes while still can reach consensus
 	LoggingLevel = "error"		//  CORE_LOGGING_LEVEL          - [critical|error|warning|notice|info|debug] as defined in peer/core.yaml
@@ -180,6 +182,8 @@ func setup_part1(testName string, started time.Time) {
 	//---------------------------------------------------------------------------------------------------------------
 
 	var envvar string
+	envvar = strings.ToUpper(os.Getenv("NETWORK"))
+	if envvar != "" && envvar != "LOCAL" { localNetwork = false }
 	if strings.ToUpper(os.Getenv("CHCO2_VERBOSE")) == "TRUE" {
 		Verbose = true 	// Another option: edit  "verbose" in chaincode/const.go for more info about lower level functions operation
 	}
@@ -1181,7 +1185,14 @@ func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
 	// We sleep now only if we have consensus and the invokes can be processed now;
 	// otherwise we will sleep when we empty the queue later when consensus is resumed...
 	// Get the sleep time based on number of transactions.
+
 	mustSleep := enoughPeersRunningForConsensus()
+
+	// However, when in Z (not Local) network, the messaging delays (REST handshakes) are more than enough
+	// to slow down our transaction rate to something between 1 and 5 per sec, which is
+	// something the peer network can easily handle...
+
+	if !localNetwork { mustSleep = false }
 
 	invArgs := []string{"a", "b", "1"}
 	iAPIArgs := []string{"example02", "invoke", nodename}
@@ -1202,15 +1213,16 @@ func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
 					fmt.Printf(".")
 				}
 			}
-			if mustSleep && (j % TransPerSecRate == 0) { time.Sleep( 1000 * time.Millisecond) }
+			// we can either sleep here as we go, or do it once at the end
+			// if mustSleep && (j % TransPerSecRate == 0) { time.Sleep( 1000 * time.Millisecond) }
 		// }
 	}
 
 	//If we don't sleep above, as we go, then sleep just once here (for the full/longer time)
-	//if mustSleep {
-	//	if (Verbose) { fmt.Println("Sleep some after sending " + strconv.Itoa(num_invokes) + " invokes ...") }
-	//	time.Sleep( sleepTimeForTrans(num_invokes) )
-	//}
+	if mustSleep {
+		if (Verbose) { fmt.Println("Sleep approx " + strconv.Itoa(num_invokes/TransPerSecRate) + "secs after sending " + strconv.Itoa(num_invokes) + " invokes ...") }
+		time.Sleep( sleepTimeForTrans(num_invokes) )
+	}
 }
 
 func validPeerQueryResults(a int, b int, resA int, resB int, nodename string) bool {

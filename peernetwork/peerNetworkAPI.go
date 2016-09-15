@@ -448,6 +448,18 @@ func UnpausePeerLocal(thisNetwork PeerNetwork, peer string) {
 func StopPeersLocal(thisNetwork PeerNetwork, peers []string) {
 
 	for i:=0; i < len(peers); i++ {
+/*
+
+IF NETWORK=Z, then use different command instead of docker stop.
+https://<LPAR URL>/api/com.ibm.zBlockchain/peers/<PEER_ID>/<stop|restart>
+https://5a088be5-276c-42b3-b550-421f3f27b6ab_vp0-api.zone.blockchain.ibm.com:443/api/com.ibm.zBlockchain/peers/<vpN>/<stop|restart>
+GetURL(vpN)/api/com.ibm.zBlockchain/peers/vpN/<stop|restart>
+
+but since restart does not work, try this:
+https://manage.zone.blockchain.ibm.com/api/lpar/INTERNAL_LPAR_IP/peer/PEER_ID/restart
+https://manage.zone.blockchain.ibm.com/api/lpar/192.x.y.z/peer/vpN/restart
+
+*/
 		cmd := "docker stop " + peers[i]
                 out, err := exec.Command("/bin/sh", "-c", cmd).Output()
                 if (err != nil) {

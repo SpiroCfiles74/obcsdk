@@ -26,9 +26,6 @@ func TimeTracker(start time.Time, info string) {
 }
 
 func getChainHeight(url string) int {
-	/*var urlStr string
-	//TODO: peername - shouldn't hardcoded ??
-	urlStr = "http://172.17.0.3:5000"*/
 	height := chaincode.Monitor_ChainHeight(url)
 	fmt.Println("=========  Chaincode Height on "+url+" is : ", height)
 	return height
@@ -69,7 +66,8 @@ func queryChaincode(counter int64) (res1, res2 string) {
 	height := 0
 	var urlStr string
 	for i:=0;i<nodes;i++ {
-		urlStr = "http://172.17.0."+strconv.Itoa(startValue+i)+":5000"
+//		urlStr = "http://172.17.0."+strconv.Itoa(startValue+i)+":5000"
+		urlStr = threadutil.GetURL("172.17.0."+strconv.Itoa(startValue+i), "5000")
 		height = chaincode.Monitor_ChainHeight(urlStr)
 		fmt.Println("################ Chaincode Height on "+urlStr+" is : ", height)
 	}

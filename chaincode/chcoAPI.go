@@ -729,7 +729,8 @@ func DeployWithCCPATH(args []string, depargs []string) error {
 		fmt.Println(msgStr)
 		restCallName := "deploy"
 		peer, auser := peernetwork.AUserFromNetwork(ThisNetwork)
-		url := "https://" + peer.PeerDetails["ip"] + ":" + peer.PeerDetails["port"]
+		//url := "https://" + peer.PeerDetails["ip"] + ":" + peer.PeerDetails["port"]
+		url :=  GetURL(peer.PeerDetails["ip"], peer.PeerDetails["port"])
 		txId := changeState(url, ccPath, restCallName, dargs, auser, funcName)
 		//storing the value of most recently deployed chaincode inside chaincode details if no tagname or versioning
 		//add chaincode to library of chaincodes if does not exist

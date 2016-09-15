@@ -36,11 +36,11 @@
 #       ./local_fabric.sh -n 4 -s -c 346f9fb -l debug -m pbft
 # ------------------------------------------------------------------
 
-### COMMIT=821a3c7 is the v0.6 Sep 7th build
+### COMMIT=x86_64-0.7.0-SNAPSHOT-43c4d03 is from Sep 11th master branch
 ### hyperledger fabric (gerrit) branch v06 images 821a3c7 are stored in github/rameshthoomu/.
 ### To run them in local environment, try one of these:
 ###   local_fabric_gerrit.sh -c 821a3c7 -n 4 -f 1 -l error -m pbft -b 2 -s
-###   export COMMIT=821a3c7; export REPOSITORY_SOURCE=GERRIT; go_record.sh ../CAT/testtemplate.go ../chcotest/BasicFuncNewNetwork.go
+###   export COMMIT=x86_64-0.7.0-SNAPSHOT-43c4d03; export REPOSITORY_SOURCE=GERRIT; go_record.sh ../CAT/testtemplate.go ../chcotest/BasicFuncNewNetwork.go
 ### To run latest gerrit hyperledger fabric master images, in local env:
 ###   export COMMIT=latest; export REPOSITORY_SOURCE=GERRIT; go run ../CAT/testtemplate.go ../chcotest/BasicFuncNewNetwork.go
 ### To run tests in Z network on v05 (COMMIT=3e0e80a) or v6 (COMMIT=821a3c7) - still with example02, just like all the examples above:
@@ -54,8 +54,12 @@
 
 PEER_IMAGE=hyperledger/fabric-peer
 MEMBERSRVC_IMAGE=hyperledger/fabric-membersrvc
-#PEER_IMAGE=rameshthoomu/peer
-#MEMBERSRVC_IMAGE=rameshthoomu/membersrvc
+
+### COMMIT=821a3c7 is the v0.6 Sep 7th build
+### To use that or any images stored in rameshthoomu repository, uncomment the following two lines
+PEER_IMAGE=rameshthoomu/peer
+MEMBERSRVC_IMAGE=rameshthoomu/membersrvc
+
 REST_PORT=7050
 USE_PORT=30000
 CA_PORT=7054
@@ -227,15 +231,13 @@ fi
 echo "Is Security and Privacy enabled $SECURITY"
 
 echo "--------> Pulling Base Docker Images from Docker Hub"
-
-echo Docker PULL baseimage...
 #docker pull hyperledger/fabric-baseimage:latest
 #docker tag rameshthoomu/baseimage:latest hyperledger/fabric-baseimage:latest
 # If you are using this to test on gerrit code, please use `gerritlatest` tag for baseimage and
 # take the commits from https://hub.docker.com/u/hyperledger/.
 docker pull rameshthoomu/baseimage:gerritlatest
 docker tag rameshthoomu/baseimage:gerritlatest hyperledger/fabric-baseimage:latest
-echo Docker PULL peer and membersrvc images ...
+
 docker pull $PEER_IMAGE:$COMMIT
 docker pull $MEMBERSRVC_IMAGE:$COMMIT
 
@@ -266,9 +268,9 @@ fi
 
 echo "--------> Printing list of Docker Containers"
 CONTAINERS=$(docker ps | awk 'NR>1 && $NF!~/caserv/ {print $1}')
-echo $CONTAINERS
+echo CONTAINERS: $CONTAINERS
 NUM_CONTAINERS=$(echo $CONTAINERS | awk '{FS=" "}; {print NF}')
-echo $NUM_CONTAINERS
+echo NUM_CONTAINERS: $NUM_CONTAINERS
 
 # Printing Log files
 for (( container_id=1; $container_id<="$((NUM_CONTAINERS))"; container_id++ ))

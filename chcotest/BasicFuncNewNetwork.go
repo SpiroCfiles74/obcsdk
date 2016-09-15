@@ -45,7 +45,8 @@ func main() {
 	//url = "http://" + aPeer.PeerDetails["ip"] + ":" + aPeer.PeerDetails["port"]
 
 	user_ip, user_port, user_name, err := peernetwork.PeerOfThisUser(myNetwork, "test_user0")
-	url = "http://" + user_ip + ":" + user_port
+	//url = "http://" + user_ip + ":" + user_port
+	url = chaincode.GetURL(user_ip, user_port)
 	userRegisterTest(url, user_name)
 
 	fmt.Println("\n===== Start NetworkPeers Test =====")
