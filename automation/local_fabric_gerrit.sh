@@ -79,6 +79,8 @@ echo "--------> Starting membersrvc Server"
 
 docker run -d --name=caserver -p $CA_PORT:$CA_PORT -p 50052:7051 -it $MEMBERSRVC_IMAGE:$COMMIT membersrvc
 
+sleep 5 
+
 echo "--------> Starting hyperledger PEER0"
 
 docker run -d --name=PEER0 -it \

@@ -29,11 +29,11 @@ const (
 	// process the queued transactions per second - based on your test environment processing rate speeds.
 	// Expected network processing time: as of 7/14/16 we can support a little more than the following
 	// (for a 10-minute test run on v0.5):
-	// 	 80/sec invokes in vagrant/docker environment on PC,
-	// 	100/sec invokes in zACI LPAR environment, or more if using different client threads,
+	// 	 11/sec invokes in vagrant/docker environment on PC,
+	// 	  2/sec invokes in zACI LPAR environment, or more if using different client threads,
 	//	and 3 x those numbers for Queries.
 
-	TransPerSecRate = 80
+	TransPerSecRate = 80 	// a value higher than those above will simply drive it as fast as can go.
 
 	// Increase this for more traffic
 
@@ -487,7 +487,7 @@ func CatchUpAndConfirm() {
 		Invokes( numInvokes )
 
 		// sleep again, to allow double the expected processing time, to help ensure all transactions are processed
-		if (Verbose) { fmt.Println("Sleep double time...") }
+		if (Verbose) { fmt.Println("Sleep extra time...") }
 		time.Sleep(sleepTimeForTrans(numInvokes))
 
 		QueryAllPeers("STEP to CATCH UP AND CONFIRM RESULTS after extra invokes and sleep")
@@ -554,7 +554,7 @@ func Invokes(totalNumInvokes int) {
         	fmt.Println("Invokes: WARNING: no INVOKEs requested")
 		return
 	}
-        fmt.Println("\nPOST/Chaincode: INVOKEs total (" + strconv.Itoa(totalNumInvokes) + ") spread among all " + strconv.Itoa(numPeersRunning) + " running peers")
+        fmt.Println("\nPOST/Chaincode: INVOKEs total (" + strconv.Itoa(totalNumInvokes) + ") divided among all " + strconv.Itoa(numPeersRunning) + " running peers")
 	numInvokesPerPeer := totalNumInvokes / numPeersRunning
 	extras := totalNumInvokes % numPeersRunning
 	runningPeerCounter := 0
@@ -1176,11 +1176,10 @@ func chco2_QueryOnHost(apiArgs00 []string, argsA []string, argsB []string, resAI
 	*resBI, _ = strconv.Atoi(resB)
 }
 
+// PREcondition: peer node must be running
 func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
 
         if Verbose { fmt.Println("doInvoke() calling chaincode.InvokeOnPeer " + strconv.Itoa(num_invokes) + " times on peer " + nodename) }
-
-	// PREcondition: peer node is running
 
 	// We sleep now only if we have consensus and the invokes can be processed now;
 	// otherwise we will sleep when we empty the queue later when consensus is resumed...
@@ -1194,17 +1193,19 @@ func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
 
 	if !localNetwork { mustSleep = false }
 
+  // 9/15/2016: For now, since performance timing of theses tests indicates I cannot run more than 11 transactions per second
+  // on local environment (and 2 tps on Z/HSBN), let's just skip the sleeps because the peers network will certainly be able to keep up with that!
+  mustSleep = false
+
 	invArgs := []string{"a", "b", "1"}
 	iAPIArgs := []string{"example02", "invoke", nodename}
 	for j:=1; j <= num_invokes; j++ {
 		_, _ = chaincode.InvokeOnPeer(iAPIArgs, invArgs)
-		//invRes, _ := chaincode.InvokeOnPeer(iAPIArgs, invArgs)
-		//fmt.Println("\nFrom Invoke invRes ", invRes)
 		(*currA)--
 		(*currB)++
 		// if Verbose {
-			// Show some progress... and sleep as we go as needed...
-			// Print . for 10 invokes; Print + for 100 invokes; Print newline after 1000 invokes.
+			// Show some progress...
+			// Print . for 10 invokes; Print + for 100 invokes; Print newline after 1000 invokes on this peer.
 			if j % 10 == 0 {
 				if j % 100 == 0 {
 					fmt.Printf("+")
@@ -1222,7 +1223,7 @@ func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
 	if mustSleep {
 		if (Verbose) { fmt.Println("Sleep approx " + strconv.Itoa(num_invokes/TransPerSecRate) + "secs after sending " + strconv.Itoa(num_invokes) + " invokes ...") }
 		time.Sleep( sleepTimeForTrans(num_invokes) )
-	}
+	} else { time.Sleep( batchtimeout * time.Millisecond ) } 	// sleep at least 2 secs, to give time for the transactions to be batched and sent through (so any queries following immediately would be more likely to work)
 }
 
 func validPeerQueryResults(a int, b int, resA int, resB int, nodename string) bool {

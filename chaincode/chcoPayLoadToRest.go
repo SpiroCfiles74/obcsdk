@@ -251,56 +251,10 @@ func Transaction_Detail(url string, txid string) {
 
 }
 
-// Call the current interface or the deprecated
-// interface according to the value of devopsInUse
-func changeState(url string, path string,
-	restCallName string, args []string,
-	user string, funcName string) string {
-	var retVal string
-
-	if devopsInUse { /* deprecated API */
-		retVal = changeState_devops(url, path, restCallName, args, user, funcName)
-	} else {
-		retVal = changeState_chaincode(url, path, restCallName, args, user, funcName)
-	}
-	return retVal
-} /* changeState() */
-
-// *** DEPRECATED ***
-// Use Devops API to deploy, invoke, and query
-// a chaincode
-func changeState_devops(url string, path string, restCallName string, args []string, user string, funcName string) string {
-	//fmt.Println(path, user, args)
-	depPL := make(chan []byte)
-	go genPayLoad(depPL, path, funcName, args, user, restCallName)
-	depPayLoad := <-depPL
-	restUrl := url + "/devops/" + restCallName
-	msgStr := fmt.Sprintf("**Sending Rest Request to : %s", restUrl)
-	fmt.Println(msgStr)
-	respBody, _ := peerrest.PostChainAPI(restUrl, depPayLoad)
-	//fmt.Println("Response from Rest Call: >> ", respBody)
-	//fmt.Println(respBody)
-	type ChainTxMsg struct {
-		OK  string `json:"OK"`
-		MSG string `json:"message"`
-	}
-	var TxId string
-	res := new(ChainTxMsg)
-	fmt.Println("changeState_devops() respBody: ", respBody)
-	err := json.Unmarshal([]byte(respBody), &res)
-	if err != nil {
-		fmt.Println("Error in unmarshalling")
-	}
-	//TxId <- res.MSG
-	TxId = res.MSG
-	//fmt.Println("TxId ", TxId)
-	return TxId
-} /* changeState_devops */
-
 //
 // Use POST /chaincode endpoint to deploy, invoke, and
 // query a target chaincode.
-func changeState_chaincode(url string, path string, restCallName string,
+func changeState(url string, path string, restCallName string,
 	args []string, user string, funcName string) string {
 	//	fmt.Println("changeState_chaincode: ", path, user, args)
 
@@ -360,7 +314,7 @@ func changeState_chaincode(url string, path string, restCallName string,
 	}
 
 	return res.Result.Message
-} /* changeState_chaincode() */
+}
 
 // Call the current interface or the deprecated
 // interface according to the value of devopsInUse
@@ -588,7 +542,7 @@ func register(url string, user string, secret string) string {
 	go genRegPayLoad(payLoad, user, secret)
 	regPayLoad := <-payLoad
 	regUrl := url + "/registrar"
-	msgStr := fmt.Sprintf("register() **Sending Rest Request to %s user=%s secret=%s", regUrl, user, secret)
+	msgStr := fmt.Sprintf("register() **Sending Rest Request to url %s user=%s secret=%s", regUrl, user, secret)
 	fmt.Println(msgStr)
 	respBody, status := peerrest.PostChainAPI(regUrl, regPayLoad)
 	fmt.Println(respBody)

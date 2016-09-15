@@ -450,7 +450,8 @@ func StopPeersLocal(thisNetwork PeerNetwork, peers []string) {
 	for i:=0; i < len(peers); i++ {
 /*
 
-IF NETWORK=Z, then use different command instead of docker stop.
+IF NETWORK=Z, then use different command instead of docker stop (or restart)!
+
 https://<LPAR URL>/api/com.ibm.zBlockchain/peers/<PEER_ID>/<stop|restart>
 https://5a088be5-276c-42b3-b550-421f3f27b6ab_vp0-api.zone.blockchain.ibm.com:443/api/com.ibm.zBlockchain/peers/<vpN>/<stop|restart>
 GetURL(vpN)/api/com.ibm.zBlockchain/peers/vpN/<stop|restart>
@@ -458,6 +459,11 @@ GetURL(vpN)/api/com.ibm.zBlockchain/peers/vpN/<stop|restart>
 but since restart does not work, try this:
 https://manage.zone.blockchain.ibm.com/api/lpar/INTERNAL_LPAR_IP/peer/PEER_ID/restart
 https://manage.zone.blockchain.ibm.com/api/lpar/192.x.y.z/peer/vpN/restart
+
+
+func genCMD( keyword<stop|restart|pause|unpause>    {
+  return 
+}
 
 */
 		cmd := "docker stop " + peers[i]
@@ -467,7 +473,6 @@ https://manage.zone.blockchain.ibm.com/api/lpar/192.x.y.z/peer/vpN/restart
 					fmt.Println(out)
                    log.Fatal(err)
                 }
-		//exec.Command(cmd)
 		SetPeerState(thisNetwork, peers[i], STOPPED)
 	}
 	fmt.Println("After stop peers, sleep 5 secs")

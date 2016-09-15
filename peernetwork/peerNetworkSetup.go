@@ -425,17 +425,16 @@ func initializePeers() (peers []Peer, name string) {
 
 	fmt.Println("Getting and Initializing Peer details from network")
 	peerDetails, userDetails, Name := initNetworkCredentials()
-	FirstUser = userDetails[0].USER
-	//userDetails := initializeUsers()
 	numOfPeersOnNetwork := len(peerDetails)
 	numOfUsersOnNetwork := len(userDetails)
-	fmt.Println("Num of Peers", numOfPeersOnNetwork)
-	fmt.Println("Num of Users", numOfUsersOnNetwork)
-	fmt.Println("Name of network", Name)
-
+	fmt.Println("After reading NetworkCredentials:", numOfPeersOnNetwork)
+	fmt.Println("Num of Peers:", numOfPeersOnNetwork)
+	fmt.Println("Num of Users:", numOfUsersOnNetwork)
+	fmt.Println("Network Name:", Name)
 	if numOfPeersOnNetwork == 0 || numOfUsersOnNetwork == 0 {
-		fmt.Println("WARNING: UNUSABLE NETWORK (no peers or no users)!!!\nTry running the exec.Command directly on command line to possibly see more startup errors.\nAnd check the COMMIT level image name and confirm it is in the identified REPOSITORY_SOURCE.")
+		fmt.Println("WARNING: UNUSABLE NETWORK (no peers or no users)!!!\nExamine files networkcredentials and NetworkCredentials.json for errors.\nIf local network, try running the exec.Command directly on command line to possibly see more startup errors.\nAnd check the COMMIT level image name and confirm it is in the identified REPOSITORY_SOURCE.")
 	}
+	FirstUser = userDetails[0].USER
 	factor := numOfUsersOnNetwork / numOfPeersOnNetwork
 	remainder := numOfUsersOnNetwork % numOfPeersOnNetwork
 	allPeers := make([]Peer, numOfPeersOnNetwork)

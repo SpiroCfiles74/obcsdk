@@ -51,6 +51,8 @@ local IP=$2
 local PORT=$3
 echo "--------> Starting membersrvc Server"
 
+sleep 5
+
 docker run -d --name=caserver -p 50051:50051 -p 50052:30303 -it $MEMBERSRVC_IMAGE:$COMMIT membersrvc
 
 echo "--------> Starting hyperledger PEER0"
