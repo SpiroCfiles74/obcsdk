@@ -30,15 +30,13 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
-// SimpleChaincode example simple Chaincode implementation
-type SimpleChaincode struct {
+type Chaincode_example02_addrecs struct {
 }
 
-func (t *SimpleChaincode) Init(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+func (t *Chaincode_example02_addrecs) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	var A, B string    // Entities
 	var Bval int
 	var err error
@@ -75,7 +73,7 @@ func (t *SimpleChaincode) Init(stub *shim.ChaincodeStub, function string, args [
 }
 
 // Transaction makes payment of X units from A to B
-func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+func (t *Chaincode_example02_addrecs) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	if function == "delete" {
 		// Deletes an entity from its state
 		return t.delete(stub, args)
@@ -122,7 +120,7 @@ func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args
 }
 
 // Deletes an entity from state
-func (t *SimpleChaincode) delete(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+func (t *Chaincode_example02_addrecs) delete(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	if len(args) != 1 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 1")
 	}
@@ -139,7 +137,7 @@ func (t *SimpleChaincode) delete(stub *shim.ChaincodeStub, args []string) ([]byt
 }
 
 // Query callback representing the query of a chaincode
-func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+func (t *Chaincode_example02_addrecs) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	if function != "query" {
 		return nil, errors.New("Invalid query function name. Expecting \"query\"")
 	}
@@ -169,9 +167,30 @@ func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args 
 	return Avalbytes, nil
 }
 
+/*
 func main() {
 	err := shim.Start(new(SimpleChaincode))
 	if err != nil {
 		fmt.Printf("Error starting Simple chaincode: %s", err)
 	}
 }
+
+// 173: cannot use new(SimpleChaincode) (type *SimpleChaincode) as type shim.Chaincode in argument to shim.Start:
+// 	*SimpleChaincode does not implement shim.Chaincode (wrong type for Init method)
+// 		have Init(*shim.ChaincodeStub, string, []string) ([]byte, error)
+// 		want Init(shim.ChaincodeStubInterface, string, []string) ([]byte, error)
+ */
+
+func main() {
+	self := &Chaincode_example02_addrecs.go{}
+	interfaces := ccs.Interfaces{
+		//"org.hyperledger.chaincode.example02": self,
+		//// "appinit": self,
+	}
+
+	err := ccs.Start(interfaces) // Our one instance implements both Transactions and Queries interfaces
+	if err != nil {
+		fmt.Printf("Error starting chaincode_example02_addrecs chaincode: %s", err)
+	}
+}
+
