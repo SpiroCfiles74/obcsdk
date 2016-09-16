@@ -237,10 +237,10 @@ echo "--------> Pulling Base Docker Images from Docker Hub"
 #docker tag rameshthoomu/baseimage:latest hyperledger/fabric-baseimage:latest
 # If you are using this to test on gerrit code, please use `gerritlatest` tag for baseimage and
 # take the commits from https://hub.docker.com/u/hyperledger/.
-#docker pull rameshthoomu/baseimage:gerritlatest
-#docker tag rameshthoomu/baseimage:gerritlatest hyperledger/fabric-baseimage:latest
-docker pull rameshthoomu/baseimage:gerritv0.6
-docker tag rameshthoomu/baseimage:gerritv0.6 hyperledger/fabric-baseimage:latest
+docker pull rameshthoomu/baseimage:gerritlatest
+docker tag rameshthoomu/baseimage:gerritlatest hyperledger/fabric-baseimage:latest
+#docker pull rameshthoomu/baseimage:gerritv0.6
+#docker tag rameshthoomu/baseimage:gerritv0.6 hyperledger/fabric-baseimage:latest
 
 docker pull $PEER_IMAGE:$COMMIT
 docker pull $MEMBERSRVC_IMAGE:$COMMIT

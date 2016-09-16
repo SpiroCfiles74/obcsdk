@@ -182,7 +182,7 @@ func main() {
  */
 
 func main() {
-	self := &Chaincode_example02_addrecs.go{}
+	self := &Chaincode_example02_addrecs{}
 	interfaces := ccs.Interfaces{
 		//"org.hyperledger.chaincode.example02": self,
 		//// "appinit": self,
