@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"strconv"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
+	"hyperledger/ccs"
 )
 
 type Chaincode_example02_addrecs struct {
