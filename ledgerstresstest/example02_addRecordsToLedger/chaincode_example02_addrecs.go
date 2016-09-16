@@ -32,7 +32,8 @@ import (
 	"strconv"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 
-	"ccs"
+	"hyperledger/ccs"
+	//main "github.com/scottz64/obcsdk/blob/master/ledgerstresstest/example02_addRecordsToLedger"
 	//main "github.com/hyperledger/fabric/examples/chaincode/go/chaincode_example02"
 )
 
