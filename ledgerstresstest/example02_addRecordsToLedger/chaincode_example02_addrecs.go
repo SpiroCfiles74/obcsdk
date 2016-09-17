@@ -30,7 +30,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	ccs "github.com/hyperledger/fabric/core/chaincode/shim"
+	"github.com/hyperledger/fabric/core/chaincode/shim"
 	//"github.com/hyperledger/fabric/core/chaincode"
 
 	//"hyperledger/ccs"
