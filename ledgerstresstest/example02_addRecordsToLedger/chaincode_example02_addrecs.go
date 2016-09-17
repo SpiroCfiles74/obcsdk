@@ -30,9 +30,10 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"github.com/hyperledger/fabric/core/chaincode"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 
-	"hyperledger/ccs"
+	//"hyperledger/ccs"
 	//main "github.com/scottz64/obcsdk/blob/master/ledgerstresstest/example02_addRecordsToLedger"
 	//main "github.com/hyperledger/fabric/examples/chaincode/go/chaincode_example02"
 )
@@ -187,12 +188,13 @@ func main() {
 
 func main() {
 	self := &Chaincode_example02_addrecs{}
-	interfaces := ccs.Interfaces{
-		//"org.hyperledger.chaincode.example02": self,
-		//// "appinit": self,
-	}
+	//interfaces := ccs.Interfaces{
+	//	"org.hyperledger.chaincode.example02": self,
+	//	//"appinit": self,
+	//}
+	interfaces := shim.Chaincode{ }
 
-	err := ccs.Start(interfaces) // Our one instance implements both Transactions and Queries interfaces
+	err := shim.Start(interfaces) // Our one instance implements both Transactions and Queries interfaces
 	if err != nil {
 		fmt.Printf("Error starting chaincode_example02_addrecs chaincode: %s", err)
 	}
