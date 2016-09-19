@@ -172,31 +172,9 @@ func (t *Chaincode_example02_addrecs) Query(stub shim.ChaincodeStubInterface, fu
 	return Avalbytes, nil
 }
 
-/*
-func main() {
-	err := shim.Start(new(SimpleChaincode))
-	if err != nil {
-		fmt.Printf("Error starting Simple chaincode: %s", err)
-	}
-}
-
-// 173: cannot use new(SimpleChaincode) (type *SimpleChaincode) as type shim.Chaincode in argument to shim.Start:
-// 	*SimpleChaincode does not implement shim.Chaincode (wrong type for Init method)
-// 		have Init(*shim.ChaincodeStub, string, []string) ([]byte, error)
-// 		want Init(shim.ChaincodeStubInterface, string, []string) ([]byte, error)
- */
-
 func main() {
 	self := &Chaincode_example02_addrecs{}
-	//interfaces := ccs.Interfaces{
-	//	"org.hyperledger.chaincode.example02": self,
-	//	//"appinit": self,
-	//}
-
-	//interfaces := shim.Chaincode{ }
-	interfaces := shim.Interfaces{ }
-
-	err := shim.Start(interfaces) // Our one instance implements both Transactions and Queries interfaces
+	err := shim.Start(self) // Our one instance implements both Transactions and Queries interfaces
 	if err != nil {
 		fmt.Printf("Error starting chaincode_example02_addrecs chaincode: %s", err)
 	}
