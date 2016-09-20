@@ -271,7 +271,8 @@ if [ "$SECURITY" == "Y" ] ; then
         IP="$(ifconfig docker0 | grep "inet" | awk '{print $2}' | cut -d ':' -f 2)"
         echo "Docker0 interface IP Address $IP"
         echo "--------> Fetching PORT number"
-        PORT="$(sudo netstat -tunlp | grep docker | awk '{print $4'} | cut -d ":" -f 4)"
+        #PORT="$(sudo netstat -tunlp | grep docker | awk '{print $4'} | cut -d ":" -f 4)"
+        PORT=2375
         echo "PORT NUMBER IS $PORT"
         echo "--------> Calling membersrvc_setup function"
         membersrvc_setup $NUM_PEERS $IP $PORT
