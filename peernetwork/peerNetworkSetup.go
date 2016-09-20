@@ -1,7 +1,7 @@
 package peernetwork
 
 import (
-	"bytes"
+	//"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -180,8 +180,13 @@ func SetupLocalNetworkWithMoreOptions(
 	cmd =        exec.Command(    script_cmd, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13 )
 	fmt.Println("exec.Command done")
 
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	// cmd.Run()
+/*
 	var stdoutBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
+*/
 	err := cmd.Run()
 	if err != nil {
 		log.Fatal(err)
