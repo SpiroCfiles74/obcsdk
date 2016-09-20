@@ -90,7 +90,7 @@ echo "--------> Starting membersrvc Server"
 
 docker run -d --name=caserver -p $CA_PORT:$CA_PORT -p 50052:7051 -it $MEMBERSRVC_IMAGE:$COMMIT membersrvc
 
-sleep 5 
+sleep 15
 
 echo "--------> Starting hyperledger PEER0"
 
@@ -292,7 +292,7 @@ CONTAINERS=$(docker ps | awk 'NR>1 && $NF!~/caserv/ {print $1}')
 echo CONTAINERS: $CONTAINERS
 NUM_CONTAINERS=$(echo $CONTAINERS | awk '{FS=" "}; {print NF}')
 echo NUM_CONTAINERS: $NUM_CONTAINERS
-echo "docker ps -a :" 
+echo "docker ps -a" 
 docker ps -a
 echo "docker logs -f PEER0"
 docker logs -f PEER0
