@@ -292,6 +292,10 @@ CONTAINERS=$(docker ps | awk 'NR>1 && $NF!~/caserv/ {print $1}')
 echo CONTAINERS: $CONTAINERS
 NUM_CONTAINERS=$(echo $CONTAINERS | awk '{FS=" "}; {print NF}')
 echo NUM_CONTAINERS: $NUM_CONTAINERS
+echo "docker ps -a :" 
+docker ps -a
+echo "docker logs -f PEER0"
+docker logs -f PEER0
 
 # Printing Log files
 for (( container_id=1; $container_id<="$((NUM_CONTAINERS))"; container_id++ ))
