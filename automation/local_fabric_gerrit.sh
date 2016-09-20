@@ -287,15 +287,20 @@ else
         peer_setup $NUM_PEERS $IP $PORT
 fi
 
+sleep 10 
 echo "--------> Printing list of Docker Containers"
 CONTAINERS=$(docker ps | awk 'NR>1 && $NF!~/caserv/ {print $1}')
 echo CONTAINERS: $CONTAINERS
 NUM_CONTAINERS=$(echo $CONTAINERS | awk '{FS=" "}; {print NF}')
 echo NUM_CONTAINERS: $NUM_CONTAINERS
-echo "docker ps -a" 
-docker ps -a
-echo "docker logs -f PEER0"
-docker logs -f PEER0
+if [ $NUM_CONTAINERS -lt $NUM_PEERS ]
+then
+    echo "ERROR: NOT ALL THE CONTAINERS ARE RUNNING!!! Displaying debug info..."
+    echo "docker ps -a" 
+    docker ps -a
+    echo "docker logs -f PEER0"
+    docker logs -f PEER0
+fi
 
 # Printing Log files
 for (( container_id=1; $container_id<="$((NUM_CONTAINERS))"; container_id++ ))

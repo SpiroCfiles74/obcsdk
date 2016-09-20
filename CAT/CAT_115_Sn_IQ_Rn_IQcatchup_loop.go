@@ -3,7 +3,7 @@ package main
 // 
 // INSTRUCTIONS:
 // 
-// 1. Find and change chco2.CurrentTestName, to set this test name = this filename
+// 1. Change chco2.CurrentTestName, to set this test name = this filename
 // 2. Edit to add your test steps at the bottom.
 // 3. go build setupTest.go
 // 4. go run setupTest.go  - or better yet, to save all results use script:  gorecord.sh setupTest.go
@@ -26,7 +26,7 @@ import (
 	"bufio"
 	"obcsdk/chco2"
 	"fmt"
-	//"strconv"
+	"strconv"
 	// "bufio"
 	// "obcsdk/chaincode"
 	// "obcsdk/peernetwork"
@@ -41,7 +41,7 @@ func main() {
 	// SET THE TESTNAME:  set the filename/testname here, to display in output results.
 	//=======================================================================================
 
-	chco2.CurrentTestName = "CAT_406_S0S1_D_I_R0R1_IQ.go"
+	chco2.CurrentTestName = "CAT_115_Sn_IQ_Rn_IQcatchup_loop.go"
 
 
 	//=======================================================================================
@@ -90,16 +90,14 @@ chco2.Writer = bufio.NewWriter(osFile)
 	// 
 	//	Simply uncomment any lines here for this testcase to override
 	//	the default values, as defined in ../chco2/chco2.go
-
+	// 
 	// 	chco2.Verbose = true			// See also: "verbose" in ../chaincode/const.go
 	// 	chco2.Stop_on_error = true
 	// 	chco2.EnforceQueryTestsPass = false
 	//	chco2.EnforceChainHeightTestsPass = false
 	//	chco2.AllRunningNodesMustMatch = false 	// Note: chco2 inits to true, but sets this false when restart a peer node
 	//	chco2.CHsMustMatchExpected = true	// not fully implemented and working, so leave this false for most TCs
-	//	chco2.QsMustMatchExpected = false 	// Note: due to #2148, you MAY need to set false here for this testcase
-	//						// with complicated multiple stops/restarts (eg, break chain of custody)
-	//						// because some transactions may get lost (but the peer network agrees and keeps consensus).
+	//	chco2.QsMustMatchExpected = false 	// Note: until #2148 is solved, you may need to set false here if testcase has complicated multiple stops/restarts
 	//	chco2.DefaultInvokesPerPeer = 1		//  1 = default. Uncomment and change this here to override for this testcase.
 	//	chco2.TransPerSecRate = 20		// 20 = default. Uncomment and change this here to override for this testcase.
 
@@ -124,7 +122,6 @@ chco2.Writer = bufio.NewWriter(osFile)
 	//	PausePeers(peerNums []int)
 	//	UnpausePeers(peerNums []int)
 	// 
-	// 
 	// Example usages:
 	// 
 	// chco2.DeployNew( 9000, 1000 )
@@ -132,9 +129,9 @@ chco2.Writer = bufio.NewWriter(osFile)
 	// chco2.InvokeOnEachPeer( chco2.DefaultInvokesPerPeer )
 	// InvokeOnThisPeer( 100, 0 )
 	// chco2.StopPeers( []int{ 99 } )
-	// chco2.QueryAllPeers( "STEP 6, after STOP PEERs " + strconv.Itoa(99) )
+	// chco2.QueryAllPeers( "STEP 6, after STOP Peers " + strconv.Itoa(99) )
 	// chco2.RestartPeers( []int{ j, k } )
-	// chco2.QueryAllPeers( "STEP 9, after RESTART PEERs " + strconv.Itoa(j) + ", " + strconv.Itoa(k) )
+	// chco2.QueryAllPeers( "STEP 9, after RESTART Peers " + strconv.Itoa(j) + ", " + strconv.Itoa(k) )
 	// if (chco2.Verbose) { fmt.Println("Sleep extra 60 secs") }
 	// time.Sleep(chco2.SleepTimeSeconds(60))
 	// time.Sleep(chco2.SleepTimeMinutes(1))
@@ -146,36 +143,25 @@ chco2.Writer = bufio.NewWriter(osFile)
 	// DEFINE MAIN TESTCASE STEPS HERE
 	// 
 
-	// CAT_406_S0S1_D_I_R0R1_IQ.go
+	// CAT_115_Sn_IQ_Rn_IQcatchup_loop.go
+	// Stop VP. 1000 Invokes. Query/Verify CH/A/B all exact match in running peers. Restart VP. 100 Invokes, plus enough InvokesRequiredForCatchup. Query.
+	// Repeat twice for each peer in sequence
 
-	// DeployNew creates new deployment chaincode instances and will work as expected only if
-	// new values are used. If using the same old initA and initB values, the our test code
-	// would continue to communicate with the old chaincode instances (proceeding with the
-	// old currA and currB values, rather than appearing to reinitialize using new values)
-
-	chco2.Invokes( 96 )
-	chco2.QueryAllPeers( "STEP 0, after initial Deploy PLUS 96 more invokes" )
-
-	chco2.StopPeers( []int{ 0, 1 } )
-	chco2.DeployNew(5000, 5000)
-	chco2.Invokes( chco2.InvokesRequiredForCatchUp )
-	chco2.RestartPeers( []int{ 0, 1 } )
-
-	fmt.Println("Sleep extra 60 secs to ensure recovery")
-	time.Sleep(chco2.SleepTimeSeconds(60))
-
-	chco2.Invokes( chco2.InvokesRequiredForCatchUp )
-
-	fmt.Println("Sleep extra 60 secs to ensure recovery")
-	time.Sleep(chco2.SleepTimeSeconds(60))
-
-	chco2.QueryAllPeers( "STEP 6, after stopped 2 peers (0 & 1), deploy, and restarted all peers, and more Invokes " )
-
-	// chco2.AllRunningNodesMustMatch = true    	// OPTIONAL, depending on testcase details and objectives.
-	// chco2.Invokes(1000)				// OPTIONAL. Number could vary, based on the testcase.
-	// chco2.QueryAllPeers( "STEP FINAL, after 1000 invokes")
-
-	chco2.CatchUpAndConfirm()			// OPTIONAL, depending on testcase details and objectives.
+	//chco2.Invokes ( 16 )
+	chco2.Verbose = true
+	for loop := 2*chco2.NumberOfPeersInNetwork-1; loop >= 0; loop-- {
+		peerNum := loop % chco2.NumberOfPeersInNetwork
+		chco2.StopPeers( []int{ peerNum } )
+		chco2.Invokes ( 1000 )
+		chco2.QueryAllPeers( "STEP 3, after STOP Peer " + strconv.Itoa(peerNum) + ", and 1000 Invokes" )
+		chco2.RestartPeers( []int{ peerNum } )
+		chco2.Invokes ( 100 )
+		chco2.QueryAllPeers( "STEP 6, after RESTART Peer " + strconv.Itoa(peerNum) + ", and 100 more Invokes " )
+		chco2.Invokes( chco2.InvokesRequiredForCatchUp )
+		chco2.AllRunningNodesMustMatch = true    	// OPTIONAL. Depends on testcase details and objectives.
+		chco2.QueryAllPeers( "STEP 8, after enough invokes to ensure state transfer and restarted peer " + strconv.Itoa(peerNum) + " should catchup and all match")
+	}
+	chco2.CatchUpAndConfirm()			// just to be nice, let's give it another chance...
 
 	chco2.RanToCompletion = true	// DO NOT MOVE OR CHANGE THIS. It must remain last.
 }
