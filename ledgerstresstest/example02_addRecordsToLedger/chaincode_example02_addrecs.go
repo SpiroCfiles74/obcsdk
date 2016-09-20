@@ -42,7 +42,7 @@ type Chaincode_example02_addrecs struct {
 }
 
 func (t *Chaincode_example02_addrecs) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-	var A, B string    // Entities
+	var A, B string    // Entities for the Deploy/Init
 	var Bval int
 	var err error
 
@@ -51,25 +51,22 @@ func (t *Chaincode_example02_addrecs) Init(stub shim.ChaincodeStubInterface, fun
 	}
 
 	// Initialize the chaincode
-	A = args[0]
-	Aval := args[1]
+	A = args[0]      // "a"
+	Aval := args[1]  // DATA : FixedString or RandomString
+	B = args[2]      // "counter"
+	Bval, err = strconv.Atoi(args[3])    // cntr value integer
 	if err != nil {
-		return nil, errors.New("Expecting integer value for asset holding")
+		return nil, errors.New("Expecting integer value for counter index")
 	}
-	B = args[2]
-	Bval, err = strconv.Atoi(args[3])
-	if err != nil {
-		return nil, errors.New("Expecting integer value for asset holding")
-	}
-	fmt.Printf("Aval = %s, Bval = %d\n", Aval, Bval)
+	fmt.Printf("Aval (INIT DATA STRING) = %s, Bval (INIT counter value) = %d\n", Aval, Bval)
 
 	// Write the state to the ledger
-	err = stub.PutState(A, []byte(Aval))
+	err = stub.PutState(A, []byte(Aval))    // "a" , DATA
 	if err != nil {
 		return nil, err
 	}
 
-	err = stub.PutState(B, []byte(strconv.Itoa(Bval)))
+	err = stub.PutState(B, []byte(strconv.Itoa(Bval)))  // "counter" , counter value (typically zero)
 	if err != nil {
 		return nil, err
 	}
@@ -92,9 +89,9 @@ func (t *Chaincode_example02_addrecs) Invoke(stub shim.ChaincodeStubInterface, f
 		return nil, errors.New("Incorrect number of arguments. Expecting 3")
 	}
 
-	A = args[0]
-	Aval = args[1]
-	B = args[2]
+	A = args[0]       // aN ("a0" or "a1" or whatever, with the number being the cntr value, the top of the ledger stack)
+	Aval = args[1]    // DATA
+	B = args[2]       // "counter"
 
 
 	Bvalbytes, err := stub.GetState(B)
@@ -108,15 +105,15 @@ func (t *Chaincode_example02_addrecs) Invoke(stub shim.ChaincodeStubInterface, f
 
 	// Perform the execution
 	Bval = Bval + 1
-	fmt.Printf("Aval = %s, Bval = %d\n", Aval, Bval)
+	fmt.Printf("Aval (DATA) = %s, Bval (counter++ value) = %d\n", Aval, Bval)
 
 	// Write the state back to the ledger
-	err = stub.PutState(A, []byte(Aval))
+	err = stub.PutState(A, []byte(Aval))     // aN, DATA
 	if err != nil {
 		return nil, err
 	}
 
-	err = stub.PutState(B, []byte(strconv.Itoa(Bval)))
+	err = stub.PutState(B, []byte(strconv.Itoa(Bval)))   // "counter", incremented_counter_value
 	if err != nil {
 		return nil, err
 	}

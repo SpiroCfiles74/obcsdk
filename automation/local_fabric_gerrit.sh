@@ -52,10 +52,21 @@
 ###   export NETWORK=Z; go run ../ledgerstresstest/BasicFuncExistingNetworkLST.go; go run ../ledgerstresstest/LST*.go
 
 
-#PEER_IMAGE=hyperledger/fabric-peer
-#MEMBERSRVC_IMAGE=hyperledger/fabric-membersrvc
+### standard location of official images
+PEER_IMAGE=hyperledger/fabric-peer
+MEMBERSRVC_IMAGE=hyperledger/fabric-membersrvc
 
-### COMMIT=821a3c7 is the sniff-tested v0.6 Sep 7th build
+
+COMMIT=gerritv0.6  	# sep 16th first v0.6 loadbuild, use with:
+			### PEER_MAGE=rameshthoomu/peer
+			### MEMBERSRVC_IMAGE=rameshthoomu/membersrvc
+			### docker pull rameshthoomu/baseimage:gerritlatest
+			# instead of
+			### PEER_MAGE=hyperledger/fabric-peer
+			### MEMBERSRVC_IMAGE=hyperledger/fabric-membersrvc
+			### docker pull rameshthoomu/baseimage:latest or other
+
+### COMMIT=821a3c7 	# Sep 7th sniff-tested v0.6 prelim build
 ### To use that or any images stored in rameshthoomu repository, such as the first official v0.6 from Sep 15, uncomment the following two lines
 PEER_IMAGE=rameshthoomu/peer
 MEMBERSRVC_IMAGE=rameshthoomu/membersrvc
@@ -237,10 +248,15 @@ echo "--------> Pulling Base Docker Images from Docker Hub"
 #docker tag rameshthoomu/baseimage:latest hyperledger/fabric-baseimage:latest
 # If you are using this to test on gerrit code, please use `gerritlatest` tag for baseimage and
 # take the commits from https://hub.docker.com/u/hyperledger/.
-docker pull rameshthoomu/baseimage:gerritlatest
-docker tag rameshthoomu/baseimage:gerritlatest hyperledger/fabric-baseimage:latest
+
+#docker pull rameshthoomu/baseimage:latest
+#docker tag rameshthoomu/baseimage:latest hyperledger/fabric-baseimage:latest
+#docker pull rameshthoomu/baseimage:gerritlatest
+#docker tag rameshthoomu/baseimage:gerritlatest hyperledger/fabric-baseimage:latest
 #docker pull rameshthoomu/baseimage:gerritv0.6
 #docker tag rameshthoomu/baseimage:gerritv0.6 hyperledger/fabric-baseimage:latest
+docker pull rameshthoomu/baseimage:v0.6
+docker tag rameshthoomu/baseimage:v0.6 hyperledger/fabric-baseimage:latest
 
 docker pull $PEER_IMAGE:$COMMIT
 docker pull $MEMBERSRVC_IMAGE:$COMMIT
