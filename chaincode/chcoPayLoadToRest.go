@@ -29,17 +29,18 @@ type restCallResult_T struct { /* response to a REST API POST /chaincode  	*/
 	Id      int64    `json:"id"`
 }
 
-
-
 type Timestamps struct {
 	Seconds int `json:"seconds"`
 	Nanos int `json:"nanos"`
 }
+
+/* **********************************************************************
+// v0.5 and prior
 type Transactions struct {
 	Type int  `json:"type,omitempty"`
 	ChaincodeID string  `json:"chaincodeID"`
 	Payload string  `json:"payload"`
-	Uuid string  `json:"uuid"`
+	Txid string  `json:"txid"`
 	Timestamp Timestamps  `json:"timestamp"`
 	ConfidentialityLevel int `json:"confidentialityLevel"`
 	ConfidentialityProtocolVersion string `json:"confidentialityProtocolVersion"`
@@ -58,6 +59,37 @@ type TransactionResults struct {
 type NonHashData struct {
 		LocalLedgerCommitTimestamp Timestamps  `json:"localLedgerCommitTimestamp"`
 		TransactionResult []TransactionResults  `json:"transactionResults"`
+}
+type Block struct {
+	TransactionList []Transactions `json:"transactions"`
+	StateHash  string `json:"stateHash"`
+	PreviousBlockHash string `json:"previousBlockHash"`
+	ConsensusMetadata string `json:"consensusMetadata"`
+	NonHash NonHashData `json:"nonHashData"`
+}
+ ********************************************************************* */
+
+// v0.6 and later releases
+type Transactions struct {
+	Type int  `json:"type,omitempty"`
+	ChaincodeID string  `json:"chaincodeID"`
+	Payload string  `json:"payload"`
+	Txid string  `json:"txid"`
+	Timestamp Timestamps  `json:"timestamp"`
+	ConfidentialityLevel int `json:"confidentialityLevel"`
+	ConfidentialityProtocolVersion string `json:"confidentialityProtocolVersion"`
+	nonce string `json:"nonce"`
+	toValidators string `json:"toValidators"`
+	cert string `json:"cert"`
+	signature string `json:"signature"`
+}
+type ChaincodeEvents struct {
+	// 	? 
+}
+	
+type NonHashData struct {
+		LocalLedgerCommitTimestamp Timestamps  `json:"localLedgerCommitTimestamp"`
+		ChaincodeEvent []ChaincodeEvents  `json:"chaincodeEvents"`
 }
 type Block struct {
 	TransactionList []Transactions `json:"transactions"`
@@ -104,34 +136,12 @@ func ChainStats(url string) {
 
 func GetChainStats(url string) (body, status string) {
         body, status = peerrest.GetChainInfo(url + "/chain")
-        fmt.Println("ChainStats() chain info status: ", status)
-        fmt.Println("ChainStats() chain info body: ", body)
+        //fmt.Println("ChainStats() chain info status: ", status)
+        //fmt.Println("ChainStats() chain info body: ", body)
         return body, status
 }
 
-/*
 func ChaincodeBlockHash(url string, block int) string {
-	body, status := peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block - 1))
-	fmt.Println("ChaincodeBlockHash() chain info status: ", status) 
-	if verbose { fmt.Println("ChaincodeBlockHash() chain info body: ", body) }
-	type blockStruct struct {
-		HT int `json:"height"`
-		//curHash string `json:"currentBlockHash"`
-		//prevHash string `json:"previousBlockHash"`
-	}
-	resCh := new(ChainMsg)
-	err := json.Unmarshal([]byte(respBody), &resCh)
-	if err != nil {
-		fmt.Println("There was an error in unmarshalling chain info")
-	}
-	return resCh.HT
-
-}
-*/
-
-
-func ChaincodeBlockHash(url string, block int) string {
-	//respBody, status := peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block - 1))
 	respBody, status := peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block))
 	fmt.Println("ChaincodeBlockHash() chain info status: ", status)
 	if verbose { fmt.Println("ChaincodeBlockHash() chain info respBody: ", respBody) }
@@ -143,7 +153,7 @@ func ChaincodeBlockHash(url string, block int) string {
 	return blockStruct.StateHash
 }
 
-func ChaincodeBlockTrxInfo(url string, block int) NonHashData {
+func ChaincodeBlockTrxInfo(url string, block int) []Transactions {
 	respBody, status := peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block))
 	fmt.Println("ChaincodeBlockTrxInfo() chain info status: ", status)
 	if verbose { fmt.Println("ChaincodeBlockTrxInfo() chain info respBody: ", respBody) }
@@ -153,8 +163,8 @@ func ChaincodeBlockTrxInfo(url string, block int) NonHashData {
 	if err!= nil {
 		fmt.Println(err)
 	}
-	//fmt.Println(blockStruct.NonHash)
-	return blockStruct.NonHash
+	//fmt.Println(blockStruct.TransactionList)
+	return blockStruct.TransactionList
 }
 
 /*
@@ -163,7 +173,6 @@ func ChaincodeBlockTrxInfo(url string, block int) NonHashData {
 	block is an integer such that 0 < block <= chain height).
 */
 func BlockStats(url string, block int) string {
-
 	currBlock := strconv.Itoa(block - 1)
 	var body, status string
 	var prettyJSON bytes.Buffer
@@ -177,9 +186,7 @@ func BlockStats(url string, block int) string {
 		fmt.Println("JSON parse error: ", error)
 		return "JSON parse error "
 	}
-
 	return string(prettyJSON.Bytes())
-
 }
 
 /*
@@ -232,7 +239,6 @@ func UserRegister_ecertDetail(url string, username string) (response string, sta
 	txId is the transaction ID that is returned from Invoke and Deploy calls
 */
 func Transaction_Detail(url string, txid string) {
-
 	//currTxId := strconv.Atoi(txid)
 	var body, status string
 	var prettyJSON bytes.Buffer
@@ -240,15 +246,12 @@ func Transaction_Detail(url string, txid string) {
 	body, status = peerrest.GetChainInfo(url + "/transactions/" + txid)
 	fmt.Println("Transaction_Detail() chain info status: ", status)
 	if verbose { fmt.Println("Transaction_Detail() chain info body: ", body) }
-
 	error := json.Indent(&prettyJSON, []byte(body), "", JSON_INDENT)
 	if error != nil {
 		fmt.Println("JSON parse error: ", error)
 		return
 	}
-
 	fmt.Println(string(prettyJSON.Bytes()))
-
 }
 
 //
@@ -256,32 +259,27 @@ func Transaction_Detail(url string, txid string) {
 // query a target chaincode.
 func changeState(url string, path string, restCallName string,
 	args []string, user string, funcName string) string {
-	//	fmt.Println("changeState_chaincode: ", path, user, args)
 
 	//  Build a payload for the REST API call
 	depPL := make(chan []byte)
 	go genPayLoadForChaincode(depPL, path, funcName, args, user, restCallName)
 	depPayLoad := <-depPL
 
-	//	Build a URL for the REST API call using the caller's
+	//	Build a URL for the REST API call using the caller's url
 	restUrl := url + "/chaincode/"
 	if verbose {
-		msgStr := fmt.Sprintf("**Sending Rest Request to : %s", restUrl)
+		msgStr := fmt.Sprintf("**changeState() Sending Rest Request to url: %s", restUrl)
 		fmt.Println(msgStr)
 	}
 
 	//  issue REST call
 	respBody, respStatus := peerrest.PostChainAPI(restUrl, depPayLoad)
 
-	//	commented for less output messages
-	//	fmt.Println("Response from changeState_chaincode() REST call peerrest.PostChainAPI: >> ")
-	//	printJSON(respBody)
-
 	// Parse the response
 	res := new(restCallResult_T)
 	err := json.Unmarshal([]byte(respBody), &res)
 	if err != nil {
-		errMsg := fmt.Sprintf("\nchangeState_chaincode() ERROR in json.Unmarshal !!!!!\n")
+		errMsg := fmt.Sprintf("\nchangeState() ERROR in json.Unmarshal !!!!!\n")
 		errMsg += fmt.Sprintf("  path:                      %s\n", path)
 		errMsg += fmt.Sprintf("  restCallName:              %s\n", restCallName)
 		errMsg += fmt.Sprintf("  args:                      %s\n", args)
@@ -293,93 +291,46 @@ func changeState(url string, path string, restCallName string,
 		errMsg += fmt.Sprintf("  json.Unmarshal result:     %s\n", res)
 		errMsg += fmt.Sprintf("  json.Unmarshal error:      %s\n", err)
 		fmt.Println(errMsg)
-		log.Fatal("changeState_chaincode: ERROR in Unmarshalling! ", err)
+		log.Fatal("changeState: ERROR in Unmarshalling! ", err)
 	}
-	if verbose { fmt.Println("res = ", *res) }
-
-	//	if res.Result.Message != "" {
-	//		fmt.Println("message extracted from json: ", res.Result.Message)
-	//	}
-
+	if verbose { 
+		if res.Result.Message != "" {
+			fmt.Println("POST /chaincode returned Result message, extracted from json: ", res.Result.Message)
+		}
+	}
 	if res.Error.Message != "" {
-		if verbose { fmt.Println("Error extracted from json: res.Error.Message", res.Error.Message) }
+		if verbose { fmt.Println("POST /chaincode returned Error message, extracted from json: ", res.Error.Message) }
 		fmt.Printf("POST /chaincode returned code =%v message=%v data=%v\n",
 			res.Error.Code, res.Error.Message, res.Error.Data)
 		return ""
 	}
-
 	if res.Result.Message == "" { /* neither error nor result was returned */
 		printJSON(respBody)
-		panic("POST /chaincode returned unexpected output")
+		panic("POST /chaincode returned unexpected output: No Result Message AND No Error Message!")
 	}
-
 	return res.Result.Message
 }
 
-// Call the current interface or the deprecated
-// interface according to the value of devopsInUse
-func readState(url string, path string, restCallName string, args []string,
-	user string, funcName string) string {
-
-	var retVal string
-
-	if devopsInUse { /* deprecated API */
-		retVal = readState_devops(url, path, restCallName, args, user, funcName)
-	} else {
-		retVal = readState_chaincode(url, path, restCallName, args, user, funcName)
-	}
-	return retVal
-} /* readState() */
-
-// Implements DEPRECATED API
-func readState_devops(url string, path string, restCallName string, args []string,
-	user string, funcName string) string {
-	fmt.Println(path, user, args)
-	depPL := make(chan []byte)
-	go genPayLoad(depPL, path, funcName, args, user, restCallName)
-	depPayLoad := <-depPL
-	restUrl := url + "/devops/" + restCallName
-	msgStr := fmt.Sprintf("**Sending Rest Request to : %s", restUrl)
-	fmt.Println(msgStr)
-	respBody, _ := peerrest.PostChainAPI(restUrl, depPayLoad)
-	fmt.Println(respBody)
-	type ChainTxMsg struct {
-		OK  string `json:"OK"`
-		MSG string `json:"message"`
-	}
-	var TxId string
-	res := new(ChainTxMsg)
-	//fmt.Println("readState_devops() respBody: ", respBody)
-	err := json.Unmarshal([]byte(respBody), &res)
-	if err != nil {
-		fmt.Println("Error in unmarshalling")
-	}
-	//fmt.Println("TxId ",  res.OK)
-	//TxId <- res.OK
-	TxId = res.OK
-	return TxId
-} /* readState_devops() */
-
-func readState_chaincode(url string, path string, restCallName string, args []string, user string, funcName string) string {
-	msgStr := fmt.Sprintf("entering readState_chaincode: path=%s, restCallName=%s, user=%s, funcName=%s, args=%v\n", path, restCallName, user, funcName, args)
+func readState(url string, path string, restCallName string, args []string, user string, funcName string) string {
+	msgStr := fmt.Sprintf("entering readState: path=%s, restCallName=%s, user=%s, funcName=%s, args=%v\n", path, restCallName, user, funcName, args)
 	depPL := make(chan []byte)
 	go genPayLoadForChaincode(depPL, path, funcName, args, user, restCallName)
 	depPayLoad := <-depPL
 
 	restUrl := url + "/chaincode/"
-	msgStr += fmt.Sprintf("**Sending Rest Request to : %s", restUrl)
+	msgStr += fmt.Sprintf("**readState() Sending Rest Request to url: %s", restUrl)
 	if verbose { fmt.Println(msgStr) }
 
 	respBody, respStatus := peerrest.PostChainAPI(restUrl, depPayLoad)
 
 	//	commented for less output messages
-	//	fmt.Println("Response from readState_chaincode() REST call peerrest.PostChainAPI: >>>")
+	//	fmt.Println("Response from readState() REST call peerrest.PostChainAPI: >>>")
 	//	printJSON(respBody)
 
 	res := new(restCallResult_T)
 	err := json.Unmarshal([]byte(respBody), &res)
 	if err != nil {
-		errMsg := fmt.Sprintf("\nchangeState_chaincode() ERROR in json.Unmarshal !!!!!\n")
+		errMsg := fmt.Sprintf("\nreadState() ERROR in json.Unmarshal !!!!!\n")
 		errMsg += fmt.Sprintf("  path:                      %s\n", path)
 		errMsg += fmt.Sprintf("  restCallName:              %s\n", restCallName)
 		errMsg += fmt.Sprintf("  args:                      %s\n", args)
@@ -391,29 +342,21 @@ func readState_chaincode(url string, path string, restCallName string, args []st
 		errMsg += fmt.Sprintf("  json.Unmarshal result:     %s\n", res)
 		errMsg += fmt.Sprintf("  json.Unmarshal error:      %s\n", err)
 		fmt.Println(errMsg)
-		log.Fatal("readState_chaincode: ERROR in Unmarshalling! ", err)
+		log.Fatal("readState: ERROR in Unmarshalling! ", err)
 	}
 	if verbose { fmt.Println("res = ", *res) }
-	//	fmt.Println("result=", res.Result)
-
-	//	if res.Result.Message != "" {
-	//		fmt.Println("message extracted from json: ", res.Result.Message)
-	//	}
-
 	if res.Error.Message != "" {
 		if verbose { fmt.Println("Error extracted from json: res.Error.Message", res.Error.Message) }
 		fmt.Printf("POST /chaincode returned code =%v message=%v data=%v\n",
 			res.Error.Code, res.Error.Message, res.Error.Data)
 		return ""
 	}
-
 	if res.Result.Message == "" { /* neither error nor result was returned */
 		printJSON(respBody)
 		panic("POST /chaincode returned unexpected output")
 	}
 	return res.Result.Message
-
-} /* readStateForChaincode() */
+}
 
 func genPayLoad(PL chan []byte, pathName string, funcName string, args []string, user string, restCallName string) {
 
@@ -542,7 +485,7 @@ func register(url string, user string, secret string) string {
 	go genRegPayLoad(payLoad, user, secret)
 	regPayLoad := <-payLoad
 	regUrl := url + "/registrar"
-	msgStr := fmt.Sprintf("register() **Sending Rest Request to url %s user=%s secret=%s", regUrl, user, secret)
+	msgStr := fmt.Sprintf("**register() Sending Rest Request to url %s user=%s secret=%s", regUrl, user, secret)
 	fmt.Println(msgStr)
 	respBody, status := peerrest.PostChainAPI(regUrl, regPayLoad)
 	fmt.Println(respBody)

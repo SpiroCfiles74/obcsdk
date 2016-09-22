@@ -32,6 +32,7 @@ type Peer struct {
 type PeerNetwork struct {
 	Peers []Peer
 	Name  string
+	// need to add this and init...       Local boolean // indicates if env var "NETWORK" == "LOCAL" or "", rather than Z or anything else
 }
 
 type LibChainCodes struct {
@@ -432,7 +433,7 @@ func initializePeers() (peers []Peer, name string) {
 	peerDetails, userDetails, Name := initNetworkCredentials()
 	numOfPeersOnNetwork := len(peerDetails)
 	numOfUsersOnNetwork := len(userDetails)
-	fmt.Println("After reading NetworkCredentials:", numOfPeersOnNetwork)
+	fmt.Println("peerNetworkSetup.initializePeers(): After reading NetworkCredentials.json :")
 	fmt.Println("Num of Peers:", numOfPeersOnNetwork)
 	fmt.Println("Num of Users:", numOfUsersOnNetwork)
 	fmt.Println("Network Name:", Name)

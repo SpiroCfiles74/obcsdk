@@ -19,11 +19,10 @@ var LibCC peernetwork.LibChainCodes
 
 const invokeOnPeerUsage = ("iAPIArgs0 := []string{\"example02\", \"invoke\", \"<PEER_IP_ADDRESS>\" + \"(optional)<tagName>\"}" +
 	"invArgs0 := []string{\"a\", \"b\", \"500\"} " +
-
 	"chaincode.Invoke(iAPIArgs0, invArgs0)}")
+
 const invokeAsUserUsage = ("iAPIArgs0 := []string{\"example02\", \"invoke\", \"<Registered_USER_NAME>\" + \"(optional)<tagName>\"}" +
 	"invArgs0 := []string{\"a\", \"b\", \"500\"} " +
-
 	"chaincode.Invoke(iAPIArgs0, invArgs0)}")
 
 /**
@@ -189,7 +188,13 @@ func RegisterUsers2() {
 		var err error
 		depRes, err := chaincode.Deploy(dAPIArgs0, depArgs0)
 */
+
 func Deploy(args []string, depargs []string) (id string, err error)  {
+	id, err = DeployWithNetwork(ThisNetwork, args, depargs) 
+	return id, err
+}
+
+func DeployWithNetwork(mynetwork peernetwork.PeerNetwork, args []string, depargs []string) (id string, err error)  {
 
 	if (len(args) < 2) || (len(args) > 3) {
 		return " ", errors.New("FAILURE TO DEPLOY: Incorrect number of arguments. Expecting 2 or 3")
@@ -214,18 +219,16 @@ func Deploy(args []string, depargs []string) (id string, err error)  {
 	if strings.Contains(ChainCodeDetails["deployed"], "true") {
 		fmt.Println("\nchcoAPI.Deploy()  ** Already deployed ... skipping deploy...")
 	} else {
-		//msgStr := fmt.Sprintf("** Initializing and deploying chaincode %s on network with args %s", ChainCodeDetails["path"], dargs)
-		//fmt.Println(msgStr)
 		restCallName := "deploy"
-		peer, auser := peernetwork.AUserFromNetwork(ThisNetwork)
-		if verbose { fmt.Println( fmt.Sprintf("Deploying peer %s, peer.State (0=RUNNING): %d", peer.PeerDetails["name"], peer.State)) }
+		peer, auser := peernetwork.AUserFromNetwork(mynetwork)
+		if verbose { fmt.Println( fmt.Sprintf("Deploying on network %s on peer %s, peer.State (0=RUNNING): %d", mynetwork.Name, peer.PeerDetails["name"], peer.State)) }
 		url := GetURL(peer.PeerDetails["ip"], peer.PeerDetails["port"])
 		if verbose {
 			msgStr := fmt.Sprintf("chcoAPI.Deploy() ** Initializing and deploying chaincode %s on network with args %s", ChainCodeDetails["path"], dargs)
 			fmt.Println(msgStr)
 			fmt.Println("chcoAPI.Deploy() Value in the deploying peer.State (0=RUNNING): ", peer.State, " user=", auser)
 			fmt.Println("chcoAPI.Deploy() url=", url)
-			fmt.Println("chcoAPI.Deploy() restCallname=", url, " funcName=", funcName)
+			fmt.Println("chcoAPI.Deploy() restCallname=", restCallName, " funcName=", funcName)
 		}
 		txId = changeState(url, ChainCodeDetails["path"], restCallName, dargs, auser, funcName)
 		//if verbose { fmt.Println("chcoAPI.Deploy() txID", txId) }
@@ -262,7 +265,13 @@ func Deploy(args []string, depargs []string) (id string, err error)  {
 		var err error
 		depRes, err := chaincode.Deploy(dAPIArgs0, depArgs0)
 */
+
 func DeployOnPeer(args []string, depargs []string) (id string, err error)  {
+	id, err = DeployOnPeerWithNetwork(ThisNetwork, args, depargs) 
+	return id, err
+}
+
+func DeployOnPeerWithNetwork(mynetwork peernetwork.PeerNetwork, args []string, depargs []string) (id string, err error)  {
 
 	if (len(args) < 3) || (len(args) > 4) {
 		fmt.Println("DeployOnPeer : Incorrect number of arguments. Expecting 3 or 4 in invokeAPI arguments")
@@ -294,7 +303,8 @@ func DeployOnPeer(args []string, depargs []string) (id string, err error)  {
 		//msgStr := fmt.Sprintf("\n** Initializing and deploying chaincode %s on network with args %s\n", ChainCodeDetails["path"], dargs)
 		//fmt.Println(msgStr)
 		restCallName := "deploy"
-		ip, port, auser, err2 := peernetwork.AUserFromThisPeer(ThisNetwork, host)
+		ip, port, auser, err2 := peernetwork.AUserFromThisPeer(mynetwork, host)
+		if verbose { fmt.Println( fmt.Sprintf("Deploying on network %s on host %s", mynetwork.Name, host)) }
 		if err2 != nil {
 			fmt.Println("Inside invoke3: ", err2)
 			return "", err2
@@ -333,7 +343,13 @@ func DeployOnPeer(args []string, depargs []string) (id string, err error)  {
 		var err error
 		invRes,err := chaincode.Invoke(iAPIArgs0, invArgs0)}
 */
+
 func Invoke(args []string, invokeargs []string) (id string, err error) {
+	id, err = InvokeWithNetwork(ThisNetwork, args, invokeargs)
+	return id, err
+}
+
+func InvokeWithNetwork(mynetwork peernetwork.PeerNetwork, args []string, invokeargs []string) (id string, err error) {
 
 	if (len(args) < 2) || (len(args) > 3) {
 		fmt.Println("Invoke : Incorrect number of arguments. Expecting 2")
@@ -357,7 +373,7 @@ func Invoke(args []string, invokeargs []string) (id string, err error) {
 		return "", errors.New("No Chain Code Details we cannot proceed")
 	}
 	restCallName := "invoke"
-	aPeer, _ := peernetwork.APeer(ThisNetwork)
+	aPeer, _ := peernetwork.APeer(mynetwork)
 	if verbose {
 		fmt.Println("Getting AUserFromAPeer at ip,port:", aPeer.PeerDetails["ip"], aPeer.PeerDetails["port"])
 	}
@@ -530,7 +546,13 @@ func InvokeAsUser(args []string, invokeargs []string) (id string, err error) {
 		var err error
 		queryRes,err := chaincode.Query(qAPIArgs0, qArgsa)
 */
+
 func Query(args []string, queryArgs []string) (id string, err error) {
+	id, err = QueryWithNetwork(ThisNetwork, args, queryArgs)
+	return id, err
+}
+
+func QueryWithNetwork(mynetwork peernetwork.PeerNetwork, args []string, queryArgs []string) (id string, err error) {
 
 	if (len(args) < 2) || (len(args) > 3) {
 		return "", errors.New("Incorrect number of arguments. Expecting 2")
@@ -553,7 +575,7 @@ func Query(args []string, queryArgs []string) (id string, err error) {
 		return "", errors.New("No Chain Code Details we cannot proceed")
 	}
 	restCallName := "query"
-	peer, auser := peernetwork.AUserFromNetwork(ThisNetwork)
+	peer, auser := peernetwork.AUserFromNetwork(mynetwork)
 	url := GetURL(peer.PeerDetails["ip"], peer.PeerDetails["port"])
 
 	var txId string
@@ -593,9 +615,12 @@ func Query(args []string, queryArgs []string) (id string, err error) {
 		queryRes,err := chaincode.Query(qAPIArgs0, qArgsa)
 */
 
+func QueryOnHost(args []string, queryArgs []string) (id string, err error) {
+	id, err = QueryOnHostWithNetwork(ThisNetwork, args, queryArgs)
+	return id, err
+}
 
-
-func QueryOnHost(args []string, queryargs []string) (id string, err error) {
+func QueryOnHostWithNetwork(mynetwork peernetwork.PeerNetwork, args []string, queryargs []string) (id string, err error) {
 	if (len(args) < 3) || (len(args) > 4) {
 		fmt.Println("QueryOnHost : Incorrect number of arguments. Expecting 3 or 4 in invokeAPI arguments")
 		fmt.Println(invokeOnPeerUsage)
@@ -623,14 +648,14 @@ func QueryOnHost(args []string, queryargs []string) (id string, err error) {
 		return "", errors.New("No Chain Code Details we cannot proceed")
 	}
 	restCallName := "query"
-	ip, port, auser, err2 := peernetwork.AUserFromThisPeer(ThisNetwork, host)
+	ip, port, auser, err2 := peernetwork.AUserFromThisPeer(mynetwork, host)
 	if err2 != nil {
 		fmt.Println("Inside QueryOnHost: peernetwork.AUserFromThisPeer (host=" + host + ") returned error:", err2)
 		return "", err2
 	} else {
 		url := GetURL(ip, port)
 		if verbose {
-			msgStr0 := fmt.Sprintf("** Calling %s on chaincode %s with args %s on url %s as user %s on host %s", funcName, ccName, qryargs, url, auser, host)
+			msgStr0 := fmt.Sprintf("**QueryOnHost() Calling changeState function %s on chaincode %s with args %s on url %s as user %s on host %s", funcName, ccName, qryargs, url, auser, host)
 			fmt.Println(msgStr0)
 		}
 		if (len(tagName) > 0) {
@@ -659,6 +684,7 @@ func GetChainHeight(host string) (ht int, err error) {
 
 }
 
+/*    v0.5 and prior
 func GetBlockTrxInfoByHost(host string, block int) (bsNonHash NonHashData, err error) {
 	//respBody, status := peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block))
 	ip, port, _, err2 := peernetwork.AUserFromThisPeer(ThisNetwork, host)
@@ -671,6 +697,25 @@ func GetBlockTrxInfoByHost(host string, block int) (bsNonHash NonHashData, err e
 		bsNonHashData := ChaincodeBlockTrxInfo(url, block)
 		if verbose { fmt.Println("GetBlockTrxInfoByHost() host=" +host+ " block=" +strconv.Itoa(block)+ "\n NonHashData=",bsNonHashData) }
 		return bsNonHashData, nil
+	}
+}
+ */
+
+func GetBlockTrxInfoByHost(host string, block int) (transactionsList []Transactions, err error) {
+	//respBody, status := peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block))
+	ip, port, _, err2 := peernetwork.AUserFromThisPeer(ThisNetwork, host)
+	if err2 != nil {
+		fmt.Println("Inside GetBlockTrxInfoByHost(), AUserFromThisPeer <" +host+ "> returned err:", err2)
+		var emptyData []Transactions
+		return emptyData, err2
+	} else {
+		url := GetURL(ip, port)
+		txList := ChaincodeBlockTrxInfo(url, block)
+		if verbose { fmt.Println("GetBlockTrxInfoByHost() host=" +host+ " block=" +strconv.Itoa(block)+ "\n TxList=",txList) }
+		return txList, nil
+		//bsNonHashData := ChaincodeBlockTrxInfo(url, block)
+		//if verbose { fmt.Println("GetBlockTrxInfoByHost() host=" +host+ " block=" +strconv.Itoa(block)+ "\n NonHashData=",bsNonHashData) }
+		//return bsNonHashData, nil
 	}
 }
 

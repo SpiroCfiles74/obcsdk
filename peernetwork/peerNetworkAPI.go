@@ -18,7 +18,6 @@ func PrintNetworkDetails() {
 	Peers := ThisNetwork.Peers
 	i := 0
 	for i < len(Peers) {
-
 		msgStr := fmt.Sprintf("  ip: %s port: %s name: %s ", Peers[i].PeerDetails["ip"], Peers[i].PeerDetails["port"], Peers[i].PeerDetails["name"])
 		fmt.Println(msgStr)
 		userList := ThisNetwork.Peers[i].UserData
@@ -40,7 +39,6 @@ func PrintNetworkDetails() {
 		}
 		//fmt.Println("\n")
 	}
-
 }
 
 
@@ -116,7 +114,6 @@ func APeer(thisNetwork PeerNetwork) (thisPeer *Peer, err error) {
 		errStr = fmt.Sprintf("Not found valid running peer on network")
 		return aPeer, errors.New(errStr)
 	}
-
 }
 
 /*
@@ -169,7 +166,6 @@ func AUserFromNetwork(thisNetwork PeerNetwork) (thisPeer *Peer, user string) {
 */
 func AUserFromAPeer(thisPeer Peer) (ip string, port string, user string, err error) {
 
-	//var aPeer *Peer
 	aPeer := thisPeer
 	var curUser string
 	var err1 error
@@ -185,12 +181,26 @@ func AUserFromAPeer(thisPeer Peer) (ip string, port string, user string, err err
 	}
 }
 
+// username := peernetwork.GetAUserFromPeerNum(mynetwork, peerNum)
+// returns empty string if no user found on specified peer number
+func GetAUserFromPeer(myNetwork PeerNetwork, peerNum int) (user string) {
+	user = ""
+	if peerNum < len(myNetwork.Peers) {
+		var aPeer *Peer
+		aPeer = &myNetwork.Peers[peerNum]
+		if aPeer != nil {
+			for user, _ = range aPeer.UserData { break }
+		}
+	}
+	// if user == "" { fmt.Println("No user found on peer ", peerNum) }
+	return user
+}
+
 /*
- gets a user from a Peer with the given IP or host name on the PeerNetwork
+ gets a user from a Peer identified with "host" - which can be either the given IP or host name on the PeerNetwork
 */
 func AUserFromThisPeer(thisNetwork PeerNetwork, host string) (ip string, port string, user string, err error) {
 
-	//var aPeer *Peer
 	Peers := thisNetwork.Peers
 	var aPeer *Peer
 	var u string
@@ -230,7 +240,6 @@ func AUserFromThisPeer(thisNetwork PeerNetwork, host string) (ip string, port st
 	}
 }
 
-
 /*
   finds the peer address corresponding to a given user
     thisNetwork as set by chaincode.init
@@ -266,10 +275,7 @@ func PeerOfThisUser_OLD(thisNetwork PeerNetwork, username string) (ip string, po
 	}
 }
 
-
 func PeerOfThisUser(thisNetwork PeerNetwork, username string) (ip string, port string, user string, err error) {
-
-	//var aPeer *Peer
 	Peers := thisNetwork.Peers
 	var aPeer *Peer
 	var errStr string
@@ -280,7 +286,6 @@ func PeerOfThisUser(thisNetwork PeerNetwork, username string) (ip string, port s
 		if len(Peers[peerIter].UserData) > 0 && len(Peers[peerIter].PeerDetails) > 0 && (Peers[peerIter].State == RUNNING ||  Peers[peerIter].State == STARTED){
 				if _, ok := Peers[peerIter].UserData[username]; ok {
 					//fmt.Printf("Found %s in network on peer %d\n", username, peerIter)
-					fmt.Printf("Found %s in network on peer %d\n", username, peerIter)
 					aPeer = &Peers[peerIter]
 				}
 		}
@@ -305,14 +310,11 @@ func PeerOfThisUser(thisNetwork PeerNetwork, username string) (ip string, port s
 	}
 }
 
-
 /*Gets the peer details corresponding to a given peer-name
 state if running/stopped/unresponsive/paused:0/1/2/3
 err	is an error message, or nil if no error occurred.
 */
 func GetPeerState(thisNetwork PeerNetwork, peername string) (currPeer *Peer, err error) {
-
-	//var aPeer *Peer
 	Peers := thisNetwork.Peers
 	var aPeer *Peer
 	var errStr string
@@ -367,10 +369,6 @@ func SetPeerState(thisNetwork PeerNetwork, peername string, curstate int) (peerD
 	}
 }
 
-
-
-
-
 func PausePeersLocal(thisNetwork PeerNetwork, peers []string) {
 
 	for i:=0 ; i < len(peers); i++ {
@@ -388,7 +386,6 @@ func PausePeersLocal(thisNetwork PeerNetwork, peers []string) {
 	time.Sleep(5000 * time.Millisecond)
 }
 
-
 func PausePeerLocal(thisNetwork PeerNetwork, peer string) {
 
 	cmd := "docker pause " + peer
@@ -403,10 +400,7 @@ func PausePeerLocal(thisNetwork PeerNetwork, peer string) {
 			time.Sleep(5000 * time.Millisecond)
 			SetPeerState(thisNetwork, peer, PAUSED)
 	}
-
 }
-
-
 
 func UnpausePeersLocal(thisNetwork PeerNetwork, peers []string) {
 
@@ -426,8 +420,6 @@ func UnpausePeersLocal(thisNetwork PeerNetwork, peers []string) {
 	time.Sleep(5000 * time.Millisecond)
 }
 
-
-
 func UnpausePeerLocal(thisNetwork PeerNetwork, peer string) {
 
         fmt.Println("UnpausePeerLocal(): peer=" + peer)
@@ -444,7 +436,6 @@ func UnpausePeerLocal(thisNetwork PeerNetwork, peer string) {
 	}
 }
 
-
 func StopPeersLocal(thisNetwork PeerNetwork, peers []string) {
 
 	for i:=0; i < len(peers); i++ {
@@ -456,10 +447,9 @@ https://<LPAR URL>/api/com.ibm.zBlockchain/peers/<PEER_ID>/<stop|restart>
 https://5a088be5-276c-42b3-b550-421f3f27b6ab_vp0-api.zone.blockchain.ibm.com:443/api/com.ibm.zBlockchain/peers/<vpN>/<stop|restart>
 GetURL(vpN)/api/com.ibm.zBlockchain/peers/vpN/<stop|restart>
 
-but since restart does not work, try this:
+And at one time, since restart does not work, we had to try this:
 https://manage.zone.blockchain.ibm.com/api/lpar/INTERNAL_LPAR_IP/peer/PEER_ID/restart
 https://manage.zone.blockchain.ibm.com/api/lpar/192.x.y.z/peer/vpN/restart
-
 
 func genCMD( keyword<stop|restart|pause|unpause>    {
   return 
@@ -496,6 +486,7 @@ func StartPeersLocal(thisNetwork PeerNetwork, peers []string) {
 		time.Sleep(5000 * time.Millisecond)
 	}
 }
+
 func StartPeerLocal(thisNetwork PeerNetwork, peer string) {
 
 	cmd := "docker start " + peer
@@ -562,7 +553,6 @@ type PeerNetworks struct {
 	PNetworks      []PeerNetwork
 }
 
-
 func AddAPeerNetwork() {
 
 }
@@ -578,7 +568,6 @@ func AddUserOnAPeer(){
 func RemoveUserOnAPeer(){
 
 }
-
 
 func LoadNetworkByName(name string) PeerNetwork {
 

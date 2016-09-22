@@ -5,15 +5,15 @@ import (
 	"obcsdk/chaincode"
 	"obcsdk/peernetwork"
 	"os"
-	"strconv"
+	//"strconv"
 	"strings"
 	"time"
 	"obcsdk/lstutil"
-	"obcsdk/threadutil"
+	"obcsdk/chco2"
 )
 
 var f *os.File
-var myNetwork peernetwork.PeerNetwork
+//var myNetwork peernetwork.PeerNetwork
 var url string
 var counter int64
 var subTestsFailures int
@@ -22,15 +22,15 @@ func main() {
 	subTestsFailures = 0
 	lstutil.TESTNAME = "BasicFuncExistingNetworkLST"
 	lstutil.InitLogger(lstutil.TESTNAME)
-	lstutil.Logger("\n\n*********** " + lstutil.TESTNAME + " ***************")
+	lstutil.Logger("\n*********** " + lstutil.TESTNAME + " ***************")
 
 	defer timeTrack(time.Now(), "Total execution time for " + lstutil.TESTNAME)
 
-	setupNetwork()
+	setupNetwork()  // establish chco2.MyNetwork, using networkcredentials
 
 	lstutil.Logger("\n===== userRegisterTest =====")
 	lstutil.Logger("userRegisterTest: FirstUser=" + peernetwork.FirstUser)
-	user_ip, user_port, user_name, err := peernetwork.PeerOfThisUser(myNetwork, peernetwork.FirstUser)
+	user_ip, user_port, user_name, err := peernetwork.PeerOfThisUser(chco2.MyNetwork, peernetwork.FirstUser)
 	check(err)
 	url = chaincode.GetURL(user_ip, user_port)
 	userRegisterTest(url, user_name)
@@ -57,43 +57,53 @@ func main() {
         }
 	lstutil.Logger(fmt.Sprintf("  ChainStats response status: %s\n  ChainStats response body: %s\n", status, response))
 
-	counter = queryAllHostsToGetCurrentCounter(lstutil.TESTNAME)
+	lstutil.Logger("\n===== Deploy Test =====")
+	counter = lstutil.DeployChaincode(chco2.MyNetwork)  // includes sleep 60 secs for Local network or 120 secs for External network
+	lstutil.Logger(fmt.Sprintf("-----Deploy Test returned counter: %d", counter))
+	// lstutil.Logger("Sleep another 2 min before proceeding..."); time.Sleep(120 * time.Second)
+
+	queryCounterSuccess := lstutil.QueryAllHostsToGetCurrentCounter(chco2.MyNetwork, lstutil.TESTNAME, &counter)
+	if !queryCounterSuccess {
+		subTestsFailures++
+		lstutil.Logger(fmt.Sprintf("BasicFuncExistingNetworkLST: WARNING: CANNOT find consensus in network for actual values; counter value will likely fail to match expected value"))
+		// panic(errors.New("BasicFuncExistingNetworkLST: CANNOT find consensus in existing network"))
+	}
+	lstutil.Logger(fmt.Sprintf("-----BasicFuncExistingNetworkLST, AFTER deploy,QueryAllHosts retrieved counter value (and this is now the expected value): %d", counter))
+
         height := chaincode.Monitor_ChainHeight(url) // and save the height; it will be needed below for getHeight()
 
-
- 	lstutil.Logger("\n===== SKIP Deploy Test =====")
- /*
-	lstutil.Logger("\n===== Deploy Test =====")
-	counter = lstutil.DeployChaincode()  // includes sleep
-	height++
-	queryAllHosts("DEPLOY", counter)
- */
+	queryDeploySuccess := lstutil.QueryAllHosts(chco2.MyNetwork, "DEPLOY", counter)
+	if !queryDeploySuccess { subTestsFailures++ }
 
 	lstutil.Logger("\n===== Invoke Test =====")
-	invRes := lstutil.InvokeChaincode()  // increments counter inside
+	invRes := lstutil.InvokeChaincode(chco2.MyNetwork, &counter)  // increments counter inside
 	height++
-	time.Sleep(10000 * time.Millisecond)
-	queryAllHosts("INVOKE", counter)
+	time.Sleep(10 * time.Second)
+	queryInvokeSuccess := lstutil.QueryAllHosts(chco2.MyNetwork, "INVOKE", counter)
+	if !queryInvokeSuccess { subTestsFailures++ }
 
 	lstutil.Logger("\n===== GetChainHeight Test =====")
-	getHeight(height)  // this gets height from all peers and validates all match
-
+	getHeight(chco2.MyNetwork, height)  // this gets height from all peers and validates all match
 
 	lstutil.Logger("\n===== GetBlock Stats API Test =====")
 	//chaincode.BlockStats(url, height)
-	nonHashData, _ := chaincode.GetBlockTrxInfoByHost(threadutil.GetPeer(0), height-1)
+
+	if len(chco2.MyNetwork.Peers) < 1 { panic("No peers in network; cannot run this test") }
+	peername := chco2.MyNetwork.Peers[0].PeerDetails["name"]
+	txList, _ := chaincode.GetBlockTrxInfoByHost(peername, height-1)
 	myStr = "\nGetBlocks API TEST "
-	if strings.Contains(nonHashData.TransactionResult[0].Uuid, invRes) {
+	//if strings.Contains(txList.TransactionResult[0].Uuid, invRes) { 	// v0.5
+	if txList != nil && strings.Contains(txList[0].Txid, invRes) {  // these should be equal, if the invoke transaction was successful
 		myStr += fmt.Sprintf("PASS: Transaction Successfully stored in Block")
+		myStr += fmt.Sprintf("\nCH_Block = %d, txid = %s, InvokeTransactionResult = %s\n", height-1, txList[0].Txid, invRes)
+		lstutil.Logger(myStr)
 	} else {
 		subTestsFailures++
 		myStr += fmt.Sprintf("FAIL!!! Transaction NOT stored in Block")
+		myStr += fmt.Sprintf("\nCH_Block = %d, txid = %s, InvokeTransactionResult = %s\n", height-1, txList[0].Txid, invRes)
+		lstutil.Logger(myStr)
+		getBlockTxInfo(chco2.MyNetwork,0)
 	}
-	myStr += fmt.Sprintf("\nCH_Block = %d, UUID = %s, InvokeTransactionResult = %s\n", height-1, nonHashData.TransactionResult[0].Uuid, invRes)
-	lstutil.Logger(myStr)
-
-		//This is for error condition
-		//getBlockTxInfo(height)
 
 	lstutil.Logger("\n===== Get Transaction_Detail Test =====")
 	lstutil.Logger("  input url:  " + url)
@@ -106,7 +116,7 @@ func main() {
 	} else {
         	myStr = fmt.Sprintf("FAIL (failed %d sub-tests)", subTestsFailures)
 	}
-	lstutil.Logger(fmt.Sprintf("\n\n*********** END BasicFuncExistingNetworkLST OVERALL TEST RESULT = %s ***************\n\n", myStr))
+	lstutil.Logger(fmt.Sprintf("\n*********** END BasicFuncExistingNetworkLST OVERALL TEST RESULT = %s ***************\n", myStr))
 }
 
 func setupNetwork() {
@@ -128,11 +138,11 @@ func setupNetwork() {
         peernetwork.GetNC_Local()  // cp ../automation/networkcredentials ../util/NetworkCredentials.json
 
 	lstutil.Logger("----- Connect to existing network - InitNetwork -----")
-        myNetwork = chaincode.InitNetwork()
+        chco2.MyNetwork = chaincode.InitNetwork()
 
         lstutil.Logger("----- InitChainCodes -----")
         chaincode.InitChainCodes()
-	time.Sleep(50000 * time.Millisecond)
+	time.Sleep(50 * time.Second)
 
         lstutil.Logger("----- RegisterUsers -----")
         if !chaincode.RegisterUsers() {
@@ -147,10 +157,10 @@ func setupNetwork() {
         //}
 		
 
-	time.Sleep(10000 * time.Millisecond)
-	//peernetwork.PrintNetworkDetails(myNetwork)
+	time.Sleep(10 * time.Second)
+	//peernetwork.PrintNetworkDetails(chco2.MyNetwork)
 	peernetwork.PrintNetworkDetails()
-	numPeers := peernetwork.GetNumberOfPeers(myNetwork)
+	numPeers := peernetwork.GetNumberOfPeers(chco2.MyNetwork)
 
 	if subTestsFailures == 0 {
 		lstutil.Logger(fmt.Sprintf("Successfully connected to network with %d peers with pbft and security+privacy enabled\n", numPeers))
@@ -172,7 +182,7 @@ func userRegisterTest(url string, username string) {
 		myStr += fmt.Sprintf ("FAIL!!! %s User Registration was NOT already done\n status = %s\n response = %s", username, status, response)
 	}
 	lstutil.Logger(myStr)
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	lstutil.Logger("\n----- RegisterUser Negative Test -----")
 	response, status = chaincode.UserRegister_Status(url, "ghostuserdoesnotexist")
@@ -189,7 +199,7 @@ func userRegisterTest(url string, username string) {
 			lstutil.Logger(fmt.Sprintf("RegisterUser API Negative TEST FAIL!!! ERROR while searching for non-existant user!\n status = %s\n response = %s\n", status, response))
 		}
 	}
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
  /*
 	lstutil.Logger("\n----- UserRegister_ecert Test -----")
@@ -203,7 +213,7 @@ func userRegisterTest(url string, username string) {
 		myEcertStr += fmt.Sprintf ("FAIL!!! %s ecert User Registration was NOT already done\n status = %s\n response = %s\n", username, status, response)
 	}
 	lstutil.Logger(myEcertStr)
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(2 * time.Second)
  */
 
 	lstutil.Logger("\n----- UserRegister_ecert Negative Test -----")
@@ -214,171 +224,21 @@ func userRegisterTest(url string, username string) {
 		subTestsFailures++
 		lstutil.Logger(fmt.Sprintf("UserRegister_ecert API Negative TEST FAIL!!! User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response))
 	}
-	time.Sleep(5000 * time.Millisecond)
+	time.Sleep(5 * time.Second)
 }
 
-/*
-func deploy() {							// using example02
-	dAPIArgs0 := []string{"example02", "init"}
-	depArgs0 := []string{"a", "1000000", "b", "1000000"}
-	chaincode.Deploy(dAPIArgs0, depArgs0)
-	time.Sleep(30000 * time.Millisecond) // minimum delay required, works fine in local environment
-}
-
-func invoke() string {						// using example02
-	iAPIArgs0 := []string{"example02", "invoke"}
-	invArgs0 := []string{"a", "b", "1"}
-	invRes, _ := chaincode.Invoke(iAPIArgs0, invArgs0)
-	return invRes
-}
-*/
-
-// e.g.  counter = queryAllHostsToGetCurrentCounter(lstutil.TESTNAME)
-func queryAllHostsToGetCurrentCounter(txName string) (counter int64) {		// using ratnakar myCC, modified example02
-	// loop through and query all hosts to find consensus and determine what the current counter value is.
-	counter = 0
-	failedCount := 0
-	N := peernetwork.GetNumberOfPeers(myNetwork)
-	F := (N-1)/3
-	currValues := make([]int64, N)
-	for peerNumber := 0 ; peerNumber < N ; peerNumber++ {
-        	valueStr, counterIdxStr := lstutil.QueryChaincodeOnHost(peerNumber, counter)
-        	newVal, err := strconv.ParseInt(counterIdxStr, 10, 64)
-        	if err != nil {
-			lstutil.Logger(fmt.Sprintf("queryAllHostsToGetCurrentCounter() Failed to convert counterIdxStr <%s> to int64\n Error: %s\n", counterIdxStr, err))
-			currValues[peerNumber] = 0
-			failedCount++
-		} else {
-			currValues[peerNumber] = newVal
-		}
-        	lstutil.Logger(fmt.Sprintf("QueryChaincodeOnHost %d: counter=%d, a%s = %s", peerNumber, counter, counterIdxStr, valueStr))
-	}
-	if failedCount > F {
-		subTestsFailures++
-		lstutil.Logger(fmt.Sprintf("%s TEST STARTUP FAILURE!!! Failed to query %d peers. RERUN when at least %d/%d peers are running, in order to be able to reach consensus.", txName, failedCount, ((N-1)/3)*2+1, N ))
-	} else {
-		var consensus_counter int64
-		consensus_counter = 0
-		found_consensus := false
-
-		for i := 0 ; i <= F ; i++ {
-			i_val_cntr := 1
-			for j := i+1 ; j < N ; j++ {
-				if currValues[j] == currValues[i] { i_val_cntr++ }
-			}
-			if i_val_cntr >= N-F { consensus_counter = currValues[i]; found_consensus = true; break }
-		}
-		if found_consensus {
-			counter = consensus_counter
-			lstutil.Logger(fmt.Sprintf("%s TEST PASS STARTUP: %d/%d peers reached consensus: current count = %d", txName, N-failedCount, N, consensus_counter))
-		} else {
-		subTestsFailures++
-			lstutil.Logger(fmt.Sprintf("%s TEST FAIL upon STARTUP: peers cannot reach consensus on current count", txName))
-		}
-	}
-	return counter
-}
-
-// e.g.	 queryAllHosts("DEPLOY", ledgerCounter)
-func queryAllHosts(txName string, expected_count int64) {		// using ratnakar myCC, modified example02
-	// loop through and query all hosts
-	failedCount := 0
-	N := peernetwork.GetNumberOfPeers(myNetwork)
-	for peerNumber := 0 ; peerNumber < N ; peerNumber++ {
-		result := "SUCCESS"
-        	valueStr, counterIdxStr := lstutil.QueryChaincodeOnHost(peerNumber, expected_count)
-        	newVal, err := strconv.ParseInt(counterIdxStr, 10, 64)
-        	if err != nil { lstutil.Logger(fmt.Sprintf("queryAllHosts() Failed to convert counterIdxStr <%s> to int64\n Error: %s\n", counterIdxStr, err)) }
-        	if err != nil || newVal != expected_count {
-			result = "FAILURE"
-			failedCount++
-		}
-        	lstutil.Logger(fmt.Sprintf("QueryOnHost %d %s after %s: expected_count=%d, Actual a%s = %s", peerNumber, result, txName, expected_count, counterIdxStr, valueStr))
-	}
-	if failedCount > (N-1)/3 {
-		subTestsFailures++
-		lstutil.Logger(fmt.Sprintf("%s TEST FAIL!!!  TOO MANY PEERS (%d) FAILED to obtain the correct count, so network consensus failed!!!\n(If fewer than %d/%d peers are running, then the network does not have enough running nodes to reach consensus.)", txName, failedCount,  ((N-1)/3)*2+1, N ))
-	} else {
-		lstutil.Logger(fmt.Sprintf("%s TEST PASS.  %d/%d peers reached consensus on the correct count", txName, N-failedCount, N))
-	}
-}
-
-/*
-func query(txName string, expectedA int, expectedB int) {	// using example02
-	qAPIArgs00 := []string{CHAINCODE_NAME, QUERY, threadutil.GetPeer(0)}
-	qAPIArgs01 := []string{CHAINCODE_NAME, QUERY, threadutil.GetPeer(1)}
-	qAPIArgs02 := []string{CHAINCODE_NAME, QUERY, threadutil.GetPeer(2)}
-	qAPIArgs03 := []string{CHAINCODE_NAME, QUERY, threadutil.GetPeer(3)}
-	qArgsa := []string{"a"}
-	qArgsb := []string{"b"}
-
-	res0A, _ := chaincode.QueryOnHost(qAPIArgs00, qArgsa)
-	res0B, _ := chaincode.QueryOnHost(qAPIArgs00, qArgsb)
-	res0AI, _ := strconv.Atoi(res0A)
-	res0BI, _ := strconv.Atoi(res0B)
-
-	res1A, _ := chaincode.QueryOnHost(qAPIArgs01, qArgsa)
-	res1B, _ := chaincode.QueryOnHost(qAPIArgs01, qArgsb)
-	res1AI, _ := strconv.Atoi(res1A)
-	res1BI, _ := strconv.Atoi(res1B)
-
-	res2A, _ := chaincode.QueryOnHost(qAPIArgs02, qArgsa)
-	res2B, _ := chaincode.QueryOnHost(qAPIArgs02, qArgsb)
-	res2AI, _ := strconv.Atoi(res2A)
-	res2BI, _ := strconv.Atoi(res2B)
-
-	res3A, _ := chaincode.QueryOnHost(qAPIArgs03, qArgsa)
-	res3B, _ := chaincode.QueryOnHost(qAPIArgs03, qArgsb)
-	res3AI, _ := strconv.Atoi(res3A)
-	res3BI, _ := strconv.Atoi(res3B)
-
-	lstutil.Logger("Results in a and b vp0 : ", res0AI, res0BI)
-	lstutil.Logger("Results in a and b vp1 : ", res1AI, res1BI)
-	lstutil.Logger("Results in a and b vp2 : ", res2AI, res2BI)
-	lstutil.Logger("Results in a and b vp3 : ", res3AI, res3BI)
-
-	if res0AI == expectedA && res1AI == expectedA && res2AI == expectedA && res3AI == expectedA {
-		lstutil.Logger(fmt.Sprintf("\n\n%s TEST PASS : Results in A value match on all Peers after %s", txName, txName))
-		lstutil.Logger(fmt.Sprintf("Values Verified : peer0: %d, peer1: %d, peer2: %d, peer3: %d", res0AI, res1AI, res2AI, res3AI))
-	} else {
-		lstutil.Logger(fmt.Sprintf("\n\n%s TEST FAIL!!! Results in A value DO NOT match on all Peers after %s", txName, txName))
+func getHeight(mynetwork peernetwork.PeerNetwork, expectedToMatch int) {
+        ht0, _ := chaincode.GetChainHeight(mynetwork.Peers[0].PeerDetails["name"])
+        ht1, _ := chaincode.GetChainHeight(mynetwork.Peers[1].PeerDetails["name"])
+        ht2, _ := chaincode.GetChainHeight(mynetwork.Peers[2].PeerDetails["name"])
+        ht3, _ := chaincode.GetChainHeight(mynetwork.Peers[3].PeerDetails["name"])
+        numPeers := peernetwork.GetNumberOfPeers(chco2.MyNetwork)
+        if numPeers != 4 {
+		fmt.Println(fmt.Sprintf("TEST FAILURE: TODO: Must fix code %d peers, rather than default=4 peers in network!!!", numPeers))
+		panic("Not enough peers in network to run this test")
 	}
 
-	if res0BI == expectedB && res1BI == expectedB && res2BI == expectedB && res3BI == expectedB {
-		lstutil.Logger(fmt.Sprintf("\n\n%s TEST PASS : Results in B value match on all Peers after %s", txName, txName))
-		lstutil.Logger(fmt.Sprintf("Values Verified : peer0: %d, peer1: %d, peer2: %d, peer3: %d\n\n", res0BI, res1BI, res2BI, res3BI))
-	} else {
-		lstutil.Logger(fmt.Sprintf("\n\n%s TEST FAIL!!! Results in B value DO NOT match on all Peers after %s", txName, txName))
-	}
-}
-*/
 
-func getHeight_deprecated() {
-	ht0, _ := chaincode.GetChainHeight(threadutil.GetPeer(0))
-	ht1, _ := chaincode.GetChainHeight(threadutil.GetPeer(1))
-	ht2, _ := chaincode.GetChainHeight(threadutil.GetPeer(2))
-	ht3, _ := chaincode.GetChainHeight(threadutil.GetPeer(3))
-
-	if (ht0 == 3) && (ht1 == 3) && (ht2 == 3) && (ht3 == 3) {
-		lstutil.Logger(fmt.Sprintf("CHAIN HEIGHT TEST PASS : Results in A value match on all Peers after deploy and single invoke:"))
-		lstutil.Logger(fmt.Sprintf("  Height Verified: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3))
-	} else {
-		subTestsFailures++
-		lstutil.Logger(fmt.Sprintf("CHAIN HEIGHT TEST FAIL!!! value in chain height DOES NOT MATCH ON ALL PEERS after deploy and single invoke:"))
-		lstutil.Logger(fmt.Sprintf("  All heights DO NOT MATCH expected value: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3))
-	}
-}
-
-
-func getHeight(expectedToMatch int) {
-
-        ht0, _ := chaincode.GetChainHeight(threadutil.GetPeer(0))
-        ht1, _ := chaincode.GetChainHeight(threadutil.GetPeer(1))
-        ht2, _ := chaincode.GetChainHeight(threadutil.GetPeer(2))
-        ht3, _ := chaincode.GetChainHeight(threadutil.GetPeer(3))
-
-        numPeers := peernetwork.GetNumberOfPeers(myNetwork)
-        if numPeers != 4 { fmt.Println(fmt.Sprintf("TEST FAILURE: TODO: Must fix code %d peers, rather than default=4 peers in network!!!", numPeers)) }
         // before declaring failure, we will first check if we at least have consensus, with enough nodes with the correct height
         agree := 1
         if (ht0 == ht1) { agree++ }
@@ -389,7 +249,6 @@ func getHeight(expectedToMatch int) {
                 if (ht1 == ht2) { agree++ }
                 if (ht1 == ht3) { agree++ }
         }
-
         if (ht0 == expectedToMatch) && (ht1 == expectedToMatch) && (ht2 == expectedToMatch) && (ht3 == expectedToMatch) {
                 myStr := fmt.Sprintf("CHAIN HEIGHT TEST PASS : value match on all Peers, after deploy and single invoke:\n")
                 myStr += fmt.Sprintf("  Height Verified: ht0=%d, ht1=%d, ht2=%d, ht3=%d", ht0, ht1, ht2, ht3)
@@ -406,23 +265,23 @@ func getHeight(expectedToMatch int) {
         }
 }
 
-
-func getBlockTxInfo(blockNumber int) {
+// pass in 0 to get ALL blocks
+func getBlockTxInfo(mynetwork peernetwork.PeerNetwork, blockNumber int) {
 	errTransactions := 0
-	height, _ := chaincode.GetChainHeight(threadutil.GetPeer(0))
-	lstutil.Logger(fmt.Sprintf("\n############### Total Blocks # %d", height))
+	if len(mynetwork.Peers) < 1 { panic("No peers in network to run this test") }
+	peername := mynetwork.Peers[0].PeerDetails["name"]
+	height, _ := chaincode.GetChainHeight(peername)
+	lstutil.Logger(fmt.Sprintf("++++++++++ getBlockTxInfo(%d) Total Blocks # %d", blockNumber, height))
 
 	for i := 1; i < height; i++ {
-		//fmt.Printf("\n============================== Current BLOCKS %d ==========================\n", i)
-		nonHashData, _ := chaincode.GetBlockTrxInfoByHost(threadutil.GetPeer(0), i)
-		length := len(nonHashData.TransactionResult)
+	    if blockNumber == 0 || blockNumber == i {
+		lstutil.Logger(fmt.Sprintf("+++++ Current BLOCK %d +++++", i))
+		txList, _ := chaincode.GetBlockTrxInfoByHost(peername, i)
+		length := len(txList)
 		for j := 0; j < length; j++ {
-			// Print Error info only when transaction failed
-			if nonHashData.TransactionResult[j].ErrorCode > 0 {
-				lstutil.Logger(fmt.Sprintln("\nBlock[%d] UUID [%d] ErrorCode [%d] Error: %s", i, nonHashData.TransactionResult[j].Uuid, nonHashData.TransactionResult[j].ErrorCode, nonHashData.TransactionResult[j].Error))
-				errTransactions++
-			}
+			lstutil.Logger(fmt.Sprintln("Block[%d] TX[%d] Txid [%d]", i, j, txList[j].Txid))
 		}
+	    }
 	}
 	if errTransactions > 0 {
 		lstutil.Logger(fmt.Sprintf("\nTotal Blocks ERRORS # %d", errTransactions))
@@ -431,8 +290,7 @@ func getBlockTxInfo(blockNumber int) {
 
 func timeTrack(start time.Time, name string) {
 	elapsed := time.Since(start)
-	lstutil.Logger(fmt.Sprintf("\n################# %s took %s \n", name, elapsed))
-	lstutil.Logger("################# Execution Completed #################")
+	lstutil.Logger(fmt.Sprintf("\n*********** %s , elapsed %s\n", name, elapsed))
 }
 
 func check(e error) {

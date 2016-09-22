@@ -51,10 +51,10 @@ func (t *Chaincode_example02_addrecs) Init(stub shim.ChaincodeStubInterface, fun
 	}
 
 	// Initialize the chaincode
-	A = args[0]      // "a"
-	Aval := args[1]  // DATA : FixedString or RandomString
+	A = args[0]      // "a0" // and every invoke will use a different key, e.g. a1, a2, ...
+	Aval := args[1]  // DATA, a FixedString, or possibly a RandomString depending on the testcase
 	B = args[2]      // "counter"
-	Bval, err = strconv.Atoi(args[3])    // cntr value integer
+	Bval, err = strconv.Atoi(args[3])    // cntr value integer. if A is "a0", then Bval should be 0
 	if err != nil {
 		return nil, errors.New("Expecting integer value for counter index")
 	}
@@ -89,9 +89,9 @@ func (t *Chaincode_example02_addrecs) Invoke(stub shim.ChaincodeStubInterface, f
 		return nil, errors.New("Incorrect number of arguments. Expecting 3")
 	}
 
-	A = args[0]       // aN ("a0" or "a1" or whatever, with the number being the cntr value, the top of the ledger stack)
-	Aval = args[1]    // DATA
-	B = args[2]       // "counter"
+	A = args[0]	// the key, "aN" ("a1" or "a2" or whatever, where N = the cntr value, the top of the ledger stack)
+	Aval = args[1]	// DATA, a FixedString, or possibly a RandomString depending on the testcase
+	B = args[2]	// "counter"
 
 
 	Bvalbytes, err := stub.GetState(B)

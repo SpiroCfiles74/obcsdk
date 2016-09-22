@@ -266,7 +266,7 @@ func setup_part1(testName string, started time.Time) {
 
 	if pauseInsteadOfStop { fmt.Println("All STOPS and STARTS will be executed with Docker PAUSE and UNPAUSE") }
 
-	fmt.Println("INFO: setup_part1(): TransPerSecRate = ", TransPerSecRate)
+	//fmt.Println("INFO: setup_part1(): TransPerSecRate = ", TransPerSecRate)
 
 	//---------------------------------------------------------------------------------------------------------------
 	// create and initialize storage slices for queued transactions counters, now that we know size of "N"
@@ -537,8 +537,8 @@ func DeployInit(peerNum int) {
 	depArgs := []string{"a", initA, "b", initB}
 	txId, err := chaincode.DeployOnPeer(dAPIArgs, depArgs)
 	Check(err) 	// if we cannot deploy, then panic
-	if (Verbose) { fmt.Println("Sleep 30 secs, after deployed, txId=" + txId) }
-	time.Sleep(30000 * time.Millisecond)
+	if (Verbose) { fmt.Println("Sleep 60 secs, after deployed, txId=" + txId) }
+	time.Sleep(60000 * time.Millisecond)
 	incrHeightCount(1, peerNum)
 	setQueuedTransactionCounter(1)
 }

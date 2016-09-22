@@ -37,7 +37,7 @@ func main() {
 	fmt.Println(myStr)
 	fmt.Fprintln(writer, myStr)
 
-	defer timeTrack(time.Now(), "Testcase execution Done")
+	defer timeTrack(time.Now(), "Testcase chcotest/BasicFuncExistingNetwork execution Done")
 
 	setupNetwork()
 
@@ -143,11 +143,12 @@ func main() {
 
 	fmt.Println("\n===== GetBlockStats API Test =====")
 	//chaincode.BlockStats(url, height)
-	nonHashData, _ := chaincode.GetBlockTrxInfoByHost(threadutil.GetPeer(0), height-1)
+	txList, _ := chaincode.GetBlockTrxInfoByHost(threadutil.GetPeer(0), height-1)
 
-	if nonHashData.TransactionResult != nil && strings.Contains(nonHashData.TransactionResult[0].Uuid, invRes) {
+	if txList != nil && strings.Contains(txList[0].Txid, invRes) {  // these should be equal, if the invoke transaction was successful
 		myStr = fmt.Sprintf("\nGetBlocks API TEST PASS: Transaction Successfully stored in Block")
-		myStr += fmt.Sprintf("\nCH_Block = %d, UUID = %s, InvokeTransactionResult = %s\n", height-1, nonHashData.TransactionResult[0].Uuid, invRes)
+		myStr += fmt.Sprintf("\n CH_Block = %d, txid = %s, InvokeTransactionResult = %s", height-1, txList[0].Txid, invRes)
+		//getBlockTxInfo(0)
 	} else {
 		testPartsFailures++
 		myStr = fmt.Sprintf("\nGetBlocks API TEST FAIL: Transaction NOT stored in CH_Block=%d, InvokeTransactionResult=%s", height-1, invRes)
@@ -164,7 +165,7 @@ func main() {
 
 	testResult := "PASS"
 	if testPartsFailures != 0 { testResult = fmt.Sprintf("FAIL (failed %d sub-tests)", testPartsFailures) }
-	myStr = fmt.Sprintf("\n\n*********** END chcotest/BasicFuncExistingNetwork OVERALL TEST RESULT = %s ***************\n\n", testResult)
+	myStr = fmt.Sprintf("\n*********** END chcotest/BasicFuncExistingNetwork OVERALL TEST RESULT = %s ***************", testResult)
 	fmt.Println(myStr)
 	fmt.Fprintln(writer, myStr)
 	writer.Flush()
@@ -412,22 +413,18 @@ func getHeight(expectedToMatch int) {
 func getBlockTxInfo(blockNumber int) {
 	errTransactions := 0
 	height, _ := chaincode.GetChainHeight(threadutil.GetPeer(0))
-	myStr := fmt.Sprintf("\n############### Total Blocks # %d\n", height)
+	myStr := fmt.Sprintf("++++++++++ getBlockTxInfo() Total Blocks # %d\n", height)
 	fmt.Printf(myStr)
 	fmt.Fprintf(writer, myStr)
 
 	for i := 1; i < height; i++ {
-		//fmt.Printf("\n============================== Current BLOCKS %d ==========================\n", i)
-		nonHashData, _ := chaincode.GetBlockTrxInfoByHost(threadutil.GetPeer(0), i)
-		length := len(nonHashData.TransactionResult)
+                fmt.Printf("+++++ Current BLOCK %d +++++\n", i)
+		txList, _ := chaincode.GetBlockTrxInfoByHost(threadutil.GetPeer(0), i)
+		length := len(txList)
 		for j := 0; j < length; j++ {
-			// Print Error info only when transaction failed
-			if nonHashData.TransactionResult[j].ErrorCode > 0 {
-				myStr1 := fmt.Sprintln("\nBlock[%d] UUID [%d] ErrorCode [%d] Error: %s\n", i, nonHashData.TransactionResult[j].Uuid, nonHashData.TransactionResult[j].ErrorCode, nonHashData.TransactionResult[j].Error)
+				myStr1 := fmt.Sprintln("\nBlock[%d] TX [%d] Txid [%d]", i, j, txList[j].Txid)
 				fmt.Println(myStr1)
 				fmt.Fprintln(writer, myStr1)
-				errTransactions++
-			}
 		}
 	}
 	if errTransactions > 0 {
@@ -440,14 +437,10 @@ func getBlockTxInfo(blockNumber int) {
 
 func timeTrack(start time.Time, name string) {
 	elapsed := time.Since(start)
-	myStr := fmt.Sprintf("\n################# %s took %s \n", name, elapsed)
+	myStr := fmt.Sprintf("\n*********** %s , elapsed %s \n", name, elapsed)
 	fmt.Println(myStr)
 	fmt.Fprintln(writer, myStr)
-	myStr = fmt.Sprintf("################# Execution Completed #################")
-	fmt.Fprintln(writer, myStr)
-	fmt.Println(myStr)
 	writer.Flush()
-	myStr = fmt.Sprintf("\n################# %s took %s \n", name, elapsed)
 }
 
 func check(e error) {

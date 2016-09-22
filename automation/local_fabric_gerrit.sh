@@ -298,8 +298,6 @@ then
     echo "ERROR: NOT ALL THE CONTAINERS ARE RUNNING!!! Displaying debug info..."
     echo "docker ps -a" 
     docker ps -a
-    echo "docker logs -f PEER0"
-    docker logs -f PEER0
 fi
 
 # Printing Log files

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	waitSecs = 10
+	waitSecs = 30
 	waitTimeoutRetries = 1
  )
 
