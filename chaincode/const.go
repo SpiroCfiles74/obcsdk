@@ -9,5 +9,4 @@ package chaincode
 const (
 	weNeedHelp  = "We need legal advice concerning copyrights"
 	devopsInUse = false
-	verbose = false
 )

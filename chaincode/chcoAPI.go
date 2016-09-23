@@ -8,10 +8,12 @@ import (
 	"strings"
 	"obcsdk/peernetwork"
 	"os"
+	"os/exec"
 	//"obcsdk/util"
 	"obcsdk/threadutil"
 )
 
+var verbose = bool(false)
 var ThisNetwork peernetwork.PeerNetwork
 var Peers = ThisNetwork.Peers
 var ChainCodeDetails, Versions map[string]string
@@ -57,6 +59,59 @@ func GetURL(ip, port string) string {
 		url = "http://" + ip + ":" + port
 	}
 	return url
+}
+
+/* For debugging purposes: to see the IP addresses associated with all the peers,
+   display the current network peers info, both as stored in my network and from live queries
+ */
+func DisplayNetworkDebugInfo() {
+
+	prev_verbose := verbose
+	verbose = true
+	fmt.Println("\n--------------- chcoAPI.DisplayNetworkDebugInfo: current stored chaincode.NetworkPeers :")
+	// get any avail node URL details, so we can get the network information we want to see
+	mynetwork := ThisNetwork
+	aPeer, _ := peernetwork.APeer(mynetwork)
+	url := GetURL(aPeer.PeerDetails["ip"], aPeer.PeerDetails["port"])
+	NetworkPeers(url)
+
+	fmt.Println("\n--------------- chcoAPI.DisplayNetworkDebugInfo: current stored peernetwork.PrintNetworkDetails :")
+	peernetwork.PrintNetworkDetails()
+
+	ntwkType := strings.ToUpper(os.Getenv("NETWORK"))
+	if ntwkType == "" || ntwkType == "LOCAL" { 	// get more info from local docker containers
+		/* **********************
+		cmd_str := "docker ps -a"
+		fmt.Println("\n--------------- chcoAPI.DisplayNetworkDebugInfo: Executing command:  ", cmd_str)
+		var shellCmd *exec.Cmd
+		shellCmd = exec.Command("/bin/sh", "-c", cmd_str)
+		shellCmd.Stdout = os.Stdout
+		shellCmd.Stderr = os.Stderr
+		cmderr := shellCmd.Run()
+		//if cmderr != nil { log.Fatal(cmderr) }
+		if (cmderr != nil) { fmt.Println("---------- chcoAPI.DisplayNetworkDebugInfo: exec.Command err: ", cmderr) }
+		********************** */
+
+		DisplayPeerIp(mynetwork, -1)
+	}
+	verbose = prev_verbose
+}
+
+func DisplayPeerIp(mynetwork peernetwork.PeerNetwork, selectPeer int) {
+        for peerNum := 0; peerNum < len(mynetwork.Peers); peerNum++ {
+            if selectPeer < 0 || selectPeer == peerNum {
+		peerName := mynetwork.Peers[peerNum].PeerDetails["name"]
+                cmd_str := "docker inspect --format '{{.NetworkSettings.IPAddress}}' " + peerName
+                //fmt.Println("--------------- chcoAPI.DisplayPeerIp: To display IP Address of peer, executing command:  ", cmd_str)
+                fmt.Printf(fmt.Sprintf("--------------- chcoAPI.DisplayPeerIp: docker inspect IP Address of peer %s = ", peerName))
+                var shellCmd *exec.Cmd
+                shellCmd = exec.Command("/bin/sh", "-c", cmd_str)
+                shellCmd.Stdout = os.Stdout
+                shellCmd.Stderr = os.Stderr
+                cmderr := shellCmd.Run()
+                if (cmderr != nil) { fmt.Println("--------------- chcoAPI.DisplayPeerIp: exec.Command err: ", cmderr) }
+            }
+        }
 }
 
 /*

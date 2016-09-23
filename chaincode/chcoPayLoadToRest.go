@@ -291,6 +291,7 @@ func changeState(url string, path string, restCallName string,
 		errMsg += fmt.Sprintf("  json.Unmarshal result:     %s\n", res)
 		errMsg += fmt.Sprintf("  json.Unmarshal error:      %s\n", err)
 		fmt.Println(errMsg)
+		DisplayNetworkDebugInfo()
 		log.Fatal("changeState: ERROR in Unmarshalling! ", err)
 	}
 	if verbose { 

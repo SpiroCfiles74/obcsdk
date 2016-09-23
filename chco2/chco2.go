@@ -303,7 +303,7 @@ func setup_part2_network() {
 		//batchTimeout,		//  CORE_PBFT_GENERAL_TIMEOUT_BATCH
 		batchsize )		//  CORE_PBFT_GENERAL_BATCHSIZE
 
-	if (Verbose) { fmt.Println("Sleep 10 secs extra after setup_part2 created network") }; time.Sleep(10000 * time.Millisecond)
+	if (Verbose) { fmt.Println("Sleep 10 secs extra after setup_part2 created network") }; time.Sleep(10 * time.Second)
     }
 }
 
@@ -538,7 +538,7 @@ func DeployInit(peerNum int) {
 	txId, err := chaincode.DeployOnPeer(dAPIArgs, depArgs)
 	Check(err) 	// if we cannot deploy, then panic
 	if (Verbose) { fmt.Println("Sleep 60 secs, after deployed, txId=" + txId) }
-	time.Sleep(60000 * time.Millisecond)
+	time.Sleep(60 * time.Second)
 	incrHeightCount(1, peerNum)
 	setQueuedTransactionCounter(1)
 }
@@ -718,7 +718,7 @@ func setQueuedTransactionCounter(numTrans int) {
 }
 
 func SleepTimeSeconds(secs int) time.Duration {
-	return ( time.Duration(secs) * 1000 * time.Millisecond )
+	return ( time.Duration(secs) * 1 * time.Second )
 }
 
 func SleepTimeMinutes(mins int) time.Duration {
@@ -997,11 +997,11 @@ func StopPeers(peerNumsToStopStart []int) {
 		}
 		if (rootPeer) {
 			// sleep extra when stopping/starting primary/root peer0
-			fmt.Println("Sleep extra 30 secs because stopping primary") 
-			time.Sleep(30000 * time.Millisecond) 
+			fmt.Println("Sleep 10 secs more after stop, + extra 20 secs because stopping primary") 
+			time.Sleep(30 * time.Second) 
 		} else {
-			fmt.Println("Sleep extra 10 secs")
-			time.Sleep(10000 * time.Millisecond) 
+			fmt.Println("Sleep 10 secs more after stop")
+			time.Sleep(10 * time.Second) 
 		}
 	}
 }
@@ -1067,11 +1067,11 @@ func RestartPeers(peerNumsToStopStart []int) {
 		}
 		if (rootPeer) {
 			// sleep extra when stopping/starting primary/root peer
-			fmt.Println("Sleep extra 60 secs because restarting potential primary") 
-			time.Sleep(60000 * time.Millisecond) 
+			fmt.Println("Sleep 60 secs more after a restart = 30 plus extra 30 secs because restarting potential primary") 
+			time.Sleep(60 * time.Second) 
 		} else {
-			fmt.Println("Sleep extra 30 secs")
-			time.Sleep(30000 * time.Millisecond) 
+			fmt.Println("Sleep 30 secs more after a restart")
+			time.Sleep(30 * time.Second) 
 		}
 	}
 }
@@ -1215,7 +1215,7 @@ func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
 				}
 			}
 			// we can either sleep here as we go, or do it once at the end
-			// if mustSleep && (j % TransPerSecRate == 0) { time.Sleep( 1000 * time.Millisecond) }
+			// if mustSleep && (j % TransPerSecRate == 0) { time.Sleep( 1 * time.Second) }
 		// }
 	}
 

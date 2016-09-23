@@ -179,27 +179,28 @@ func SetupLocalNetworkWithMoreOptions(
 
 	fmt.Println("exec.Command: ", script_cmd, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13 )
 	cmd =        exec.Command(    script_cmd, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13 )
-	fmt.Println("exec.Command done")
+
+	// If we want to capture stdout in a buffer for analysis, do this:
+	//    var stdoutBuf bytes.Buffer
+	//    cmd.Stdout = &stdoutBuf
+	// If we want to simply display stdout of the shell command in our stdout, do this:
+	//    cmd.Stdout = os.Stdout
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	// cmd.Run()
-/*
-	var stdoutBuf bytes.Buffer
-	cmd.Stdout = &stdoutBuf
-*/
+
+	fmt.Println("exec.Command is prepared to run")
+
 	err := cmd.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	fmt.Println("exec.Command is done")
+
 	GetNC_Local()
 	os.Chdir(pwd)
 	pwd, _ = os.Getwd()
-	//fmt.Println("Returned to starting directory pwd: ", pwd)
-	//errStr := "SetupLocalNetworkWithMoreOptions done"
-	//fmt.Println(errStr)
-	//log.Fatal(errors.New(errStr))
 }
 
 func GetNC_Local() {
