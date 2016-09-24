@@ -52,6 +52,7 @@ var Writer *bufio.Writer
 var url string
 var MyNetwork peernetwork.PeerNetwork
 var Verbose bool	// Another option: go edit  "verbose" in chaincode/const.go for more info about lower level functions operation
+var ExistingNetwork bool
 var Stop_on_error bool
 var RanToCompletion bool
 var CurrentTestName string
@@ -141,6 +142,7 @@ func setup_part1(testName string, started time.Time) {
 	RanToCompletion = false
 	Verbose = false			// See also:  "verbose" in chaincode/const.go for lower level functions
 	Stop_on_error = false
+	ExistingNetwork = false
 	queryTestsPass = true
 	chainHeightTestsPass = true
 	EnforceQueryTestsPass = true
@@ -206,6 +208,10 @@ func setup_part1(testName string, started time.Time) {
 	// if envvar != "" { batchtimeout, _  = strconv.Atoi(envvar) }
 	envvar = strings.TrimSpace(os.Getenv("STOP_OR_PAUSE"))
 	if strings.ToUpper(envvar) == "PAUSE" { pauseInsteadOfStop = true }
+	if strings.ToUpper(os.Getenv("CHCO2_EXISTING_NETWORK")) == "TRUE" {
+		ExistingNetwork = true
+		AllRunningNodesMustMatch = false // since we don't know the status of the existing network, the counters may already differ
+	}
 
 
 	//---------------------------------------------------------------------------------------------------------------
@@ -289,8 +295,8 @@ func setup_part1(testName string, started time.Time) {
 }
 
 func setup_part2_network() {
-    if strings.ToUpper(os.Getenv("CHCO2_EXISTING_NETWORK")) == "TRUE" {
-	fmt.Println("chco2.setup_part2_network(): CHCO2_EXISTING_NETWORK is TRUE, which means:\n (1) we will NOT create a new network, and\n (2) we will IGNORE the COMMIT image and a few other env vars, and\n (3) we will use the existing Network as previously created.")
+    if ExistingNetwork {
+	fmt.Println("chco2.setup_part2_network(): CHCO2_EXISTING_NETWORK is TRUE, which means:\n (1) we will NOT create a new network, and\n (2) we will IGNORE the COMMIT image and a few other env vars, and\n (3) we will use the existing Network as previously created, and query its values as our starting point.")
     } else {
 	fmt.Println("Creating a local docker network with # peers = ", NumberOfPeersInNetwork)
 	peernetwork.SetupLocalNetworkWithMoreOptions(
@@ -341,7 +347,8 @@ func setup_part3_verifyNetworkAndDeployCC() {
 
 		DeployInit(peerNum)
 
-		if strings.ToUpper(os.Getenv("CHCO2_EXISTING_NETWORK")) == "TRUE" {
+		if ExistingNetwork {
+		//if strings.ToUpper(os.Getenv("CHCO2_EXISTING_NETWORK")) == "TRUE" {
 			// STANDARD (RE)DEPLOYMENT OVERRIDE:
 			// Useful for rerunning this testcase and others, to use the existing network with existing deployment
 			// (by using same standard numbers), rather than creating yet another deployment for the existing peers...
@@ -1073,6 +1080,7 @@ func RestartPeers(peerNumsToStopStart []int) {
 			fmt.Println("Sleep 30 secs more after a restart")
 			time.Sleep(30 * time.Second) 
 		}
+		chaincode.UpdatePeerIp(&MyNetwork, -1)
 	}
 }
 
@@ -1105,6 +1113,8 @@ func StopMemberServices() {
 func RestartMemberServices() {
 	fmt.Println("\n\n\n\nRESTART MemberServices (caserver)!\n\n\n")
 	peernetwork.StartPeerLocal(MyNetwork, "caserver")
+
+	// Is it possible that the IP could have changed? If so, what do we do???
 }
 
 func TimeTrack(start time.Time, name string) {

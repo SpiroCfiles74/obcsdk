@@ -41,7 +41,7 @@ func main() {
 	// SET THE TESTNAME:  set the filename/testname here, to display in output results.
 	//=======================================================================================
 
-	chco2.CurrentTestName = "CAT_115_Sn_IQ_Rn_IQcatchup_loop.go"
+	chco2.CurrentTestName = "CRT_503_Sn_IQ_Rn_IQcatchup_loop.go"
 
 
 	//=======================================================================================
@@ -143,7 +143,7 @@ chco2.Writer = bufio.NewWriter(osFile)
 	// DEFINE MAIN TESTCASE STEPS HERE
 	// 
 
-	// CAT_115_Sn_IQ_Rn_IQcatchup_loop.go
+	// CRT_503_Sn_IQ_Rn_IQcatchup_loop.go
 	// Stop VP. 1000 Invokes. Query/Verify CH/A/B all exact match in running peers. Restart VP. 100 Invokes, plus enough InvokesRequiredForCatchup. Query.
 	// Repeat twice for each peer in sequence
 

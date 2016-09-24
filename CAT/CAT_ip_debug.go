@@ -147,7 +147,8 @@ chco2.Writer = bufio.NewWriter(osFile)
 
 	// CAT_ip_debug.go
 
-	DisplayPeerIP(-1)
+	//chaincode.DisplayPeerIp(chco2.MyNetwork, -1)
+	displayPeerIp(-1)
 
 	numCycles := 1
 	for i:=1; i <= numCycles; i++ {
@@ -159,8 +160,8 @@ chco2.Writer = bufio.NewWriter(osFile)
 			chco2.QueryAllPeers( "STEP 3, cycle " + strconv.Itoa(i) + "/" + strconv.Itoa(numCycles) + " after STOP PEER " + strconv.Itoa(peerNum) + " and Invokes" )
 			chco2.RestartPeers( []int{ peerNum } )
 
-			//DisplayPeerIP( -1 )
-			DisplayPeerIP( peerNum )
+			//chaincode.DisplayPeerIp( chco2.MyNetwork, peerNum )
+			displayPeerIp( peerNum )
 
 			chco2.Invokes( chco2.InvokesRequiredForCatchUp )
 			if (chco2.Verbose) { fmt.Println("Sleep extra 30 secs") }
@@ -191,18 +192,18 @@ chco2.Writer = bufio.NewWriter(osFile)
 	chco2.RanToCompletion = true	// DO NOT MOVE OR CHANGE THIS. It must remain last.
 }
 
-func DisplayPeerIP(selectPeer int) {
+func displayPeerIp(selectPeer int) {
 	for peerNum := 0; peerNum < chco2.NumberOfPeersInNetwork; peerNum++ {
 	    if selectPeer < 0 || selectPeer == peerNum {
                 cmd_str := "docker inspect --format '{{.NetworkSettings.IPAddress}}' " + threadutil.GetPeer(peerNum)
-                //fmt.Println("--------------- DisplayPeerIP: To display IP Address of peer, executing command:  ", cmd_str)
-                fmt.Printf(fmt.Sprintf("--------------- DisplayPeerIP: docker inspect IP Address of peer %s = ", threadutil.GetPeer(peerNum)))
+                //fmt.Println("--------------- displayPeerIp: To display IP Address of peer, executing command:  ", cmd_str)
+                fmt.Printf(fmt.Sprintf("--------------- displayPeerIp: docker inspect IP Address of peer %s = ", threadutil.GetPeer(peerNum)))
                 var shellCmd *exec.Cmd
                 shellCmd = exec.Command("/bin/sh", "-c", cmd_str)
                 shellCmd.Stdout = os.Stdout
                 shellCmd.Stderr = os.Stderr
                 cmderr := shellCmd.Run()
-                if (cmderr != nil) { fmt.Println("--------------- DisplayPeerIP: exec.Command err: ", cmderr) }
+                if (cmderr != nil) { fmt.Println("--------------- displayPeerIp: exec.Command err: ", cmderr) }
 	    }
 	}
 }

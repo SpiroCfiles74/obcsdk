@@ -9,6 +9,7 @@ import (
 	"obcsdk/peernetwork"
 	"os"
 	"os/exec"
+	"bytes"
 	//"obcsdk/util"
 	"obcsdk/threadutil"
 )
@@ -97,21 +98,69 @@ func DisplayNetworkDebugInfo() {
 	verbose = prev_verbose
 }
 
+/* For debugging: Get and display the actual IP address of a Local network peer docker container.
+   It is possible this may not match the configured addresses in NetworkCredentials.json, if a peer
+   has been stopped and restarted, depending on the docker behavior.
+   To display all the peers in the network, pass an out-of-range peer number for "selectPeer".
+*/
 func DisplayPeerIp(mynetwork peernetwork.PeerNetwork, selectPeer int) {
-        for peerNum := 0; peerNum < len(mynetwork.Peers); peerNum++ {
-            if selectPeer < 0 || selectPeer == peerNum {
-		peerName := mynetwork.Peers[peerNum].PeerDetails["name"]
-                cmd_str := "docker inspect --format '{{.NetworkSettings.IPAddress}}' " + peerName
-                //fmt.Println("--------------- chcoAPI.DisplayPeerIp: To display IP Address of peer, executing command:  ", cmd_str)
-                fmt.Printf(fmt.Sprintf("--------------- chcoAPI.DisplayPeerIp: docker inspect IP Address of peer %s = ", peerName))
-                var shellCmd *exec.Cmd
-                shellCmd = exec.Command("/bin/sh", "-c", cmd_str)
-                shellCmd.Stdout = os.Stdout
-                shellCmd.Stderr = os.Stderr
-                cmderr := shellCmd.Run()
-                if (cmderr != nil) { fmt.Println("--------------- chcoAPI.DisplayPeerIp: exec.Command err: ", cmderr) }
-            }
-        }
+	ntwkType := strings.ToUpper(os.Getenv("NETWORK"))
+	if !(ntwkType == "" || ntwkType == "LOCAL") { return } // this won't work for remote networks that do not use docker containers
+	for peerNum := 0; peerNum < len(mynetwork.Peers); peerNum++ {
+		if selectPeer < 0 || selectPeer > len(mynetwork.Peers) || selectPeer == peerNum {
+			peerName := mynetwork.Peers[peerNum].PeerDetails["name"]
+			savedIp := mynetwork.Peers[peerNum].PeerDetails["ip"]
+			cmd_str := "docker inspect --format '{{.NetworkSettings.IPAddress}}' " + peerName
+			fmt.Printf(fmt.Sprintf("--------------- chcoAPI.DisplayPeerIp: peername(%s) savedIp(%s) , docker inspect IP Address=", peerName, savedIp))
+			var shellCmd *exec.Cmd
+			shellCmd = exec.Command("/bin/sh", "-c", cmd_str)
+			shellCmd.Stdout = os.Stdout
+			shellCmd.Stderr = os.Stderr
+			cmderr := shellCmd.Run()
+			if (cmderr != nil) { fmt.Println("--------------- chcoAPI.DisplayPeerIp: exec.Command err: ", cmderr) }
+		}
+	}
+}
+
+/* Get the actual IP address of a Local network peer docker container.
+   Capture the current actual IP address; if it does not match the previous IP address, then
+   save the new IP in the network object. This is useful after a restart, when the IP may have changed!
+   It is possible this may not match the configured addresses in NetworkCredentials.json,
+   depending on the docker behavior, if a peer has been stopped and restarted,
+   To do this for all the peers in the network, pass an out-of-range peer number.
+*/
+func UpdatePeerIp(mynetwork *peernetwork.PeerNetwork, selectPeer int) {
+	ntwkType := strings.ToUpper(os.Getenv("NETWORK"))
+	if !(ntwkType == "" || ntwkType == "LOCAL") { return } // this won't work for remote networks that do not use docker containers
+	for peerNum := 0; peerNum < len(mynetwork.Peers); peerNum++ {
+		if selectPeer < 0 || selectPeer > len(mynetwork.Peers) || selectPeer == peerNum {
+			peerName := mynetwork.Peers[peerNum].PeerDetails["name"]
+			prevIp := mynetwork.Peers[peerNum].PeerDetails["ip"]
+			cmd_str := "docker inspect --format '{{.NetworkSettings.IPAddress}}' " + peerName
+
+			//fmt.Printf(fmt.Sprintf("--------------- chcoAPI.UpdatePeerIp: docker inspect IP Address of peername(%s) prevIp(%s). new ip = ", peerName, prevIp))
+			cmd := exec.Command("/bin/sh", "-c", cmd_str)
+			// create a buffer to capture stdout, and attach to the command Stdout
+			stdoutBuff := &bytes.Buffer{}
+			cmd.Stdout = stdoutBuff
+			// create a buffer to capture stderr, and attach to the command Stderr
+			stderrBuff := &bytes.Buffer{}
+			cmd.Stderr = stderrBuff
+			err := cmd.Run()
+			stderrStr := string(stderrBuff.Bytes())
+			stdoutStr := string(stdoutBuff.Bytes())
+			if (err != nil) || (stderrStr != "") {
+				fmt.Println("--------------- chcoAPI.UpdatePeerIp: docker inspect exec.Command error: stdout=%s , stderr=%s , err = ", stdoutStr, stderrStr, err)
+			} else {
+				// it is valid; check if it has changed...
+				newIp := strings.TrimSpace(stdoutStr)
+				if prevIp != newIp {
+					fmt.Println(fmt.Sprintf("--------------- chcoAPI.UpdatePeerIp: peername(%s) prevIp (%s) has changed to newIp (%s)", peerName, prevIp, newIp))
+					mynetwork.Peers[peerNum].PeerDetails["ip"] = newIp
+				}
+			}
+		}
+	}
 }
 
 /*
