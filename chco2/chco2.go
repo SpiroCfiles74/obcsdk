@@ -270,7 +270,15 @@ func setup_part1(testName string, started time.Time) {
 		batchsize = 1
 	}
 
-	if pauseInsteadOfStop { fmt.Println("All STOPS and STARTS will be executed with Docker PAUSE and UNPAUSE") }
+	if pauseInsteadOfStop {
+		// we support PAUSE only for LOCAL docker network, so far...
+		if localNetwork {
+			fmt.Println("All STOPS and STARTS will be executed with Docker PAUSE and UNPAUSE")
+		} else {
+			fmt.Println("STOP_OR_PAUSE cannot be PAUSE (unsupported) when NETWORK != LOCAL")
+			panic(errors.New("docker-pause is not supported on non-Local configuration"))
+		}
+	}
 
 	//fmt.Println("INFO: setup_part1(): TransPerSecRate = ", TransPerSecRate)
 
@@ -316,7 +324,13 @@ func setup_part2_network() {
 func setup_part3_verifyNetworkAndDeployCC() {
 
 	peernetwork.PrintNetworkDetails()
+	// read in the NetworkCredentials.json file that was used in this (or prior) test to create the network
 	MyNetwork = chaincode.InitNetwork()
+	if ExistingNetwork {
+		// get the actual IP addresses of all the peers, in case they have changed due to any
+		// peer node restarts some time after this network was created in earlier testcase
+		chaincode.UpdatePeerIp(&MyNetwork, -1)
+	}
 	chaincode.InitChainCodes()
 	chaincode.RegisterUsers()
 
@@ -342,6 +356,7 @@ func setup_part3_verifyNetworkAndDeployCC() {
         for ; peerNum >= 0; peerNum-- { if peerIsRunning(peerNum,MyNetwork) { break } }
 	if peerNum < 0 {
 		fmt.Println("Setup() ERROR: Cannot find any running peer for Deploy!!!!!!!!!!")
+		panic(errors.New("setup_part3_verify: CANNOT find any running peer node for Deploy!!!!!"))
 	} else {
 		if Verbose { fmt.Println("setup_part3_verify, before deploy: A/B/chainheight values: ", currA, currB, currCH) }
 
@@ -406,17 +421,19 @@ func QueryAllHostsToGetCurrentValues(mynetwork peernetwork.PeerNetwork, a *int, 
 	if runningPeerCounter > 2*F {
 		// there are enough peers running to have a chance to find consensus
 		for i := 0 ; i <= F ; i++ {
-			candidate_cntr := 1
-			candidate_A := queryData[i].resA
-			candidate_B := queryData[i].resB
-			candidate_CH := ht[i]
-			for j := i+1 ; j < N ; j++ {
-				if queryData[j].resA == candidate_A && queryData[j].resB == candidate_B && ht[j] == candidate_CH {
-					candidate_cntr++
-					if Verbose { fmt.Println("QueryAllHosts(): values match on peers ", i, j) }
+			if ht[i] > 0 {
+				candidate_cntr := 1
+				candidate_A := queryData[i].resA
+				candidate_B := queryData[i].resB
+				candidate_CH := ht[i]
+				for j := i+1 ; j < N ; j++ {
+					if queryData[j].resA == candidate_A && queryData[j].resB == candidate_B && ht[j] == candidate_CH {
+						candidate_cntr++
+						if Verbose { fmt.Println("QueryAllHosts(): values match on peers ", i, j) }
+					}
 				}
+				if candidate_cntr >= 2*F+1 { *a = candidate_A; *b = candidate_B; *ch = candidate_CH; found_consensus = true; break }
 			}
-			if candidate_cntr >= 2*F+1 { *a = candidate_A; *b = candidate_B; *ch = candidate_CH; found_consensus = true; break }
 		}
 	} else { fmt.Println("QueryAllHosts(): NOT ENOUGH RUNNING Peers TO FIND CONSENSUS! #running/#total = ", runningPeerCounter, N) }
 
@@ -915,7 +932,8 @@ func QueryAllPeers(stepName string) {
 
 	// here we do the same checks for chainheight, but wrapped in a function...
 	// if (!validChainHeights()) {
-	if (!validateAllChainHeights()) {
+	validated, _ := checkAllChainHeights(true)
+	if !validated {
 		 handleChainHeightFailure(stepName)
 	}
 }
@@ -1168,6 +1186,7 @@ func restore_all() {
 			// peernetwork.UnpausePeerLocal(MyNetwork, "peer" + strconv.Itoa(i))
 			fmt.Println("restore_all(): unpause peer " + threadutil.GetPeer(i)) 
 			peernetwork.UnpausePeerLocal(MyNetwork, threadutil.GetPeer(i))
+			chaincode.UpdatePeerIp(&MyNetwork, i)
 		}
 //		if (MyNetwork.Peers[i].State == peernetwork.STOPPED) {
 //			// do not leave any nodes stopped
@@ -1408,8 +1427,16 @@ func validChainHeights() bool {
 	return testStatus
 }
 
-func validateAllChainHeights() bool {
-	testStatus 		:= true
+func checkAllChainHeights(printResults bool) (testStatus bool, consensusCH int) {
+	// CALL BY: 
+	// 	validated, _ := checkAllChainHeights(true)
+	// 	if !validated { ...handle error... }
+	// OR:
+	// 	validated, groupCH := checkAllChainHeights(false)
+	// 	if groupCH > 0 { ...we found consensus myNewChainHeight = consensusCH }
+
+	consensusCH = 0
+	testStatus 		= true
 	enoughMatchExpectedCH 	:= true
 	allMatchExpectedCH 	:= true
 	allMatchEachOther 	:= true
@@ -1432,8 +1459,9 @@ func validateAllChainHeights() bool {
 	}
 
 	// Do the chainheights of all the running peers match the EXPECTED value? (STRICT mode, AllRunningNodesMustMatch)
-
 	if countMatchingExpectedValue < runningPeerCounter { allMatchExpectedCH = false }
+
+	// Do chainheights match expected value on the number of peers needed for consensus ?
 	if countMatchingExpectedValue < NumberOfPeersNeededForConsensus { enoughMatchExpectedCH = false }
 
 	//====================================================================================================================
@@ -1453,15 +1481,17 @@ func validateAllChainHeights() bool {
 		matchCounter := 0
 		matchStartPoints := numPeersRunning - NumberOfPeersNeededForConsensus + 1
 		for n := 0 ; (n <= NumberOfPeersInNetwork - NumberOfPeersNeededForConsensus) && (matchStartPoints > 0) && !consensusFound; n++ {
-        		if peerIsRunning(n,MyNetwork) {
-				// we will try n times to start and compare
+        		if peerIsRunning(n,MyNetwork) && ht[n] > 0 {
 				matchCounter = 1
 				for i := n+1 ; (i < NumberOfPeersInNetwork) ; i++ {
         				if peerIsRunning(i,MyNetwork) {
 						if (ht[n] == ht[i]) { matchCounter++ } else { allMatchEachOther = false }
 					}
 				}
-				if (matchCounter >= NumberOfPeersNeededForConsensus) { consensusFound = true }
+				if (matchCounter >= NumberOfPeersNeededForConsensus) {
+					consensusFound = true
+					consensusCH = ht[n]
+				}
 				matchStartPoints--
 			}
 		}
@@ -1469,35 +1499,35 @@ func validateAllChainHeights() bool {
 
 	//====================================================================================================================
 
-	myStr := fmt.Sprintf("")
-	if (!consensusPossible) {
-		myStr += fmt.Sprintf("SKIPPED CHAINHEIGHT VALIDATION: Only %d peer nodes running, but %d are required for consensus in this network of %d. Expected CH (%d). Actual CHs: ", numPeersRunning, NumberOfPeersNeededForConsensus, NumberOfPeersInNetwork, currCH)
-        	for peerNum := 0; peerNum < NumberOfPeersInNetwork; peerNum++ {
-        		if peerIsRunning(peerNum,MyNetwork) { myStr += fmt.Sprintf("%s(%d) ", threadutil.GetPeer(peerNum), ht[peerNum]) }
-		}
-                fmt.Println(myStr)					// always print to stdout
-	} else
-		// We have enough nodes for consensus. Use cases are the following.
-		//   1. Either they all match each other, or,
-		//   2. they don't all match - but that is OK because it is not required that they ALL match -
-		//      AND we still have enough matching each other for consensus, or,
-		//   3. we don't even have enough matching in agreement for consensus.
-		// 
-		// If (1 or 2), then that is good - but pass only if we meet an additional condition (A or B or C):
-		//   A. They do not need to match the expected CH value, or, 
-		//   B. They do need to match expected CH value AND all do match, or,
-		//   C. They do need to match expected CH value AND enough for consensus match expected value (which is all that is required), or,
-		//   D. They do need to match expected CH value, but their value doesn't match the expected value.
+	if printResults {
+		myStr := fmt.Sprintf("")
+		if (!consensusPossible) {
+			myStr += fmt.Sprintf("SKIPPED CHAINHEIGHT VALIDATION: Only %d peer nodes running, but %d are required for consensus in this network of %d. Expected CH (%d). Actual CHs: ", numPeersRunning, NumberOfPeersNeededForConsensus, NumberOfPeersInNetwork, currCH)
+        		for peerNum := 0; peerNum < NumberOfPeersInNetwork; peerNum++ {
+        			if peerIsRunning(peerNum,MyNetwork) { myStr += fmt.Sprintf("%s(%d) ", threadutil.GetPeer(peerNum), ht[peerNum]) }
+			}
+                	fmt.Println(myStr)					// always print to stdout
+		} else
+			// We have enough nodes for consensus. Use cases are the following.
+			//   1. Either they all match each other, or,
+			//   2. they don't all match - but that is OK because it is not required that they ALL match -
+			//      AND we still have enough matching each other for consensus, or,
+			//   3. we don't even have enough matching in agreement for consensus.
+			// 
+			// If (1 or 2), then that is good - but pass only if we meet an additional condition (A or B or C):
+			//   A. They do not need to match the expected CH value, or, 
+			//   B. They do need to match expected CH value AND all do match, or,
+			//   C. They do need to match expected CH value AND enough for consensus match expected value (which is all that is required), or,
+			//   D. They do need to match expected CH value, but their value doesn't match the expected value.
 
-	if (allMatchEachOther || (!AllRunningNodesMustMatch && consensusFound)) && (!CHsMustMatchExpected || (allMatchExpectedCH || (enoughMatchExpectedCH && !AllRunningNodesMustMatch))) {
+		if (allMatchEachOther || (!AllRunningNodesMustMatch && consensusFound)) && (!CHsMustMatchExpected || (allMatchExpectedCH || (enoughMatchExpectedCH && !AllRunningNodesMustMatch))) {
 			// SUCCESS
 			myStr += fmt.Sprintf("PASSED CHAIN HEIGHT TEST: matches on enough/appropriate Peers. Expected CH (%d). Actual CHs: ", currCH)
         		for peerNum := 0; peerNum < NumberOfPeersInNetwork; peerNum++ {
         			if peerIsRunning(peerNum,MyNetwork) { myStr += fmt.Sprintf("%s(%d) ", threadutil.GetPeer(peerNum), ht[peerNum]) }
 			}
                 	fmt.Println(myStr)					// always print to stdout
-
-	} else {
+		} else {
 			// FAILURE
 			testStatus = false
                		myStr += fmt.Sprintf("FAILED CHAIN HEIGHT TEST: enough required peers do NOT match. Expected ChainHeight (%d). Actual CHs: ", currCH)
@@ -1506,11 +1536,11 @@ func validateAllChainHeights() bool {
 			}
                		myStr += fmt.Sprintf("!!!!!!!!!!")
                		fmt.Println(myStr)					// always print to stdout
+		}
+		if (Stop_on_error && EnforceChainHeightTestsPass) {	// if we care, print status in results file too
+			fmt.Fprintln(Writer, myStr)
+			Writer.Flush()
+		}
 	}
-
-	if (Stop_on_error && EnforceChainHeightTestsPass) {	// if we care, print status in results file too
-		fmt.Fprintln(Writer, myStr)
-		Writer.Flush()
-	}
-	return testStatus
+	return testStatus, consensusCH
 }
