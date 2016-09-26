@@ -359,25 +359,7 @@ func setup_part3_verifyNetworkAndDeployCC() {
 		panic(errors.New("setup_part3_verify: CANNOT find any running peer node for Deploy!!!!!"))
 	} else {
 		if Verbose { fmt.Println("setup_part3_verify, before deploy: A/B/chainheight values: ", currA, currB, currCH) }
-
 		DeployInit(peerNum)
-
-		if ExistingNetwork {
-		//if strings.ToUpper(os.Getenv("CHCO2_EXISTING_NETWORK")) == "TRUE" {
-			// STANDARD (RE)DEPLOYMENT OVERRIDE:
-			// Useful for rerunning this testcase and others, to use the existing network with existing deployment
-			// (by using same standard numbers), rather than creating yet another deployment for the existing peers...
-			// but that means the values for A and B will not be reset to 1 million, because they already exist with
-			// other values, so we need to go find the actual CURRENT values for A & B
-
-			success := QueryAllHostsToGetCurrentValues(MyNetwork, &currA, &currB, &currCH)
-			if !success {
-				fmt.Println("setup_part3_verify: CANNOT find consensus in existing network; chainheight/A/B invoke and query tests will likely fail to match expected values!!!")
-				// panic(errors.New("setup_part3_verify: CANNOT find consensus in existing network"))
-			}
-		}
-		if Verbose { fmt.Println("setup_part3_verify, AFTER deploy,QueryAllHosts: A/B/chainheight values: ", currA, currB, currCH) }
-
 		InvokeOnEachPeer(1)
 		QueryAllPeers("STEP SETUP, after initial Deployment followed by 1 Invoke on each peer")
 	}
@@ -565,6 +547,26 @@ func DeployInit(peerNum int) {
 	time.Sleep(60 * time.Second)
 	incrHeightCount(1, peerNum)
 	setQueuedTransactionCounter(1)
+
+	// Query the network and Update the counters A, B, and CH.
+	if ExistingNetwork {
+		// We could be initializing/deploying with the default init values, or could be new values.
+		// Even if they are "new" values, they could be some that were used before in prior tests
+		// or when rerunning this test using same existing network of peers.
+
+		// STANDARD (RE)DEPLOYMENT OVERRIDE:
+		// Useful for rerunning this testcase and others, to use the existing network with existing deployment
+		// (by using same counters), rather than creating yet another deployment for the existing peers...
+		// but that means the values for A and B will not be reset to 1 million, because they already exist with
+		// other values, so we need to go find the actual CURRENT values for A & B
+
+		success := QueryAllHostsToGetCurrentValues(MyNetwork, &currA, &currB, &currCH)
+		if !success {
+			fmt.Println("setup_part3_verify: CANNOT find consensus in existing network; chainheight/A/B invoke and query tests will likely fail to match any expected values!!!")
+			// panic(errors.New("setup_part3_verify: CANNOT find consensus in existing network"))
+		}
+	}
+	if Verbose { fmt.Println("setup_part3_verify, AFTER deploy,QueryAllHosts: A/B/chainheight values: ", currA, currB, currCH) }
 }
 
 func Invokes(totalNumInvokes int) {
