@@ -507,8 +507,12 @@ func CatchUpAndConfirm() {
 }
 
 func DeployNew(a int, b int) {
-	peer := NumberOfPeersInNetwork-1	// default is to use the last node in the network (this is how the chaincode.Deploy code works when it chooses any peer)
-	DeployNewOnPeer(a, b, peer)
+	// find and use the highest numbered node in the network that is running
+	peerNum := NumberOfPeersInNetwork-1
+        for ; peerNum >=0 ; peerNum-- {
+        	if peerIsRunning(peerNum,MyNetwork) { break }
+	}
+	DeployNewOnPeer(a, b, peerNum)
 }
 
 func DeployNewOnPeer(a int, b int, peer int) {
@@ -1100,7 +1104,10 @@ func RestartPeers(peerNumsToStopStart []int) {
 			fmt.Println("Sleep 30 secs more after a restart")
 			time.Sleep(30 * time.Second) 
 		}
-		chaincode.UpdatePeerIp(&MyNetwork, -1)
+		// now that the nodes have had time to recover, retrieve the actual IP addresses (which possibly changed)
+		for k:= 0; k < len(peerNumsToStopStart); k++ {
+			chaincode.UpdatePeerIp(&MyNetwork, peerNumsToStopStart[k])
+		}
 	}
 }
 

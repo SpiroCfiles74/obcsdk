@@ -267,10 +267,11 @@ func changeState(url string, path string, restCallName string,
 
 	//	Build a URL for the REST API call using the caller's url
 	restUrl := url + "/chaincode/"
-	if verbose {
-		msgStr := fmt.Sprintf("**changeState() Sending Rest Request to url: %s", restUrl)
+ 	if verbose || restCallName == "deploy" {
+		msgStr := fmt.Sprintf("**changeState() Sending Rest Request to url:  %s\n", restUrl)
+		msgStr += fmt.Sprintf("                Sending Rest Request Payload: %s\n", string(depPayLoad))
 		fmt.Println(msgStr)
-	}
+ 	}
 
 	//  issue REST call
 	respBody, respStatus := peerrest.PostChainAPI(restUrl, depPayLoad)
@@ -288,6 +289,7 @@ func changeState(url string, path string, restCallName string,
 		errMsg += fmt.Sprintf("  respStatus:                %s\n", respStatus)
 		errMsg += fmt.Sprintf("  respBody:                  %s\n", respBody)
 		errMsg += fmt.Sprintf("  Sent Rest Request to url:  %s\n", restUrl)
+		errMsg += fmt.Sprintf("  Sent Rest Request Payload: %s\n", string(depPayLoad))
 		errMsg += fmt.Sprintf("  json.Unmarshal result:     %s\n", res)
 		errMsg += fmt.Sprintf("  json.Unmarshal error:      %s\n", err)
 		fmt.Println(errMsg)

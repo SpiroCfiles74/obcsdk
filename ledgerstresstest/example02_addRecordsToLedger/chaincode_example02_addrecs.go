@@ -51,12 +51,12 @@ func (t *Chaincode_example02_addrecs) Init(stub shim.ChaincodeStubInterface, fun
 	}
 
 	// Initialize the chaincode
-	A = args[0]      // "a0" // and every invoke will use a different key, e.g. a1, a2, ...
+	A = args[0]      // "a" // and every invoke will use a different key, e.g. a1, a2, ...
 	Aval := args[1]  // DATA, a FixedString, or possibly a RandomString depending on the testcase
-	B = args[2]      // "counter"
+	B = args[2]      // "b" - which represents the ledger counter/height
 	Bval, err = strconv.Atoi(args[3])    // cntr value integer. if A is "a0", then Bval should be 0
 	if err != nil {
-		return nil, errors.New("Expecting integer value for counter index")
+		return nil, errors.New("Cannot convert b to integer; Expecting string version of b, the ledger counter index")
 	}
 	fmt.Printf("Aval (INIT DATA STRING) = %s, Bval (INIT counter value) = %d\n", Aval, Bval)
 
@@ -66,7 +66,7 @@ func (t *Chaincode_example02_addrecs) Init(stub shim.ChaincodeStubInterface, fun
 		return nil, err
 	}
 
-	err = stub.PutState(B, []byte(strconv.Itoa(Bval)))  // "counter" , counter value (typically zero)
+	err = stub.PutState(B, []byte(strconv.Itoa(Bval)))  // "b" , the ledger counter value (typically zero, but could be anything, for the Deploy/Init)
 	if err != nil {
 		return nil, err
 	}
@@ -81,8 +81,8 @@ func (t *Chaincode_example02_addrecs) Invoke(stub shim.ChaincodeStubInterface, f
 		return t.delete(stub, args)
 	}
 
-	var A, B, Aval string    // Entities
-	var Bval int // Asset holdings
+	var A, B, Aval string
+	var Bval int
 	var err error
 
 	if len(args) != 3 {
@@ -90,22 +90,21 @@ func (t *Chaincode_example02_addrecs) Invoke(stub shim.ChaincodeStubInterface, f
 	}
 
 	A = args[0]	// the key, "aN" ("a1" or "a2" or whatever, where N = the cntr value, the top of the ledger stack)
-	Aval = args[1]	// DATA, a FixedString, or possibly a RandomString depending on the testcase
-	B = args[2]	// "counter"
-
+	Aval = args[1]	// DATA, a FixedString, or a RandomString, depending on the testcase, to put on the ledger
+	B = args[2]	// "b", the ledger counter/height, which is string representation of "N" (i.e. numerical part of the key aN)
 
 	Bvalbytes, err := stub.GetState(B)
 	if err != nil {
-		return nil, errors.New("Failed to get state")
+		return nil, errors.New(fmt.Sprintf("Failed to get state for b (%s), the specified ledger counter/height", B))
 	}
 	if Bvalbytes == nil {
-		return nil, errors.New("Entity not found")
+		return nil, errors.New(fmt.Sprintf("Cannot find b (%s)",B))
 	}
 	Bval, _ = strconv.Atoi(string(Bvalbytes))
 
 	// Perform the execution
 	Bval = Bval + 1
-	fmt.Printf("Aval (DATA) = %s, Bval (counter++ value) = %d\n", Aval, Bval)
+	fmt.Printf("Aval (DATA) = %s, Bval (B, the ledger counter++ value) = %d\n", Aval, Bval)
 
 	// Write the state back to the ledger
 	err = stub.PutState(A, []byte(Aval))     // aN, DATA
@@ -113,7 +112,7 @@ func (t *Chaincode_example02_addrecs) Invoke(stub shim.ChaincodeStubInterface, f
 		return nil, err
 	}
 
-	err = stub.PutState(B, []byte(strconv.Itoa(Bval)))   // "counter", incremented_counter_value
+	err = stub.PutState(B, []byte(strconv.Itoa(Bval)))   // "b", incremented_counter_value
 	if err != nil {
 		return nil, err
 	}
@@ -143,30 +142,30 @@ func (t *Chaincode_example02_addrecs) Query(stub shim.ChaincodeStubInterface, fu
 	if function != "query" {
 		return nil, errors.New("Invalid query function name. Expecting \"query\"")
 	}
-	var A string // Entities
+	var key string // This is the key to search for: a (deployment value), aN (DATA value stored at that counter index), or b (ledger counter)
 	var err error
 
 	if len(args) != 1 {
-		return nil, errors.New("Incorrect number of arguments. Expecting name of the person to query")
+		return nil, errors.New("Incorrect number of arguments. Expecting one arg - variable key name (a, aN, or b) to query")
 	}
 
-	A = args[0]
+	key = args[0]
 
 	// Get the state from the ledger
-	Avalbytes, err := stub.GetState(A)
+	keyvalbytes, err := stub.GetState(key)
 	if err != nil {
-		jsonResp := "{\"Error\":\"Failed to get state for " + A + "\"}"
+		jsonResp := "{\"Error\":\"Failed to get state for " + key + "\"}"
 		return nil, errors.New(jsonResp)
 	}
 
-	if Avalbytes == nil {
-		jsonResp := "{\"Error\":\"Nil amount for " + A + "\"}"
+	if keyvalbytes == nil {
+		jsonResp := "{\"Error\":\"Nil amount for " + key + "\"}"
 		return nil, errors.New(jsonResp)
 	}
 
-	jsonResp := "{\"Name\":\"" + A + "\",\"Amount\":\"" + string(Avalbytes) + "\"}"
+	jsonResp := "{\"Name\":\"" + key + "\",\"Amount\":\"" + string(keyvalbytes) + "\"}"
 	fmt.Printf("Query Response:%s\n", jsonResp)
-	return Avalbytes, nil
+	return keyvalbytes, nil
 }
 
 func main() {

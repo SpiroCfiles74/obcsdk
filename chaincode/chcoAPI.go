@@ -147,14 +147,14 @@ func UpdatePeerIp(mynetwork *peernetwork.PeerNetwork, selectPeer int) {
 			stderrBuff := &bytes.Buffer{}
 			cmd.Stderr = stderrBuff
 			err := cmd.Run()
-			stderrStr := string(stderrBuff.Bytes())
-			stdoutStr := string(stdoutBuff.Bytes())
+			stderrStr := strings.TrimSpace(string(stderrBuff.Bytes()))
+			stdoutStr := strings.TrimSpace(string(stdoutBuff.Bytes()))
 			if (err != nil) || (stderrStr != "") {
-				fmt.Println("--------------- chcoAPI.UpdatePeerIp: docker inspect exec.Command error: stdout=%s , stderr=%s , err = ", stdoutStr, stderrStr, err)
+				fmt.Println("--------------- chcoAPI.UpdatePeerIp: docker inspect exec.Command error: stdout=<%s> , stderr=<%s> , err = ", stdoutStr, stderrStr, err)
 			} else {
 				// it is valid; check if it has changed...
-				newIp := strings.TrimSpace(stdoutStr)
-				if prevIp != newIp {
+				newIp := stdoutStr
+				if (newIp != prevIp) && (newIp != "") {
 					fmt.Println(fmt.Sprintf("--------------- chcoAPI.UpdatePeerIp: peername(%s) prevIp (%s) has changed to newIp (%s)", peerName, prevIp, newIp))
 					mynetwork.Peers[peerNum].PeerDetails["ip"] = newIp
 				}
