@@ -273,9 +273,9 @@ func setup_part1(testName string, started time.Time) {
 	if pauseInsteadOfStop {
 		// we support PAUSE only for LOCAL docker network, so far...
 		if localNetwork {
-			fmt.Println("All STOPS and STARTS will be executed with Docker PAUSE and UNPAUSE")
+			fmt.Println("All STOPS and RESTARTS will be executed with Docker PAUSE and UNPAUSE")
 		} else {
-			fmt.Println("STOP_OR_PAUSE cannot be PAUSE (unsupported) when NETWORK != LOCAL")
+			fmt.Println("Unsupported Configuration: STOP_OR_PAUSE cannot be PAUSE when NETWORK != LOCAL")
 			panic(errors.New("docker-pause is not supported on non-Local configuration"))
 		}
 	}
@@ -1090,6 +1090,7 @@ func RestartPeers(peerNumsToStopStart []int) {
 				AllRunningNodesMustMatch = false
 			}
 
+			//if pauseInsteadOfStop || (MyNetwork.Peers[peerNumsToStopStart[j]].State == peernetwork.PAUSED) {
 			if pauseInsteadOfStop {
 				peernetwork.UnpausePeerLocal(MyNetwork, peersToStopStart[j]) 	// includes sleeping 5 secs after each Unpause
 			} else {
@@ -1186,22 +1187,23 @@ func restore_all() {
 //		// log.Fatal(err)
 //	}
 
+	cntr := 0
 	for i :=0 ; i < NumberOfPeersInNetwork ; i++ {
+		// DO NOT leave any nodes paused, or stopped
 		if (MyNetwork.Peers[i].State == peernetwork.PAUSED) {
-			// DO NOT leave any nodes paused
-			// fmt.Println("restore_all(): unpause " + strconv.Itoa(i)) 
-			// peernetwork.UnpausePeerLocal(MyNetwork, strconv.Itoa(i))
-			// fmt.Println("restore_all(): unpause peer" + strconv.Itoa(i)) 
-			// peernetwork.UnpausePeerLocal(MyNetwork, "peer" + strconv.Itoa(i))
-			fmt.Println("restore_all(): unpause peer " + threadutil.GetPeer(i)) 
+			if Verbose { fmt.Println("restore_all(): unpause peer " + threadutil.GetPeer(i)) }
 			peernetwork.UnpausePeerLocal(MyNetwork, threadutil.GetPeer(i))
 			chaincode.UpdatePeerIp(&MyNetwork, i)
+			cntr++
+		} else 
+		//if (MyNetwork.Peers[i].State == peernetwork.STOPPED) {
+		if (MyNetwork.Peers[i].State != peernetwork.RUNNING) {
+			if Verbose { fmt.Println("restore_all(): restart peer " + threadutil.GetPeer(i)) }
+			peernetwork.StartPeerLocal(MyNetwork, strconv.Itoa(i))
+			cntr++
 		}
-//		if (MyNetwork.Peers[i].State == peernetwork.STOPPED) {
-//			// do not leave any nodes stopped
-//			peernetwork.StartPeerLocal(MyNetwork, strconv.Itoa(i))
-//		}
 	}
+	if cntr > 0 { fmt.Println("Sleep 20 secs extra after restarting/unpausing peers") }; time.Sleep(20 * time.Second)
 }
 
 func clean_up() {
