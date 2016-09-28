@@ -84,7 +84,7 @@ func main() {
 	var inita, initb, curra, currb int
 	deployStandard := false;
 
-	if strings.ToUpper(os.Getenv("CHCO2_EXISTING_NETWORK")) == "TRUE" {
+	if strings.ToUpper(os.Getenv("TEST_EXISTING_NETWORK")) == "TRUE" {
 		// STANDARD (RE)DEPLOYMENT OVERRIDE:
 		// Useful for rerunning this testcase and for others to use the existing network with existing deployment
 		// (by using same standard numbers), rather than creating yet another deployment for the existing peers...
@@ -92,7 +92,7 @@ func main() {
 		deployStandard = true
 		inita = 1000000
 		initb = 1000000
-		fmt.Println("CHCO2_EXISTING_NETWORK is true, so we will redeploy with the standard deployment values (1M/1M) for this testcase chcotest/BasicFuncExistingNetwork.")
+		fmt.Println("TEST_EXISTING_NETWORK is true, so we will redeploy with the standard deployment values (1M/1M) for this testcase chcotest/BasicFuncExistingNetwork.")
 	} else {
 		// RANDOM DEPLOYMENT A&B values
 		// For a unique deployment test, to create a NEW deployment, let's generate random values for "a" and "b" between 0-9999.
@@ -178,7 +178,7 @@ func setupNetwork() {
 	fmt.Println("===== Working with an existing network: Retrieving network information and connecting to it =====")
 
 	// Create ../util/NetworkCredentials.json
-	// For NETWORK=Z: Copy file from ../automation/networkcredentials (which is created by local_fabric shell script -
+	// For TEST_NETWORK=Z: First copy file from ../automation/networkcredentials (which is created by local_fabric shell script -
 	// or you must run "./update_z.py -b -f service_credentials_5a088be5-276c-42b3-b550-421f3f27b6ab.json" to generate it and then
 	//     put it in automation/networkcredentials yourself -
 	// or else just skip GetNC_Local and run the update_z.py command and put the output yourself into ../util/NetworkCredentials.json)

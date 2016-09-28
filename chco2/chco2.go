@@ -83,7 +83,8 @@ var AllRunningNodesMustMatch bool
 var NetworkAlreadyRunning bool
 
 var LoggingLevel string
-var localNetwork bool
+var IsLocalNetwork bool
+var LocalNetworkType string
 var Security bool
 var ConsensusMode string
 var PbftMode string
@@ -164,7 +165,8 @@ func setup_part1(testName string, started time.Time) {
 	// default settings, so that our test code uses the same values as the running peers and we can
 	// tune our tests accordingly (e.g. counting transactions).
 
-	localNetwork = true
+	IsLocalNetwork = true
+	LocalNetworkType = ""
 	NumberOfPeersInNetwork = 4	//  CORE_PBFT_GENERAL_N         - number of validating peers in the network
 	NumberOfPeersOkToFail = 1	//  CORE_PBFT_GENERAL_F         - max # possible faulty nodes while still can reach consensus
 	LoggingLevel = "error"		//  CORE_LOGGING_LEVEL          - [critical|error|warning|notice|info|debug] as defined in peer/core.yaml
@@ -174,7 +176,7 @@ func setup_part1(testName string, started time.Time) {
 	batchsize = 2			//  CORE_PBFT_GENERAL_BATCHSIZE - max # Tx sent in each batch for ordering; we override the default [500]
 	batchTimeout = "2s"		//  CORE_PBFT_GENERAL_TIMEOUT_BATCH=2s
 	batchtimeout = 2		//    - default 2 in v0.5 Jun 2016, default 1 in gerrit fabric Aug 2016
-	pauseInsteadOfStop = false	//  STOP_OR_PAUSE               - MODE used by GO tests when disrupting network CA and Peer nodes [STOP|PAUSE]
+	pauseInsteadOfStop = false	//  TEST_STOP_OR_PAUSE          - MODE used by GO tests when disrupting network CA and Peer nodes [STOP|PAUSE]
 
 					// Others that we may use in future:
 					//  CORE_PBFT_GENERAL_TIMEOUT_BATCH - batch timeout value, use s for seconds, default=[2s]
@@ -186,15 +188,20 @@ func setup_part1(testName string, started time.Time) {
 	// read any ENV variables that are set, and override the default values
 	//---------------------------------------------------------------------------------------------------------------
 
-	var envvar string
-	envvar = strings.ToUpper(os.Getenv("NETWORK"))
-	if envvar != "" && envvar != "LOCAL" {
-		localNetwork = false
-		if envvar == "Z" { TransPerSecRate = 2 }
+	// save Network Type for now, and use it later
+	LocalNetworkType = strings.TrimSpace(strings.ToUpper(os.Getenv("TEST_NETWORK")))
+	if LocalNetworkType != "" {
+		if LocalNetworkType == "LOCAL" {
+			IsLocalNetwork = true
+		} else {
+			IsLocalNetwork = false
+			if LocalNetworkType == "Z" { TransPerSecRate = 2 }
+		}
 	}
-	if strings.ToUpper(os.Getenv("CHCO2_VERBOSE")) == "TRUE" {
+	if strings.ToUpper(os.Getenv("TEST_VERBOSE")) == "TRUE" {
 		Verbose = true 	// Another option: edit  "verbose" in chaincode/const.go for more info about lower level functions operation
 	}
+	var envvar string
 	envvar = strings.TrimSpace(os.Getenv("CORE_PBFT_GENERAL_N"))
 	if envvar != "" { NumberOfPeersInNetwork, _ = strconv.Atoi(envvar) }
 	envvar = strings.TrimSpace(os.Getenv("CORE_PBFT_GENERAL_F"))
@@ -212,9 +219,9 @@ func setup_part1(testName string, started time.Time) {
 	// Must read batchTimeout (string) and set batchtimeout (int) after stripping the trailing 's'...
 	// envvar = strings.TrimSpace(os.Getenv("CORE_PBFT_GENERAL_TIMEOUT_BATCH"))
 	// if envvar != "" { batchtimeout, _  = strconv.Atoi(envvar) }
-	envvar = strings.TrimSpace(os.Getenv("STOP_OR_PAUSE"))
+	envvar = strings.TrimSpace(os.Getenv("TEST_STOP_OR_PAUSE"))
 	if strings.ToUpper(envvar) == "PAUSE" { pauseInsteadOfStop = true }
-	if strings.ToUpper(os.Getenv("CHCO2_EXISTING_NETWORK")) == "TRUE" {
+	if strings.ToUpper(os.Getenv("TEST_EXISTING_NETWORK")) == "TRUE" {
 		ExistingNetwork = true
 		AllRunningNodesMustMatch = false // since we don't know the status of the existing network, the counters may already differ
 	}
@@ -235,7 +242,7 @@ func setup_part1(testName string, started time.Time) {
 		}
 	}
 
-	envvar = strings.ToUpper(os.Getenv("CHCO2_FULL_CATCHUP"))
+	envvar = strings.ToUpper(os.Getenv("TEST_FULL_CATCHUP"))
 	if envvar == "TRUE" {
 		// InvokesRequiredForCatchUp really should be (K * batchsize * logmultiplier) to ensure recovery.
 		// (Although sometimes, depending on timing and state transitions, I wonder if maybe even that is not enough???)
@@ -278,10 +285,10 @@ func setup_part1(testName string, started time.Time) {
 
 	if pauseInsteadOfStop {
 		// we support PAUSE only for LOCAL docker network, so far...
-		if localNetwork {
+		if IsLocalNetwork {
 			fmt.Println("All STOPS and RESTARTS will be executed with Docker PAUSE and UNPAUSE")
 		} else {
-			fmt.Println("Unsupported Configuration: STOP_OR_PAUSE cannot be PAUSE when NETWORK != LOCAL")
+			fmt.Println("Unsupported Configuration: TEST_STOP_OR_PAUSE cannot be PAUSE when TEST_NETWORK != LOCAL")
 			panic(errors.New("docker-pause is not supported on non-Local configuration"))
 		}
 	}
@@ -310,7 +317,7 @@ func setup_part1(testName string, started time.Time) {
 
 func setup_part2_network() {
     if ExistingNetwork {
-	fmt.Println("chco2.setup_part2_network(): CHCO2_EXISTING_NETWORK is TRUE, which means:\n (1) we will NOT create a new network, and\n (2) we will IGNORE the COMMIT image and a few other env vars, and\n (3) we will use the existing Network as previously created, and query its values as our starting point.")
+	fmt.Println("chco2.setup_part2_network(): TEST_EXISTING_NETWORK is TRUE, which means:\n (1) we will NOT create a new network, and\n (2) we will IGNORE the COMMIT image and a few other env vars, and\n (3) we will use the existing Network as previously created, and query its values as our starting point.")
     } else {
 	fmt.Println("Creating a local docker network with # peers = ", NumberOfPeersInNetwork)
 	peernetwork.SetupLocalNetworkWithMoreOptions(
@@ -332,6 +339,10 @@ func setup_part3_verifyNetworkAndDeployCC() {
 	peernetwork.PrintNetworkDetails()
 	// read in the NetworkCredentials.json file that was used in this (or prior) test to create the network
 	MyNetwork = chaincode.InitNetwork()
+
+	// if the user has set env var, then override the PeerNetwork.IsLocal boolean now that we have initialized the network
+	if LocalNetworkType != "" { chaincode.SetNetworkIsLocal(IsLocalNetwork) }
+
 	if ExistingNetwork {
 		// get the actual IP addresses of all the peers, in case they have changed due to any
 		// peer node restarts some time after this network was created in earlier testcase
@@ -346,6 +357,7 @@ func setup_part3_verifyNetworkAndDeployCC() {
 	aPeer, _ := peernetwork.APeer(chaincode.ThisNetwork)
 	url := chaincode.GetURL(aPeer.PeerDetails["ip"], aPeer.PeerDetails["port"])
 
+	// Display!
 	chaincode.NetworkPeers(url)
 	chaincode.ChainStats(url)
 
@@ -353,6 +365,7 @@ func setup_part3_verifyNetworkAndDeployCC() {
 	//chaincode.User_Registration_Status(url, "nishi")
 	//chaincode.User_Registration_ecertDetail(url, "lukas")
 
+	// Init / Deploy 
 	initA = "1000000"		// start with ONE MILLION
 	initB = "1000000"		// start with ONE MILLION
 	currA, _ = strconv.Atoi(initA)

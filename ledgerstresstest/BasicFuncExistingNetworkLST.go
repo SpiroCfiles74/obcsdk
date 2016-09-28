@@ -140,6 +140,21 @@ func setupNetwork() {
 	lstutil.Logger("----- Connect to existing network - InitNetwork -----")
         chco2.MyNetwork = chaincode.InitNetwork()
 
+	// override if the user set env var to indicate whether or not the network is LOCAL
+	localNetworkType := strings.TrimSpace(strings.ToUpper(os.Getenv("TEST_NETWORK")))
+	if localNetworkType != "" {
+		chco2.LocalNetworkType = localNetworkType
+		if localNetworkType == "LOCAL" {
+			chco2.MyNetwork.IsLocal = true
+			chaincode.SetNetworkLocality(chco2.MyNetwork,true)	// chco2 network copy
+			chaincode.SetNetworkIsLocal(true)			// chaincode network copy
+		} else {
+			chco2.MyNetwork.IsLocal = false
+			chaincode.SetNetworkLocality(chco2.MyNetwork,false)	// chco2 network copy
+			chaincode.SetNetworkIsLocal(false)			// chaincode network copy
+		}
+	}
+
         lstutil.Logger("----- InitChainCodes -----")
         chaincode.InitChainCodes()
 	time.Sleep(50 * time.Second)

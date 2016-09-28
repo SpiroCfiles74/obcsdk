@@ -16,12 +16,12 @@ const (
 	waitTimeoutRetries = 1
  )
 
-// Calling GetChainInfo according to http or https api according to the value in env variable "NETWORK"
-// "NETWORK" = "LOCAL" - would use a network with http protocol
-// "NETWORK" = "Z" - would use https protocol
+// Calling GetChainInfo according to http or https api according to the value in env variable "TEST_NETWORK"
+// "TEST_NETWORK" == "LOCAL" - would use a network with http protocol
+// "TEST_NETWORK" == "Z" - would use https protocol
 
 func GetChainInfo(url string) (respBody string, respStatus string){
-	if os.Getenv("NET_COMM_PROTOCOL") == "HTTPS" || os.Getenv("NETWORK") == "Z" {
+	if os.Getenv("TEST_NET_COMM_PROTOCOL") == "HTTPS" || os.Getenv("TEST_NETWORK") == "Z" {
 		respBody, respStatus = GetChainInfo_HTTPS(url)
 	} else  {
 		respBody, respStatus = GetChainInfo_HTTP(url)
@@ -90,12 +90,12 @@ func GetChainInfo_HTTPS(url string) (respBody string, respStatus string) {
 	}
 }
 
-// Calling GetChainInfo according to http or https api according to the value in env variable "NETWORK"
-// "NETWORK" = "LOCAL" - would use a network with http protocol
-// "NETWORK" = "Z" || "NET_COMM_PROTOCOL" = "HTTPS" - we would use https protocol
+// Calling GetChainInfo according to http or https api according to the value in env variable "TEST_NETWORK"
+// "TEST_NETWORK" == "LOCAL" - would use a network with http protocol
+// "TEST_NETWORK" == "Z" || "TEST_NET_COMM_PROTOCOL" = "HTTPS" - we would use https protocol
 
 func PostChainAPI(url string, payLoad []byte) (respBody string, respStatus string){
-	if os.Getenv("NET_COMM_PROTOCOL") == "HTTPS" || os.Getenv("NETWORK") == "Z" {
+	if os.Getenv("TEST_NET_COMM_PROTOCOL") == "HTTPS" || os.Getenv("TEST_NETWORK") == "Z" {
 		respBody, respStatus = PostChainAPI_HTTPS(url, payLoad)
 	} else  {
 		respBody, respStatus = PostChainAPI_HTTP(url, payLoad)

@@ -15,6 +15,7 @@ import (
 func PrintNetworkDetails() {
 
 	ThisNetwork := LoadNetwork()
+	fmt.Println("\nThisNetwork.IsLocal :", ThisNetwork.IsLocal)
 	Peers := ThisNetwork.Peers
 	i := 0
 	for i < len(Peers) {
@@ -441,7 +442,7 @@ func StopPeersLocal(thisNetwork PeerNetwork, peers []string) {
 	for i:=0; i < len(peers); i++ {
 /*
 
-IF NETWORK=Z, then use different command instead of docker stop (or restart)!
+IF TEST_NETWORK=Z, then use different command instead of docker stop (or restart)!
 
 https://<LPAR URL>/api/com.ibm.zBlockchain/peers/<PEER_ID>/<stop|restart>
 https://5a088be5-276c-42b3-b550-421f3f27b6ab_vp0-api.zone.blockchain.ibm.com:443/api/com.ibm.zBlockchain/peers/<vpN>/<stop|restart>

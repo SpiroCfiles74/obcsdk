@@ -152,7 +152,7 @@ chco2.Writer = bufio.NewWriter(osFile)
 	// than expected, so our own counter may be off. That is ok; disable the enforcement.
 
 	chco2.CHsMustMatchExpected = false
-	testNumberOfInvokesOnEachPeer := 100
+	testNumberOfInvokesOnEachPeer := 10
 	chco2.Invokes( testNumberOfInvokesOnEachPeer * chco2.NumberOfPeersInNetwork )
 	chco2.QueryAllPeers( "STEP 5, after " + strconv.Itoa(testNumberOfInvokesOnEachPeer) + " invokes on each peer, submitted sequentially" )
 

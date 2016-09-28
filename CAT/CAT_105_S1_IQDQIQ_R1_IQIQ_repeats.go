@@ -145,24 +145,26 @@ chco2.Writer = bufio.NewWriter(osFile)
 
 	// CAT_105_S1_IQDQIQ_R1_IQIQ_repeats.go
 
+	//numInvokes := chco2.InvokesRequiredForCatchUp
+	numInvokes := 10
 	numCycles := 3
 	peerNum := 1
 	for i:=1; i <= numCycles; i++ {
 		chco2.StopPeers( []int{ peerNum } )
-		chco2.Invokes( chco2.InvokesRequiredForCatchUp )
+		chco2.Invokes( numInvokes )
 		if (chco2.Verbose) { fmt.Println("Sleep extra 30 secs") }
 		time.Sleep(chco2.SleepTimeSeconds(30))
 		chco2.QueryAllPeers( "STEP 3, cycle " + strconv.Itoa(i) + "/" + strconv.Itoa(numCycles) + " after STOP PEER " + strconv.Itoa(peerNum) + " and Invokes" )
 		chco2.DeployNew(10000*i,1000*i)
 		chco2.QueryAllPeers( "STEP 5, cycle " + strconv.Itoa(i) + "/" + strconv.Itoa(numCycles) + " after REDEPLOY new values" )
-		chco2.Invokes( chco2.InvokesRequiredForCatchUp )
+		chco2.Invokes( numInvokes )
 		chco2.QueryAllPeers( "STEP 7, cycle " + strconv.Itoa(i) + "/" + strconv.Itoa(numCycles) + " after Invokes on each peer" )
 
 		// Extend 01 by: Restart VP1. Invoke. Query for consensus match (not all, not exact expected).
 		// And InvokesRequiredForCatchUp. Query for all match. Loop multiple times stop/restart same node.
 
 		chco2.RestartPeers( []int{ peerNum } )
-		chco2.Invokes( chco2.InvokesRequiredForCatchUp )
+		chco2.Invokes( numInvokes )
 		if (chco2.Verbose) { fmt.Println(">>> Sleep extra 60 secs because deploy occurred while peer was stopped <<<") }
 		time.Sleep(chco2.SleepTimeSeconds(60))
 		chco2.QueryAllPeers( "STEP 10, cycle " + strconv.Itoa(i) + "/" + strconv.Itoa(numCycles) + " after RESTART and Invokes " )

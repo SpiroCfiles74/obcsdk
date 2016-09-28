@@ -18,7 +18,7 @@ import (
 *	number of peers, and
 *	total number or transactions to be divided among each go client.
 *   3. Each client will invoke transactions in parallel
-*   4. Confirm the total expected counter value (TX_COUNT) matches with query on "counter"
+*   4. Confirm the total expected counter value (TX_COUNT) matches with query on COUNTER_ARG
 * 
 *   The default test environment is LOCAL. To optionally override,
 *   tester may set on command line
@@ -80,15 +80,15 @@ func initNetwork(localNetworkType string) {
 		}
 	}
 
-	//Logger("========= Register Custom Users =========")
-	//chaincode.RegisterCustomUsers()
+ //	Logger("========= Register Custom Users =========")
+ //	chaincode.RegisterCustomUsers()
 }
 
 // this func is not currently used by LST tests, but it works fine for BasicFunc; it just finds and uses first avail user on first avail peer
 func InvokeChaincode(mynetwork peernetwork.PeerNetwork, counter *int64) (invokeResponse string) {
         *counter++
         arg1 := []string{CHAINCODE_NAME, INVOKE}
-        arg2 := []string{"a" + strconv.FormatInt(*counter, 10), DATA, "counter"}
+        arg2 := []string{"a" + strconv.FormatInt(*counter, 10), DATA, COUNTER_ARG}
         invokeResponse, _ = chaincode.InvokeWithNetwork(mynetwork, arg1, arg2)
         return invokeResponse
 }
@@ -97,7 +97,7 @@ func InvokeChaincode(mynetwork peernetwork.PeerNetwork, counter *int64) (invokeR
 func invokeChaincodeWithUser(user string) {
 	lstCounter++
 	arg1Construct := []string{CHAINCODE_NAME, INVOKE, user}
-	arg2Construct := []string{"a" + strconv.FormatInt(lstCounter, 10), DATA, "counter"}
+	arg2Construct := []string{"a" + strconv.FormatInt(lstCounter, 10), DATA, COUNTER_ARG}
 	_, _ = chaincode.InvokeAsUser(arg1Construct, arg2Construct)
 }
 
@@ -105,7 +105,7 @@ func invokeChaincodeWithUser(user string) {
 func invokeChaincodeOnPeer(peer string) {
         lstCounter++
         arg1Construct := []string{CHAINCODE_NAME, INVOKE, peer}
-        arg2Construct := []string{"a" + strconv.FormatInt(lstCounter, 10), DATA, "counter"}
+        arg2Construct := []string{"a" + strconv.FormatInt(lstCounter, 10), DATA, COUNTER_ARG}
         _, _ = chaincode.InvokeOnPeer(arg1Construct, arg2Construct)
 }
 
@@ -190,7 +190,7 @@ func InvokeSingleThreadsOnPeers() {
 	// The throughput rate is what can be handled by the network as a whole.
 
 	var sleepSecs int64
-	sleepSecs = int64(SLEEP_SECS) 	// do not multiply by NUM_CLIENTS, as long as we monitor the shared "counter"
+	sleepSecs = int64(SLEEP_SECS) 	// do not multiply by NUM_CLIENTS, as long as we monitor the shared COUNTER_ARG
  */
 
 	// Send invokes to each peer, one client per peer; create NUM_CLIENTS threads: Client0 on Peer0, Client1 on Peer1, etc.
@@ -254,7 +254,7 @@ func InvokeMultiThreads() {
 	// The throughput rate is what can be handled by the network as a whole.
 
 	var sleepSecs int64
-	sleepSecs = int64(SLEEP_SECS) 	// do not multiply by NUM_CLIENTS, as long as we monitor the shared "counter"
+	sleepSecs = int64(SLEEP_SECS) 	// do not multiply by NUM_CLIENTS, as long as we monitor the shared COUNTER_ARG
  */
 
 	for t := 0; t < NUM_CLIENTS ; t++ {

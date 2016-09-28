@@ -46,10 +46,10 @@
 ### To run tests in Z network on v05 (COMMIT=3e0e80a) or v6 (COMMIT=821a3c7) - still with example02, just like all the examples above:
 ###   # First get the service credentials from the network and put them into a file; then
 ###   # execute "./update_z.py -b -f <service_credentials_file>" to generate network credentials file for the Z or Starter or HSBN network; then:
-###   export NET_COMM_PROTOCOL=HTTPS; export NETWORK=Z; go run ../chcotest/BasicFuncExistingNetwork.go;
-###   export NET_COMM_PROTOCOL=HTTPS; export NETWORK=Z; go_record.sh ../CAT/testtemplate.go
+###   export TEST_NET_COMM_PROTOCOL=HTTPS; export TEST_NETWORK=Z; go run ../chcotest/BasicFuncExistingNetwork.go;
+###   export TEST_NET_COMM_PROTOCOL=HTTPS; export TEST_NETWORK=Z; go_record.sh ../CAT/testtemplate.go
 ### To run tests in Z network on v05 or v06, with mycc (instead of example02):
-###   export NETWORK=Z; go run ../ledgerstresstest/BasicFuncExistingNetworkLST.go; go run ../ledgerstresstest/LST*.go
+###   export TEST_NETWORK=Z; go run ../ledgerstresstest/BasicFuncExistingNetworkLST.go; go run ../ledgerstresstest/LST*.go
 
 
 ### standard location of official images

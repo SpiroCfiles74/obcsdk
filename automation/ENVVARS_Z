@@ -1,8 +1,8 @@
 
-export NETWORK=Z
-export NET_COMM_PROTOCOL=HTTPS
-export CHCO2_EXISTING_NETWORK=TRUE
+export TEST_NETWORK=Z
+export TEST_NET_COMM_PROTOCOL=HTTPS
+export TEST_EXISTING_NETWORK=TRUE
 export REPOSITORY_SOURCE=GERRIT
-export COMMIT=latest
-#export COMMIT=gerritv0.6
+#export COMMIT=latest
+export COMMIT=gerritv0.6
 

@@ -20,7 +20,7 @@ var ZPeers = []string{"vp0", "vp1", "vp2", "vp3"}
 
 //Get the user names based on network environment:  Z | LOCAL [default]
 func GetUser(userNumber int) string {
-	if os.Getenv("NETWORK") == "Z" {
+	if os.Getenv("TEST_NETWORK") == "Z" {
 		return ZUsersOnLastPeer[userNumber]
 	} else {
 		return LocalUsersOnLastPeer[userNumber]
@@ -29,7 +29,7 @@ func GetUser(userNumber int) string {
 
 //Get the peer name based on network environment:  Z | LOCAL [default]
 func GetPeer(peerNumber int) string {
-	if os.Getenv("NETWORK") == "Z" {
+	if os.Getenv("TEST_NETWORK") == "Z" {
 		return ZPeers[peerNumber]
 	} else {
 		return LocalPeers[peerNumber]

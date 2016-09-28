@@ -37,6 +37,14 @@ func InitNetwork() peernetwork.PeerNetwork {
 	return ThisNetwork
 }
 
+func SetNetworkIsLocal(isLocal bool) {
+	ThisNetwork.IsLocal = isLocal
+}
+
+func SetNetworkLocality(mynetwork peernetwork.PeerNetwork, isLocal bool) {
+	mynetwork.IsLocal = isLocal
+}
+
 /**
    initializes chaincodes on network using information supplied in CC_Collections.json file
 */
@@ -54,7 +62,7 @@ func Init() {
 
 func GetURL(ip, port string) string {
 	var url string
-	if os.Getenv("NET_COMM_PROTOCOL") == "HTTPS" || os.Getenv("NETWORK") == "Z" {
+	if os.Getenv("TEST_NET_COMM_PROTOCOL") == "HTTPS" || os.Getenv("TEST_NETWORK") == "Z" {
 		url = "https://" + ip + ":" + port
 	} else {
 		url = "http://" + ip + ":" + port
@@ -79,8 +87,9 @@ func DisplayNetworkDebugInfo() {
 	fmt.Println("\n--------------- chcoAPI.DisplayNetworkDebugInfo: current stored peernetwork.PrintNetworkDetails :")
 	peernetwork.PrintNetworkDetails()
 
-	ntwkType := strings.ToUpper(os.Getenv("NETWORK"))
-	if ntwkType == "" || ntwkType == "LOCAL" { 	// get more info from local docker containers
+	//ntwkType := strings.ToUpper(os.Getenv("TEST_NETWORK"))
+	//if ntwkType == "" || ntwkType == "LOCAL" { 	// get more info from local docker containers
+	if mynetwork.IsLocal { 	// get more info from local docker containers
 		/* **********************
 		cmd_str := "docker ps -a"
 		fmt.Println("\n--------------- chcoAPI.DisplayNetworkDebugInfo: Executing command:  ", cmd_str)
@@ -104,8 +113,9 @@ func DisplayNetworkDebugInfo() {
    To display all the peers in the network, pass an out-of-range peer number for "selectPeer".
 */
 func DisplayPeerIp(mynetwork peernetwork.PeerNetwork, selectPeer int) {
-	ntwkType := strings.ToUpper(os.Getenv("NETWORK"))
-	if !(ntwkType == "" || ntwkType == "LOCAL") { return } // this won't work for remote networks that do not use docker containers
+	//ntwkType := strings.ToUpper(os.Getenv("TEST_NETWORK"))
+	//if !(ntwkType == "" || ntwkType == "LOCAL") { return } // this won't work for remote networks that do not use docker containers
+	if !mynetwork.IsLocal { return } // this won't work for remote networks that do not use docker containers
 	for peerNum := 0; peerNum < len(mynetwork.Peers); peerNum++ {
 		if selectPeer < 0 || selectPeer > len(mynetwork.Peers) || selectPeer == peerNum {
 			peerName := mynetwork.Peers[peerNum].PeerDetails["name"]
@@ -130,8 +140,9 @@ func DisplayPeerIp(mynetwork peernetwork.PeerNetwork, selectPeer int) {
    To do this for all the peers in the network, pass an out-of-range peer number.
 */
 func UpdatePeerIp(mynetwork *peernetwork.PeerNetwork, selectPeer int) {
-	ntwkType := strings.ToUpper(os.Getenv("NETWORK"))
-	if !(ntwkType == "" || ntwkType == "LOCAL") { return } // this won't work for remote networks that do not use docker containers
+	//ntwkType := strings.ToUpper(os.Getenv("TEST_NETWORK"))
+	//if !(ntwkType == "" || ntwkType == "LOCAL") { return } // this won't work for remote networks that do not use docker containers
+	if !mynetwork.IsLocal { return } // this won't work for remote networks that do not use docker containers
 	for peerNum := 0; peerNum < len(mynetwork.Peers); peerNum++ {
 		if selectPeer < 0 || selectPeer > len(mynetwork.Peers) || selectPeer == peerNum {
 			peerName := mynetwork.Peers[peerNum].PeerDetails["name"]
@@ -215,7 +226,7 @@ func RegisterCustomUsers() bool {
 			errStatusStr := register(url, user, secret)
 			if errStatusStr == "" { successfuls++ } else { fmt.Println("ERROR registering custom user:", user, " err:", errStatusStr) }
 			if (i == len(Peers)-1) {
-				if os.Getenv("NETWORK") == "Z" {
+				if os.Getenv("TEST_NETWORK") == "Z" {
 					// custom users in Z network
 					for u := 0; u < threadutil.NumberCustomUsersOnLastPeer; u++ {
 						user = threadutil.ZUsersOnLastPeer[u]

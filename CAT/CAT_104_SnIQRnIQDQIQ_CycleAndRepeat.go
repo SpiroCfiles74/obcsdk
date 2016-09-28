@@ -145,20 +145,22 @@ chco2.Writer = bufio.NewWriter(osFile)
 
 	// CAT_104_SnIQRnIQDQIQ_CycleAndRepeat.go
 
+	//numInvokes := chco2.InvokesRequiredForCatchUp
+	numInvokes := 10
 	numCycles := 3
 	for i:=1; i <= numCycles; i++ {
 		for peerNum :=0; peerNum < chco2.NumberOfPeersInNetwork; peerNum++ {
 			chco2.StopPeers( []int{ peerNum } )
-			chco2.Invokes( chco2.InvokesRequiredForCatchUp )
+			chco2.Invokes( numInvokes )
 			if (chco2.Verbose) { fmt.Println("Sleep extra 30 secs") }
 			time.Sleep(chco2.SleepTimeSeconds(30))
 			chco2.QueryAllPeers( "STEP 3, cycle " + strconv.Itoa(i) + "/" + strconv.Itoa(numCycles) + " after STOP PEER " + strconv.Itoa(peerNum) + " and Invokes" )
 			chco2.RestartPeers( []int{ peerNum } )
-			chco2.Invokes( chco2.InvokesRequiredForCatchUp )
+			chco2.Invokes( numInvokes )
 			chco2.QueryAllPeers( "STEP 6, cycle " + strconv.Itoa(i) + "/" + strconv.Itoa(numCycles) + " after RESTART and Invokes " )
 			chco2.DeployNew(10000*i+1000*peerNum,10000*i+1000*peerNum)
 			chco2.QueryAllPeers( "STEP 8, cycle " + strconv.Itoa(i) + "/" + strconv.Itoa(numCycles) + " after REDEPLOY new values" )
-			chco2.Invokes( chco2.InvokesRequiredForCatchUp )
+			chco2.Invokes( numInvokes )
 			chco2.QueryAllPeers( "STEP 10, cycle " + strconv.Itoa(i) + "/" + strconv.Itoa(numCycles) + " after Invoke on each peer" )
 			chco2.CatchUpAndConfirm()
 		}

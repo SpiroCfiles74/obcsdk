@@ -15,11 +15,12 @@ import (
 // test programs
 const (
 	// CHAINCODE_NAME = "example02"
-	// CHAINCODE_NAME = "example02_addrecs"
-	CHAINCODE_NAME = "mycc"
+	CHAINCODE_NAME = "example02_addrecs"
+	// CHAINCODE_NAME = "mycc"
 	INIT           = "init"
 	INVOKE         = "invoke"
 	QUERY          = "query"
+	COUNTER_ARG    = "b"	// counter, or b
 	DATA           = "Yh1WWZlw1gGd2qyMNaHqBCt4zuBrnT4cvZ5iMXRRM3YBMXLZmmvyVr0ybWfiX4N3UMliEVA0d1dfTxvKs0EnHAKQe4zcoGVLzMHd8jPQlR5ww3wHeSUGOutios16lxfuQTdnsFcxhXLiGwp83ahyBomdmJ3igAYTyYw2bwXqhBeL9fa6CTK43M2QjgFhQtlcpsh7XMcUWnjJhvMHAyH67Z8Ugke6U8GQMO5aF1Oph0B2HlIQUaHMq2i6wKN8ZXyx7CCPr7lKnIVWk4zn0MLZ16LstNErrmsGeo188Rdx5Yyw04TE2OSPSsaQSDO6KrDlHYnT2DahsrY3rt3WLfBZBrUGhr9orpigPxhKq1zzXdhwKEzZ0mi6tdPqSzMKna7O9STstf2aFdrnsoovOm8SwDoOiyqfT5fc0ifVZSytVNeKE1C1eHn8FztytU2itAl1yDYSfTZQv42tnVgDjWcLe2JR1FpfexVlcB8RUhSiyoThSIFHDBZg8xyULPmp4e6acOfKfW2BXh1IDtGR87nBWqmytTOZrPoXRPq2QXiUjZS2HflHJzB0giDbWEeoZoMeF11364Xzmo0iWsBw0TQ2cHapS4cR49IoEDWkC6AJgRaNb79s6vythxX9CqfMKxIpqYAbm3UAZRS7QU7MiZu2qG3xBIEegpTrkVNneprtlgh3uTSVZ2n2JTWgexMcpPsk0ILh10157SooK2P8F5RcOVrjfFoTGF3QJTC2jhuobG3PIXs5yBHdELe5yXSEUqUm2ioOGznORmVBkkaY4lP025SG1GNPnydEV9GdnMCPbrgg91UebkiZsBMM21TZFbUqP70FDAzMWZKHDkDKCPoO7b8EPXrz3qkyaIWBymSlLt6FNPcT3NkkTfg7wl4DZYDvXA2EYu0riJvaWon12KWt9aOoXig7Jh4wiaE1BgB3j5gsqKmUZTuU9op5IXSk92EIqB2zSM9XRp9W2I0yLX1KWGVkkv2OIsdTlDKIWQS9q1W8OFKuFKxbAEaQwhc7Q5Mm"
 )
 
@@ -55,7 +56,7 @@ func RandomString(strlen int) string {
 // This is to make a standard Deploy transaction, for re-use
 func FixedString(strlen int) string {
 	rand.Seed(time.Now().UTC().UnixNano())
-	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	const chars = "0123456789abcdefghijklmnopqrstuvwxyz"
 	result := make([]byte, strlen)
 	for i := 0; i < strlen; i++ {
 		result[i] = chars[ i % (len(chars)) ]
@@ -71,7 +72,9 @@ func DeployChaincode(mynetwork peernetwork.PeerNetwork) (cntr int64) {		// ledge
 	// so that we simply redeploy / reuse same chaincode instance, without creating multiple deployments on the network!
 	myStr := FixedString(1024)
 	//myStr := RandomString(1024) 	// OR, we could use this to create a unique string each time this test is run, for a new deployment hash
-	var chaincodeDeployArgs = []string{"a0", myStr, "counter", "0"}
+
+	//var chaincodeDeployArgs = []string{"a0", myStr, COUNTER_ARG, "0"}
+	var chaincodeDeployArgs = []string{"a", myStr, COUNTER_ARG, "0"} // for deployment, we use "a", not "a0", so we can query/identify it from BlueMix interface
 	deployID, err := chaincode.DeployWithNetwork(mynetwork, funcArgs, chaincodeDeployArgs)
 	if err != nil {
 		Logger(fmt.Sprintf("lstutil.DeployChaincode(): Time to PANIC! chaincode.DeployWithNetwork returned (deployID=%s) and (Non-nil error=%s)\n", deployID, err))
@@ -92,8 +95,9 @@ func DeployChaincode(mynetwork peernetwork.PeerNetwork) (cntr int64) {		// ledge
 // Utility function to query on chaincode available @ http://urlmin.com/4r76d
 func QueryChaincode(mynetwork peernetwork.PeerNetwork, counter int64) (aVal, counterIndexStr string) {
 	var arg1 = []string{CHAINCODE_NAME, QUERY}
-	counterIndexStr, _ = chaincode.QueryWithNetwork(mynetwork, arg1, []string{"counter"})
+	counterIndexStr, _ = chaincode.QueryWithNetwork(mynetwork, arg1, []string{COUNTER_ARG})
 	var aKey = []string{"a" + strconv.FormatInt(counter, 10)}
+	if aKey[0] == "a0" { aKey[0] = "a" } // initial deployment uses "a", not "a0", so we can query/identify it from BlueMix interface
 	aVal, _ = chaincode.QueryWithNetwork(mynetwork, arg1, aKey)
 	return aVal, counterIndexStr
 }
@@ -103,9 +107,10 @@ func GetChaincodeValuesOnHost(mynetwork peernetwork.PeerNetwork, peerNum int) (a
         peername := mynetwork.Peers[peerNum].PeerDetails["name"]
 		//Logger(fmt.Sprintf("----------GetChaincodeValuesOnHost peerNum=%d peername=%s", peerNum, peername))
 	var arg1 = []string{CHAINCODE_NAME, QUERY, peername}
-	counterIndexStr, _ = chaincode.QueryOnHostWithNetwork(mynetwork, arg1, []string{"counter"})
+	counterIndexStr, _ = chaincode.QueryOnHostWithNetwork(mynetwork, arg1, []string{COUNTER_ARG})
 		//Logger(fmt.Sprintf("----------GetChaincodeValuesOnHost retrieved counter=%s", counterIndexStr))
 	var aKey = []string{"a" + counterIndexStr}
+	if aKey[0] == "a0" { aKey[0] = "a" } // initial deployment uses "a", not "a0", so we can query/identify it from BlueMix interface
 	aVal, _ = chaincode.QueryOnHostWithNetwork(mynetwork, arg1, aKey)
   		//Logger(fmt.Sprintf("----------GetChaincodeValuesOnHost counter=%s, query (using aKey=%s) result=%s", counterIndexStr, aKey[0], aVal))
 	return aVal, counterIndexStr
@@ -116,9 +121,9 @@ func QueryChaincodeOnHost(mynetwork peernetwork.PeerNetwork, peerNum int, counte
         peername := mynetwork.Peers[peerNum].PeerDetails["name"]
 	var arg1 = []string{CHAINCODE_NAME, QUERY, peername}
 
-	counterIndexStr, _ = chaincode.QueryOnHostWithNetwork(mynetwork, arg1, []string{"counter"})
+	counterIndexStr, _ = chaincode.QueryOnHostWithNetwork(mynetwork, arg1, []string{COUNTER_ARG})
 	var aKey = []string{"a" + strconv.FormatInt(counter, 10)}
-
+	if aKey[0] == "a0" { aKey[0] = "a" } // initial deployment uses "a", not "a0", so we can query/identify it from BlueMix interface
 	aVal, _ = chaincode.QueryOnHostWithNetwork(mynetwork, arg1, aKey)
 	// Logger(fmt.Sprintf("---QueryChaincodeOnHost counter=%s, query (using aKey=%s) result aVal=%s", counterIndexStr, aKey[0], aVal))
 	return aVal, counterIndexStr

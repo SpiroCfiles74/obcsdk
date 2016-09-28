@@ -32,7 +32,8 @@ type Peer struct {
 type PeerNetwork struct {
 	Peers []Peer
 	Name  string
-	// need to add this and init...       Local boolean // indicates if env var "NETWORK" == "LOCAL" or "", rather than Z or anything else
+	IsLocal bool		// indicates if env var "TEST_NETWORK" == "LOCAL" or "", rather than "Z" or anything else
+	// NetworkType string	// or could add this instead of IsLocal boolean, to indicate the actual name/string
 }
 
 type LibChainCodes struct {
@@ -58,7 +59,6 @@ const IP = "9.37.136.147"
 
 /* ********** deprecated Aug 2016
 // func SetupLocalNetwork(numPeers int, security bool) {
-	//goroot := os.Getenv("GOROOT")
 	var cmd *exec.Cmd
 	pwd, _ := os.Getwd()
 	//fmt.Println("Initially ", pwd)
@@ -387,9 +387,9 @@ func callSFTP(connection *ssh.Client) {
 */
 func LoadNetwork() PeerNetwork {
 
-	p, n := initializePeers()
+	p, n, i := initializePeers()
 
-	peerNetwork := PeerNetwork{Peers: p, Name: n}
+	peerNetwork := PeerNetwork{Peers: p, Name: n, IsLocal: i}
 	return peerNetwork
 }
 
@@ -428,16 +428,13 @@ func InitializeChainCodes() LibChainCodes {
 	return libChainCodes
 }
 
-func initializePeers() (peers []Peer, name string) {
+func initializePeers() (peers []Peer, name string, isLocal bool) {
 
-	fmt.Println("Getting and Initializing Peer details from network")
+	isLocal = false
 	peerDetails, userDetails, Name := initNetworkCredentials()
 	numOfPeersOnNetwork := len(peerDetails)
 	numOfUsersOnNetwork := len(userDetails)
-	fmt.Println("peerNetworkSetup.initializePeers(): After reading NetworkCredentials.json :")
-	fmt.Println("Num of Peers:", numOfPeersOnNetwork)
-	fmt.Println("Num of Users:", numOfUsersOnNetwork)
-	fmt.Println("Network Name:", Name)
+	fmt.Println("Network Name, #Peers, #Users: ", Name, numOfPeersOnNetwork, numOfUsersOnNetwork)
 	if numOfPeersOnNetwork == 0 || numOfUsersOnNetwork == 0 {
 		fmt.Println("WARNING: UNUSABLE NETWORK (no peers or no users)!!!\nExamine files networkcredentials and NetworkCredentials.json for errors.\nIf local network, try running the exec.Command directly on command line to possibly see more startup errors.\nAnd check the COMMIT level image name and confirm it is in the identified REPOSITORY_SOURCE.")
 	}
@@ -451,15 +448,13 @@ func initializePeers() (peers []Peer, name string) {
 	for i < numOfPeersOnNetwork {
 		aPeer := new(Peer)
 		aPeerDetail := make(map[string]string)
-		//name := "vp" + strconv.Itoa(i)
 		aPeerDetail["ip"] = peerDetails[i].IP
 		aPeerDetail["port"] = peerDetails[i].PORT
-		//aPeerDetail["name"] = name
 		aPeerDetail["name"] = peerDetails[i].NAME
-
 		//fmt.Println(aPeerDetail["ip"], aPeerDetail["port"], aPeerDetail["name"])
 
-		//fmt.Println("Getting and Initializing User details from network")
+		// Try to determine if is a local network. Later, in chco2, the env variable TEST_NETWORK may be used to specify this as desired.
+		if strings.Contains(peerDetails[i].IP, "172.17.") { isLocal = true }
 
 		j := 0
 		userInfo := make(map[string]string)
@@ -488,10 +483,11 @@ func initializePeers() (peers []Peer, name string) {
 			k++
 		}
 	}
-	return allPeers, Name
+	return allPeers, Name, isLocal
 }
 
 func initNetworkCredentials() ([]peerHTTP, []userData, string) {
+	fmt.Println("Reading NetworkCredentials.json to get Network Name, PeerData, UserData")
 	pwd, _ := os.Getwd()
 	fmt.Println("PWD :", pwd)
 	file, err := os.Open(pwd + "/../util/NetworkCredentials.json")

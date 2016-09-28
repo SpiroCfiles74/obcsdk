@@ -36,7 +36,7 @@ echo -e   "\nUsing test environment variables:\n"
 
 ### Set some env vars, which are used by the go tests themselves in func SetupLocalNetwork() in peernetwork/peerNetworkSetup.go.
 ### Some of these are passed to local_fabric.sh as options; others are hardcoded defaults in that script.
-### And also define some here that are not passed to local_fabric.sh but are used directly by the tests (e.g. STOP_OR_PAUSE).
+### And also define some here that are not passed to local_fabric.sh but are used directly by the tests (e.g. TEST_STOP_OR_PAUSE).
 ### Echo all of them here for the user to see in the script output file.
 
 echo -e "COMMIT LEVEL IMAGE: $COMMIT"
@@ -66,11 +66,11 @@ echo -e "CORE_PBFT_GENERAL_F, max number of nodes that can fail while still have
 # These are specifically for the go sdk code scripts. They are not used by
 # the hyperledger/fabric nodes or local_fabric.sh
 
-echo -e "DOCKER STOP_OR_PAUSE MODE used by GO tests when disrupting network CA and PEER nodes: $STOP_OR_PAUSE"
+echo -e "TEST_STOP_OR_PAUSE used by GO tests with docker networks when disrupting network CA and PEER nodes: $TEST_STOP_OR_PAUSE"
 echo -e "REPOSITORY_SOURCE used by GO SDK to retrieve the fabric COMMIT image: $REPOSITORY_SOURCE"
-echo -e "CHCO2_VERBOSE: $CHCO2_VERBOSE"
-echo -e "CHCO2_FULL_CATCHUP: $CHCO2_FULL_CATCHUP"
-echo -e "CHCO2_EXISTING_NETWORK: $CHCO2_EXISTING_NETWORK"
+echo -e "TEST_VERBOSE: $TEST_VERBOSE"
+echo -e "TEST_FULL_CATCHUP: $TEST_FULL_CATCHUP"
+echo -e "TEST_EXISTING_NETWORK: $TEST_EXISTING_NETWORK"
 
 # Finally, let's show the commands parameters passed to each docker container
 # when we execute "docker run" with the commands "peer node start"
@@ -145,14 +145,14 @@ To override any default script parameters: set and export them from your ENV, or
 	CORE_PEER_VALIDATOR_CONSENSUS_PLUGIN 	- consensus mode [ pbft | ... ]
 	CORE_PBFT_GENERAL_MODE 			- pbft mode [ batch | noops ]
 	CORE_PBFT_GENERAL_BATCHSIZE 		- max # Tx sent in each batch for ordering (Although code dflt=500, this script sets 2 unless overridden)
-	STOP_OR_PAUSE 				- MODE used by GO tests when disrupting network CA and PEER nodes [ STOP | PAUSE ]
+	TEST_STOP_OR_PAUSE 			- MODE used by GO tests when disrupting network CA and PEER nodes [ STOP | PAUSE ]
 
 Examples:
 
     Run a test in current directory, using default script parameters; these two commands are equivalent:
 
  	$0 testtemplate.go
- 	COMMIT=latest REPOSITORY_SOURCE=GERRIT CORE_PBFT_GENERAL_N=4 CORE_PBFT_GENERAL_F=1 LOGGING_LEVEL=error CORE_SECURITY_ENABLED=Y CORE_PEER_VALIDATOR_CONSENSUS_PLUGIN=pbft CORE_PBFT_GENERAL_MODE=batch CORE_PBFT_GENERAL_BATCHSIZE=2 STOP_OR_PAUSE=STOP $0 testtemplate.go
+ 	COMMIT=latest REPOSITORY_SOURCE=GERRIT CORE_PBFT_GENERAL_N=4 CORE_PBFT_GENERAL_F=1 LOGGING_LEVEL=error CORE_SECURITY_ENABLED=Y CORE_PEER_VALIDATOR_CONSENSUS_PLUGIN=pbft CORE_PBFT_GENERAL_MODE=batch CORE_PBFT_GENERAL_BATCHSIZE=2 TEST_STOP_OR_PAUSE=STOP $0 testtemplate.go
 
     This should run a test on the latest hyperledger fabric images using the code default configuration parameters:
 
@@ -242,7 +242,7 @@ CORE_SECURITY_ENABLED=$(echo $CORE_SECURITY_ENABLED | tr a-z A-Z)
 # Consensus tests use docker stop and docker start when disrupting peer nodes, by default.
 # We can override that behavior to use "docker pause" instead, by setting this "PAUSE".
 
-: ${STOP_OR_PAUSE="STOP"}
+: ${TEST_STOP_OR_PAUSE="STOP"}
 
 # This is used by the GO SDK to determine which repository to retrieve the image from.
 # Default is GERRIT, representing the official source of the hyperledger fabric master branch.
