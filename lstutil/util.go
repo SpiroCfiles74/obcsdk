@@ -15,7 +15,7 @@ import (
 // test programs
 const (
 	// CHAINCODE_NAME = "example02"
-	// CHAINCODE_NAME = "chaincode_example02_addrecs"
+	// CHAINCODE_NAME = "example02_addrecs"
 	CHAINCODE_NAME = "mycc"
 	INIT           = "init"
 	INVOKE         = "invoke"

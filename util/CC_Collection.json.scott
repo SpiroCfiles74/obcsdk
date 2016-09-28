@@ -14,7 +14,7 @@
    "type": "GOLANG",
    "path":"https://github.com/scottz64/obcsdk/ledgerstresstest/example02_addRecordsToLedger" 
   },
-  {"name":"mycc",
+  {"name":"example02_addrecs",
    "type":"GOLANG",
    "path":"https://github.com/scottz64/obcsdk/ledgerstresstest/example02_addRecordsToLedger" 
   }
