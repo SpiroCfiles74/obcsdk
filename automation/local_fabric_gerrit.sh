@@ -220,10 +220,15 @@ done
 
 #kill all running containers and LOGFILES...Yet to implement Log rotate logic
 
+# Docker is not perfect; we need to unpause any paused containers, before we can kill them.
+docker ps -aq -f status=paused | xargs docker unpause  1>/dev/null 2>&1
+
 docker kill $(docker ps -q) 1>/dev/null 2>&1
 docker ps -aq -f status=exited | xargs docker rm 1>/dev/null 2>&1
-rm LOG*
 docker rm -f $(docker ps -aq)
+rm LOG*
+rm -rf /var/hyperledger/*
+
 
 echo "--------> Setting default command line Arg values to without security & consensus and starts 5 peers"
 : ${SECURITY:="N"}

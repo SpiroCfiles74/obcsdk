@@ -213,7 +213,7 @@ func RegisterCustomUsers() bool {
 				fmt.Println(msgStr)
 			}
 			errStatusStr := register(url, user, secret)
-			if errStatusStr == "" { successfuls++ } else { fmt.Println("ERROR registering user:", user, " err:", errStatusStr) }
+			if errStatusStr == "" { successfuls++ } else { fmt.Println("ERROR registering custom user:", user, " err:", errStatusStr) }
 			if (i == len(Peers)-1) {
 				if os.Getenv("NETWORK") == "Z" {
 					// custom users in Z network

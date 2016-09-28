@@ -14,8 +14,8 @@
 # trap 'echo I am going down, so killing off my processes..; kill $!; exit' SIGHUP SIGINT SIGQUIT SIGTERM 
 
 _sigs() { 
-echo -e "\n=========== go run $testcase ABORTABORTABORTABORTABORTABORT `date` ==========" | tee -a $OUT | tee -a $SUMMARY
-echo -e   "=========== SKIPPING any remaining testcases; caught a termination signal!"    | tee -a $OUT | tee -a $SUMMARY
+echo -e "\n=========== go run $testcase ABORTABORTABORTABORTABORTABORT `date` ==========" | tee -a $OUT | tee -a ${SUMMARY}
+echo -e   "=========== SKIPPING any remaining testcases; caught a termination signal!"    | tee -a $OUT | tee -a ${SUMMARY}
 kill -SIGINT "$child" 2>/dev/null
 #kill        "$child" 2>/dev/null
 exit
@@ -191,7 +191,7 @@ else
 	OUT="GO_TEST__MULTI__$(date | cut -c 4-80 | tr -d ' ')"
 fi
 
-SUMMARY="GO_TESTS_SUMMARY"
+SUMMARY="GO_TESTS_SUMMARY.log"
 STARTDATE="`date`"
 STATS_BEFORE_RUN_GROUP=$(echo -e "=========== STARTTIME ${STARTDATE}")
 

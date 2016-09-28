@@ -25,16 +25,6 @@ const (
 	// Internal constants : tunable
 	// 
 
-	// You MAY change this one. Set TransPerSecRate to be comfortable with enough time to allow the network to
-	// process the queued transactions per second - based on your test environment processing rate speeds.
-	// Expected network processing time: as of 7/14/16 we can support a little more than the following
-	// (for a 10-minute test run on v0.5):
-	// 	 11/sec invokes in vagrant/docker environment on PC,
-	// 	  2/sec invokes in zACI LPAR environment, or more if using different client threads,
-	//	and 3 x those numbers for Queries.
-
-	TransPerSecRate = 80 	// a value higher than those above will simply drive it as fast as can go.
-
 	// Increase this for more traffic
 
 	DefaultInvokesPerPeer = 1
@@ -44,7 +34,7 @@ const (
 	// Internal constant : DO NOT change.
 	// Two lines for each test are appended to this file which will contain a handy running summary.
 
-	OutputSummaryFileName = "GO_TESTS_SUMMARY"
+	OutputSummaryFileName = "GO_TESTS_SUMMARY.log"
 )
 
 
@@ -60,6 +50,8 @@ var currA, currB int
 var initA, initB  string
 var currCH  int
 var queryTestsPass, chainHeightTestsPass bool
+var TransPerSecRate int
+
 
 type peerQData struct {
 	resA int
@@ -153,6 +145,17 @@ func setup_part1(testName string, started time.Time) {
 					// set true after sending enough invokes to ensure all nodes caught up; not sure how many,
 					// or why, so most testcases should set this to false after the initial setup and query is done.
 
+	// You MAY change this one. Set TransPerSecRate to be comfortable with enough time to allow the network to
+	// process the queued transactions per second - based on your test environment processing rate speeds.
+	// Expected network processing time: as of 7/14/16 we can support a little more than the following
+	// (for a 10-minute test run on v0.5):
+	// 	 11/sec invokes in vagrant/docker environment on PC,
+	// 	  2/sec invokes in zACI LPAR environment, or more if using different client threads,
+	//	and 3 x those numbers for Queries.
+	// A value higher than those above will simply drive it as fast as can go.
+
+	TransPerSecRate = 10
+
 	//---------------------------------------------------------------------------------------------------------------
 	// set defaults for ENV variables
 	//---------------------------------------------------------------------------------------------------------------
@@ -185,7 +188,10 @@ func setup_part1(testName string, started time.Time) {
 
 	var envvar string
 	envvar = strings.ToUpper(os.Getenv("NETWORK"))
-	if envvar != "" && envvar != "LOCAL" { localNetwork = false }
+	if envvar != "" && envvar != "LOCAL" {
+		localNetwork = false
+		if envvar == "Z" { TransPerSecRate = 2 }
+	}
 	if strings.ToUpper(os.Getenv("CHCO2_VERBOSE")) == "TRUE" {
 		Verbose = true 	// Another option: edit  "verbose" in chaincode/const.go for more info about lower level functions operation
 	}
@@ -332,7 +338,9 @@ func setup_part3_verifyNetworkAndDeployCC() {
 		chaincode.UpdatePeerIp(&MyNetwork, -1)
 	}
 	chaincode.InitChainCodes()
-	chaincode.RegisterUsers()
+	if !chaincode.RegisterUsers() {
+		panic(errors.New("setup_part3_verify: ERROR: FAILED TO REGISTER one or more users in NetworkCredentials.json file\n"))
+	}
 
 	// get any avail node URL details to get info on chainstats/transactions/blocks etc.
 	aPeer, _ := peernetwork.APeer(chaincode.ThisNetwork)
@@ -355,7 +363,7 @@ func setup_part3_verifyNetworkAndDeployCC() {
         peerNum := NumberOfPeersInNetwork-1
         for ; peerNum >= 0; peerNum-- { if peerIsRunning(peerNum,MyNetwork) { break } }
 	if peerNum < 0 {
-		fmt.Println("Setup() ERROR: Cannot find any running peer for Deploy!!!!!!!!!!")
+		fmt.Println("Setup() ERROR: Cannot find any running peer to use for Deploy!!!!!!!!!!")
 		panic(errors.New("setup_part3_verify: CANNOT find any running peer node for Deploy!!!!!"))
 	} else {
 		if Verbose { fmt.Println("setup_part3_verify, before deploy: A/B/chainheight values: ", currA, currB, currCH) }
@@ -1203,7 +1211,7 @@ func restore_all() {
 			cntr++
 		}
 	}
-	if cntr > 0 { fmt.Println("Sleep 20 secs extra after restarting/unpausing peers") }; time.Sleep(20 * time.Second)
+	// if cntr > 0 { fmt.Println("Sleep 20 secs extra after restarting/unpausing peers") }; time.Sleep(20 * time.Second)
 }
 
 func clean_up() {
@@ -1227,16 +1235,7 @@ func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
 
 	mustSleep := enoughPeersRunningForConsensus()
 
-	// However, when in Z (not Local) network, the messaging delays (REST handshakes) are more than enough
-	// to slow down our transaction rate to something between 1 and 5 per sec, which is
-	// something the peer network can easily handle...
-
-	if !localNetwork { mustSleep = false }
-
-  // 9/15/2016: For now, since performance timing of theses tests indicates I cannot run more than 11 transactions per second
-  // on local environment (and 2 tps on Z/HSBN), let's just skip the sleeps because the peers network will certainly be able to keep up with that!
-  mustSleep = false
-
+	startTime := time.Now()
 	invArgs := []string{"a", "b", "1"}
 	iAPIArgs := []string{"example02", "invoke", nodename}
 	for j:=1; j <= num_invokes; j++ {
@@ -1254,17 +1253,19 @@ func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
 					fmt.Printf(".")
 				}
 			}
-			// we can either sleep here as we go, or do it once at the end
-			// if mustSleep && (j % TransPerSecRate == 0) { time.Sleep( 1 * time.Second) }
 		// }
 	}
 
-	//If we don't sleep above, as we go, then sleep just once here (for the full/longer time)
 	if mustSleep {
-		if (Verbose) { fmt.Println("Sleep approx " + strconv.Itoa(num_invokes/TransPerSecRate) + "secs after sending " + strconv.Itoa(num_invokes) + " invokes ...") }
-		time.Sleep( sleepTimeForTrans(num_invokes) )
-	} else { time.Sleep( time.Duration(batchtimeout)*time.Second ) } 	// sleep at least 2 secs, to give time for the transactions to be batched
-									// and sent through (so any queries following immediately would be more likely to work)
+		if num_invokes/TransPerSecRate > batchtimeout {
+			if Verbose && num_invokes/TransPerSecRate > 10 {
+				fmt.Println("\nSleep up to " + strconv.Itoa(num_invokes/TransPerSecRate) + " secs after sending " + strconv.Itoa(num_invokes) + " invokes")
+			}
+			// Sleep an amount of time allowed (based on the specified TransPerSec rate) to process the
+			// number of invokes we have done, after subtracting the time elapsed since we started.
+			time.Sleep( sleepTimeForTrans(num_invokes) - time.Since(startTime) )
+		} else { time.Sleep(time.Duration(batchtimeout)*time.Second) }	// sleep at least 2 secs, to give time for the transactions to be batched and
+	}									// sent through (so any queries following immediately would be more likely to work)
 }
 
 func validPeerQueryResults(a int, b int, resA int, resB int, nodename string) bool {
