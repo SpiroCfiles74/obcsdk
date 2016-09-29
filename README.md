@@ -1,7 +1,8 @@
 # obcsdk
 opensource blockchain software development kit, GO code and tests for hyperledger fabric
 
-A test framework for testing Blockchain with GoSDK (written in Go Language)
+A test framework for testing Blockchain with GoSDK (written in Go Language).
+Tests on this master branch correlate to v0.5 branch code in hyperledger/fabric.
 
 ##Obtain the GoSDK and test programs:
 Clone to the src directory where GO is installed (use either $GOROOT/src or $GOPATH/src).
