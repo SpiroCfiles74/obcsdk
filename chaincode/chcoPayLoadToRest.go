@@ -254,6 +254,21 @@ func Transaction_Detail(url string, txid string) {
 	fmt.Println(string(prettyJSON.Bytes()))
 }
 
+func GetChainTransactions(url string, txid string) (body string, status string, err error) {
+	//currTxId := strconv.Atoi(txid)
+	var prettyJSON bytes.Buffer
+	const JSON_INDENT = "    " // four bytes of indentation
+	body, status = peerrest.GetChainInfo(url + "/transactions/" + txid)
+	//fmt.Println("Transaction_Detail() chain info status: ", status)
+	//if verbose { fmt.Println("Transaction_Detail() chain info body: ", body) }
+	err = json.Indent(&prettyJSON, []byte(body), "", JSON_INDENT)
+	if err != nil {
+		fmt.Println("JSON parse error: ", err)
+	}
+	//fmt.Println(string(prettyJSON.Bytes()))
+	return body, status, err
+}
+
 //
 // Use POST /chaincode endpoint to deploy, invoke, and
 // query a target chaincode.

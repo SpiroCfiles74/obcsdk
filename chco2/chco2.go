@@ -49,7 +49,7 @@ var CurrentTestName string
 var currA, currB int
 var initA, initB  string
 var currCH  int
-var queryTestsPass, chainHeightTestsPass bool
+var queryTestsPass, chainHeightTestsPass, annexTestsPass bool
 var TransPerSecRate int
 
 
@@ -138,6 +138,7 @@ func setup_part1(testName string, started time.Time) {
 	ExistingNetwork = false
 	queryTestsPass = true
 	chainHeightTestsPass = true
+	annexTestsPass = true
 	EnforceQueryTestsPass = true
 	EnforceChainHeightTestsPass = true
 	QsMustMatchExpected = true 	// Queried values (A & B) must match the internal counters = "expected" values (currA & currB) 
@@ -615,11 +616,11 @@ func Invokes(totalNumInvokes int) {
 			runningPeerCounter++
 			if firstOne {
 				firstOne = false
-				doInvoke(&currA, &currB, numInvokesPerPeer + extras, threadutil.GetPeer(peerNum))
+				doInvoke(numInvokesPerPeer + extras, threadutil.GetPeer(peerNum))
 				incrHeightCount(numInvokesPerPeer + extras, peerNum)
 				if numInvokesPerPeer == 0 { break }
 			} else {
-				doInvoke(&currA, &currB, numInvokesPerPeer, threadutil.GetPeer(peerNum))
+				doInvoke(numInvokesPerPeer, threadutil.GetPeer(peerNum))
 				incrHeightCount(numInvokesPerPeer, peerNum)
 			}
 		}
@@ -637,7 +638,7 @@ func InvokeOnEachPeer(numInvokesPerPeer int) {
         fmt.Println("\nPOST/Chaincode: INVOKEs (" + strconv.Itoa(numInvokesPerPeer) + ") being sent to each running peer")
         for peerNum := 0; peerNum < NumberOfPeersInNetwork; peerNum++ {
         	if peerIsRunning(peerNum,MyNetwork) {
-			doInvoke(&currA, &currB, numInvokesPerPeer, threadutil.GetPeer(peerNum))
+			doInvoke(numInvokesPerPeer, threadutil.GetPeer(peerNum))
 			incrHeightCount(numInvokesPerPeer, peerNum)
 			runningPeerCounter++
 		}
@@ -654,7 +655,7 @@ func invokeOnAnyPeer(totalNumInvokes int) {
 	sent := false
         for peerNum := 0; peerNum < NumberOfPeersInNetwork; peerNum++ {
         	if peerIsRunning(peerNum,MyNetwork) {
-			doInvoke(&currA, &currB, totalNumInvokes, threadutil.GetPeer(peerNum))
+			doInvoke(totalNumInvokes, threadutil.GetPeer(peerNum))
 			incrHeightCount(totalNumInvokes, 0)
         		setQueuedTransactionCounter(totalNumInvokes)
 			sent = true
@@ -675,7 +676,7 @@ func InvokesUniqueOnEveryPeer() {
 func InvokeOnThisPeer(totalNumInvokes int, peerNum int) {
         fmt.Println("\nPOST/Chaincode: INVOKEs (" + strconv.Itoa(totalNumInvokes) + ") using peer " + strconv.Itoa(peerNum))
        	if peerIsRunning(peerNum,MyNetwork) {
-		doInvoke(&currA, &currB, totalNumInvokes, threadutil.GetPeer(peerNum))
+		doInvoke(totalNumInvokes, threadutil.GetPeer(peerNum))
 		incrHeightCount(totalNumInvokes, 0)
         	setQueuedTransactionCounter(totalNumInvokes)
 	} else {
@@ -1181,9 +1182,10 @@ func TimeTrack(start time.Time, name string) {
         		preStr += fmt.Sprintf("ABORTED")
         		postStr = fmt.Sprintf("--------------------")
 	} else {
-		if ( (!queryTestsPass && EnforceQueryTestsPass) || (!chainHeightTestsPass && EnforceChainHeightTestsPass) ) {
+		if ( (!queryTestsPass && EnforceQueryTestsPass) || (!chainHeightTestsPass && EnforceChainHeightTestsPass) || !annexTestsPass ) {
         		preStr += fmt.Sprintf("FAILED")
         		postStr = fmt.Sprintf("!!!!!!!!!!!!!!!!!!!!")
+        		if !annexTestsPass { postStr += fmt.Sprintf(" (annex tests failed)") }
 		} else {
         		preStr += fmt.Sprintf("PASSED")
 		}
@@ -1237,8 +1239,20 @@ func chco2_QueryOnHost(apiArgs00 []string, argsA []string, argsB []string, resAI
 	*resBI, _ = strconv.Atoi(resB)
 }
 
+func DoOneInvoke(apiArgs []string, invokeArgs []string) (id string, err error) {
+	id, err = chaincode.InvokeOnPeer(apiArgs, invokeArgs)
+	currA--
+	currB++
+	return id, err
+	// Hardcoded: we only subtract one from A and add it to B. Transaction size is 1.
+	// We could actually improve this by the following, but it would be slower:
+	// 	size := strconv.Itoa(invokeArgs[2])
+	// 	currA -= size
+	// 	currB += size
+}
+
 // PREcondition: peer node must be running
-func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
+func doInvoke(num_invokes int, nodename string)  {
 
         if Verbose { fmt.Println("doInvoke() calling chaincode.InvokeOnPeer " + strconv.Itoa(num_invokes) + " times on peer " + nodename) }
 
@@ -1252,9 +1266,8 @@ func doInvoke(currA *int, currB *int, num_invokes int, nodename string)  {
 	invArgs := []string{"a", "b", "1"}
 	iAPIArgs := []string{"example02", "invoke", nodename}
 	for j:=1; j <= num_invokes; j++ {
-		_, _ = chaincode.InvokeOnPeer(iAPIArgs, invArgs)
-		(*currA)--
-		(*currB)++
+		_, _ = DoOneInvoke(iAPIArgs, invArgs)
+
 		// if Verbose {
 			// Show some progress...
 			// Print . for 10 invokes; Print + for 100 invokes; Print newline after 1000 invokes on this peer.
@@ -1569,3 +1582,8 @@ func checkAllChainHeights(printResults bool) (testStatus bool, consensusCH int) 
 	}
 	return testStatus, consensusCH
 }
+
+func AnnexTestPassResult(testStatus bool) {
+	annexTestsPass = testStatus
+}
+
