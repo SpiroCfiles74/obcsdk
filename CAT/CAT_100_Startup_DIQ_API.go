@@ -167,10 +167,10 @@ func main() {
 	fmt.Println("\n===== Start NetworkPeers Test =====")
 	response, status := chaincode.NetworkPeers(url)
 	if strings.Contains(status, "200") {
-		myStr = fmt.Sprintf("PASSED NetworkPeers API TEST")
+		myStr = fmt.Sprintf("NetworkPeers API TEST PASSED")
 	} else {
 		apiTestsPass = false
-		myStr = fmt.Sprintf("FAILED NetworkPeers API TEST !!!!! status=<%s> response=<%s>", status, response)
+		myStr = fmt.Sprintf("NetworkPeers API TEST FAILED !!!!! status=<%s> response=<%s>", status, response)
 	}
 	fmt.Println(myStr)
 	fmt.Fprintln(chco2.Writer, myStr)
@@ -180,10 +180,10 @@ func main() {
 	response, status = chaincode.GetChainStats(url)
 	if strings.Contains(status, "200") {
 		fmt.Println("ChainStats() chain info status: ", status)
-		myStr = fmt.Sprintf("PASSED ChainStats API TEST")
+		myStr = fmt.Sprintf("ChainStats API TEST PASSED")
 	} else {
 		apiTestsPass = false
-		myStr = fmt.Sprintf("FAILED ChainStats API TEST !!!!! status=<%s> response=<%s>", status, response)
+		myStr = fmt.Sprintf("ChainStats API TEST FAILED !!!!! status=<%s> response=<%s>", status, response)
 	}
 	fmt.Println(myStr)
 	fmt.Fprintln(chco2.Writer, myStr)
@@ -217,14 +217,14 @@ func main() {
 	}
 
 	if err == nil && txList != nil && strings.Contains(txList[0].Txid, invRes) { 	// these should be equal, if the invoke transaction was successful
-		myStr = fmt.Sprintf("\nPASSED GetBlocks API TEST: Transaction Successfully stored in Block")
-		myStr += fmt.Sprintf("\n CH_Block = %d, txid = %s, InvokeTransactionResult = %s", height-1, txList[0].Txid, invRes)
+		myStr = fmt.Sprintf("\nGetBlocks API TEST PASSED: Transaction Successfully stored in Block")
+		if chco2.Verbose { myStr += fmt.Sprintf("\n CH_Block = %d, txid = %s, InvokeTransactionResult = %s", height-1, txList[0].Txid, invRes) }
 		fmt.Println(myStr)
 		fmt.Fprintln(chco2.Writer, myStr)
 		chco2.Writer.Flush()
 	} else {
 		apiTestsPass = false
-                myStr = fmt.Sprintf("\nFAILED GetBlocks API TEST: Transaction NOT stored in CH_Block=%d, InvokeTransactionResult=%s", height-1, invRes)
+                myStr = fmt.Sprintf("\nGetBlocks API TEST FAILED: Transaction NOT stored in CH_Block=%d, InvokeTransactionResult=%s", height-1, invRes)
 		if txList != nil { 	// && txList[0] != nil 
 			myStr += fmt.Sprintf("\n txid = %s", txList[0].Txid)
 		} else {
@@ -240,10 +240,11 @@ func main() {
 	fmt.Println("\n===== Get Transactions API Test =====")
 	response, status, trans_err := chaincode.GetChainTransactions(url, invRes)
 	if trans_err == nil && strings.Contains(status, "200") {
-                myStr = fmt.Sprintf("\nPASSED Get Transactions API TEST: status=<%s> response=<%s>", status, response)
+                myStr = fmt.Sprintf("\nGet Transactions API TEST PASSED")
+		if chco2.Verbose { myStr += fmt.Sprintf(" : status=<%s> response=<%s>", status, response) }
 	} else {
 		apiTestsPass = false
-                myStr = fmt.Sprintf("\nFAILED Get Transactions API TEST: url=<%s> invRes=<%s> status=<%s> response=<%s> err=<%s>", url, invRes, status, response, trans_err)
+                myStr = fmt.Sprintf("\nGet Transactions API TEST FAILED: url=<%s> invRes=<%s> status=<%s> response=<%s> err=<%s>", url, invRes, status, response, trans_err)
 	}
 	fmt.Println(myStr)
 	fmt.Fprintln(chco2.Writer, myStr)
@@ -253,7 +254,7 @@ func main() {
 		resultStr = "FAIL"
 		chco2.AnnexTestPassResult(false) // since our API tests failed, then make sure the final test result is FAILED(false)
 	}
-	myStr = fmt.Sprintf("\nOVERALL API TEST RESULT = %s", resultStr)
+	myStr = fmt.Sprintf("\nAPI TESTS SUMMARY = %s", resultStr)
 	fmt.Println(myStr)
 	fmt.Fprintln(chco2.Writer, myStr)
 	chco2.Writer.Flush()
@@ -275,10 +276,10 @@ func userRegisterTest(url string, username string) (passed bool) {
 	response, status := chaincode.UserRegister_Status(url, username)
 	myStr := ""
 	if strings.Contains(status, "200") && strings.Contains(response, username + " is already logged in") {
-		myStr += fmt.Sprintf ("PASSED RegisterUser API TEST: %s User Registration was already done successfully", username)
+		myStr += fmt.Sprintf ("RegisterUser API TEST PASSED: %s User Registration was already done successfully", username)
 	} else {
 		passed = false
-		myStr += fmt.Sprintf ("FAILED RegisterUser API TEST: %s User Registration was NOT already done\n status = %s\n response = %s", username, status, response)
+		myStr += fmt.Sprintf ("RegisterUser API TEST FAILED: %s User Registration was NOT already done\n status = %s\n response = %s", username, status, response)
 	}
 	fmt.Println(myStr)
 	fmt.Fprintln(chco2.Writer, myStr)
@@ -288,10 +289,10 @@ func userRegisterTest(url string, username string) (passed bool) {
 	fmt.Println("\n----- RegisterUser Negative Test -----")
 	response, status = chaincode.UserRegister_Status(url, "ghostuserdoesnotexist")
 	if ((strings.Contains(status, "200")) == false) {
-		myStr += fmt.Sprintf ("PASSED RegisterUser Negative API TEST: CONFIRMED that user <ghostuserdoesnotexist> is unregistered as expected")
+		myStr += fmt.Sprintf ("RegisterUser Negative API TEST PASSED: CONFIRMED that user <ghostuserdoesnotexist> is unregistered as expected")
 	} else {
 		passed = false
-		myStr += fmt.Sprintf("FAILED RegisterUser Negative API TEST: User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response)
+		myStr += fmt.Sprintf("RegisterUser Negative API TEST FAILED: User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response)
 	}
 	fmt.Println(myStr)
 	fmt.Fprintln(chco2.Writer, myStr)
@@ -303,10 +304,10 @@ func userRegisterTest(url string, username string) (passed bool) {
 	response, status = chaincode.UserRegister_ecertDetail(url, ecertUser)
 	myStr = ""
 	if strings.Contains(status, "200") && strings.Contains(response, ecertUser + " is already logged in") {
-		myStr += fmt.Sprintf ("PASSED UserRegister_ecert API TEST: %s ecert User Registration was already done successfully", ecertUser)
+		myStr += fmt.Sprintf ("UserRegister_ecert API TEST PASSED: %s ecert User Registration was already done successfully", ecertUser)
 	} else {
 		passed = false
-		myStr += fmt.Sprintf ("FAILED UserRegister_ecert API TEST: %s ecert User Registration was NOT already done\n status = %s\n response = %s\n", username, status, response)
+		myStr += fmt.Sprintf ("UserRegister_ecert API TEST FAILED: %s ecert User Registration was NOT already done\n status = %s\n response = %s\n", username, status, response)
 	}
 	fmt.Println(myStr)
 	fmt.Fprintln(chco2.Writer, myStr)
@@ -317,10 +318,10 @@ func userRegisterTest(url string, username string) (passed bool) {
 	myStr = ""
 	response, status = chaincode.UserRegister_ecertDetail(url, "ecertghostuserdoesnotexist")
 	if ((strings.Contains(status, "200")) == false) {
-		myStr += fmt.Sprintf("PASSED UserRegister_ecert Negative API TEST: CONFIRMED that user <ecertghostuserdoesnotexist> is unregistered as expected")
+		myStr += fmt.Sprintf("UserRegister_ecert Negative API TEST PASSED: CONFIRMED that user <ecertghostuserdoesnotexist> is unregistered as expected")
 	} else {
 		passed = false
-		myStr += fmt.Sprintf("FAILED UserRegister_ecert Negative API TEST: User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response)
+		myStr += fmt.Sprintf("UserRegister_ecert Negative API TEST FAILED: User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response)
 	}
 	fmt.Println(myStr)
 	fmt.Fprintln(chco2.Writer, myStr)
