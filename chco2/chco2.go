@@ -1222,7 +1222,7 @@ func restore_all() {
 		//if (MyNetwork.Peers[i].State == peernetwork.STOPPED) {
 		if (MyNetwork.Peers[i].State != peernetwork.RUNNING) {
 			if Verbose { fmt.Println("restore_all(): restart peer " + threadutil.GetPeer(i)) }
-			peernetwork.StartPeerLocal(MyNetwork, strconv.Itoa(i))
+			peernetwork.StartPeerLocal(MyNetwork, threadutil.GetPeer(i))
 			cntr++
 		}
 	}

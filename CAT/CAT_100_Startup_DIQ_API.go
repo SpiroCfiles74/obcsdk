@@ -220,7 +220,7 @@ func main() {
 		myStr = fmt.Sprintf("\nPASSED GetBlocks API TEST: Transaction Successfully stored in Block")
 		myStr += fmt.Sprintf("\n CH_Block = %d, txid = %s, InvokeTransactionResult = %s", height-1, txList[0].Txid, invRes)
 		fmt.Println(myStr)
-		fmt.Fprintf(chco2.Writer, myStr)
+		fmt.Fprintln(chco2.Writer, myStr)
 		chco2.Writer.Flush()
 	} else {
 		apiTestsPass = false
@@ -232,7 +232,7 @@ func main() {
 		}
 		if err != nil {  myStr += fmt.Sprintf("\nerr = ", err) }
 		fmt.Println(myStr)
-		fmt.Fprintf(chco2.Writer, myStr)
+		fmt.Fprintln(chco2.Writer, myStr)
 		chco2.Writer.Flush()
 		getBlockTxInfo(0)
 	}
@@ -246,7 +246,7 @@ func main() {
                 myStr = fmt.Sprintf("\nFAILED Get Transactions API TEST: url=<%s> invRes=<%s> status=<%s> response=<%s> err=<%s>", url, invRes, status, response, trans_err)
 	}
 	fmt.Println(myStr)
-	fmt.Fprintf(chco2.Writer, myStr)
+	fmt.Fprintln(chco2.Writer, myStr)
 
 	resultStr := "PASS"
 	if !apiTestsPass {
@@ -255,7 +255,7 @@ func main() {
 	}
 	myStr = fmt.Sprintf("\nOVERALL API TEST RESULT = %s", resultStr)
 	fmt.Println(myStr)
-	fmt.Fprintf(chco2.Writer, myStr)
+	fmt.Fprintln(chco2.Writer, myStr)
 	chco2.Writer.Flush()
 
 	chco2.RanToCompletion = true	// DO NOT MOVE OR CHANGE THIS. It must remain last.
@@ -281,7 +281,7 @@ func userRegisterTest(url string, username string) (passed bool) {
 		myStr += fmt.Sprintf ("FAILED RegisterUser API TEST: %s User Registration was NOT already done\n status = %s\n response = %s", username, status, response)
 	}
 	fmt.Println(myStr)
-	fmt.Fprintf(chco2.Writer, myStr)
+	fmt.Fprintln(chco2.Writer, myStr)
 	time.Sleep(1 * time.Second)
 
 	myStr = ""
@@ -294,7 +294,7 @@ func userRegisterTest(url string, username string) (passed bool) {
 		myStr += fmt.Sprintf("FAILED RegisterUser Negative API TEST: User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response)
 	}
 	fmt.Println(myStr)
-	fmt.Fprintf(chco2.Writer, myStr)
+	fmt.Fprintln(chco2.Writer, myStr)
 	time.Sleep(1 * time.Second)
 
  /*
@@ -309,7 +309,7 @@ func userRegisterTest(url string, username string) (passed bool) {
 		myStr += fmt.Sprintf ("FAILED UserRegister_ecert API TEST: %s ecert User Registration was NOT already done\n status = %s\n response = %s\n", username, status, response)
 	}
 	fmt.Println(myStr)
-	fmt.Fprintf(chco2.Writer, myStr)
+	fmt.Fprintln(chco2.Writer, myStr)
 	time.Sleep(1 * time.Second)
  */
 
@@ -323,7 +323,7 @@ func userRegisterTest(url string, username string) (passed bool) {
 		myStr += fmt.Sprintf("FAILED UserRegister_ecert Negative API TEST: User <ghostuserdoesnotexist> was found in Registrar User List but it was never registered!\n status = %s\n response = %s\n", status, response)
 	}
 	fmt.Println(myStr)
-	fmt.Fprintf(chco2.Writer, myStr)
+	fmt.Fprintln(chco2.Writer, myStr)
 	time.Sleep(1 * time.Second)
 
 	chco2.Writer.Flush()
@@ -336,7 +336,7 @@ func getBlockTxInfo(blockNumber int) {
 	height, _ := chaincode.GetChainHeight(peerName)
 	myStr := fmt.Sprintf("++++++++++ getBlockTxInfo() Total Blocks # %d\n", height)
 	fmt.Printf(myStr)
-	fmt.Fprintf(chco2.Writer, myStr)
+	fmt.Fprintln(chco2.Writer, myStr)
 
 	for i := 1; i <= height; i++ {
 		fmt.Printf("+++++ Current BLOCK %d +++++\n", i)
