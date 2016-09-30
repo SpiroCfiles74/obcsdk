@@ -318,7 +318,7 @@ func setup_part1(testName string, started time.Time) {
 
 func setup_part2_network() {
     if ExistingNetwork {
-	fmt.Println("chco2.setup_part2_network(): TEST_EXISTING_NETWORK is TRUE, which means:\n (1) we will NOT create a new network, and\n (2) we will IGNORE the COMMIT image and a few other env vars, and\n (3) we will use the existing Network as previously created, and query its values as our starting point.")
+	fmt.Println("chco2.setup_part2_network(): TEST_EXISTING_NETWORK is TRUE, which means:\n (1) we will NOT create a new network, and\n (2) we will IGNORE the COMMIT image and a few other env vars, and\n (3) we will use the existing Network as previously created, and query its values as our starting point. If not all peers are running, we will try to restart them as needed.")
     } else {
 	fmt.Println("Creating a local docker network with # peers = ", NumberOfPeersInNetwork)
 	peernetwork.SetupLocalNetworkWithMoreOptions(
@@ -384,6 +384,31 @@ func setup_part3_verifyNetworkAndDeployCC() {
 		DeployInit(peerNum)
 		InvokeOnEachPeer(1)
 		QueryAllPeers("STEP SETUP, after initial Deployment followed by 1 Invoke on each peer")
+	}
+	if !(queryTestsPass && chainHeightTestsPass) {
+		// If existing network, then that might explain it since it is not a freshly created network; let's try to fix it if we can.
+		if ExistingNetwork {
+			if IsLocalNetwork  {
+				ExistingNetwork = false // steer setup_part2 to rerun the local_fabric script
+				fmt.Println("\n\n>>>>>> Trying to recover an unstable network: docker kill and restart entire local network >>>>>>\n\n")
+				setup_part2_network()	// kill containers and docker start peers again
+				setup_part3_verifyNetworkAndDeployCC()	// this will redo all init steps and bring us back to this point
+				ExistingNetwork = true
+			} else {
+				// If not local, then let's (stop and) restart all peers, since they simply may not have been left in a running state.
+				// When we initialized the peernetwork at the beginning of this test, the peernetwork framework sets all peers to 
+				// RUNNING state, without knowing if that was really the case. So let's restart them all now.
+
+				fmt.Println("\n\n>>>>>> Trying to recover an unstable network: restart all peers >>>>>>\n\n")
+				for i :=0 ; i < NumberOfPeersInNetwork ; i++ {
+					peernetwork.StartPeerLocal(MyNetwork, threadutil.GetPeer(i))
+				}
+				fmt.Println("Sleep 60 secs extra after restarting peers for recovery"); time.Sleep(60 * time.Second)
+				chaincode.UpdatePeerIp(&MyNetwork, -1)
+			}
+		} else {
+			// basic local_fabric script could not start the network. we are in trouble. there is not much we can do here.
+		}
 	}
 }
 
