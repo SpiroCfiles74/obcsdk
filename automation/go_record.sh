@@ -45,7 +45,7 @@ grep "^MEMBERSRVC_IMAGE=" $LOCAL_FABRIC_SCRIPT
 
 echo -e "CORE_PBFT_GENERAL_N, number of peer nodes in network: $CORE_PBFT_GENERAL_N"
 
-echo -e "CORE_LOGGING_LEVEL: $LOGGING_LEVEL"
+echo -e "CORE_LOGGING_LEVEL: $CORE_LOGGING_LEVEL"
 
 echo -e "CORE_SECURITY_ENABLED: $CORE_SECURITY_ENABLED"
 
@@ -140,7 +140,7 @@ To override any default script parameters: set and export them from your ENV, or
 	REPOSITORY_SOURCE 			- location of the fabric COMMIT image [ GERRIT (default, for master) | GITHUB (for v0.5) ]
 	CORE_PBFT_GENERAL_N 			- number of validating peers in the network [ 4 ]; note currently users are defined only for 10 nodes
 	CORE_PBFT_GENERAL_F 			- max # possible faulty nodes while still can reach consensus [ 1 ] ; do not set to a value exceeding (2n-1)/3
-	LOGGING_LEVEL				- [ critical | error | warning | notice | info | debug ] as defined in peer/core.yaml
+	CORE_LOGGING_LEVEL			- [ critical | error | warning | notice | info | debug ] as defined in peer/core.yaml
 	CORE_SECURITY_ENABLED 			- use secure network using MemberSrvc CA [ Y | N ]
 	CORE_PEER_VALIDATOR_CONSENSUS_PLUGIN 	- consensus mode [ pbft | ... ]
 	CORE_PBFT_GENERAL_MODE 			- pbft mode [ batch | noops ]
@@ -152,7 +152,7 @@ Examples:
     Run a test in current directory, using default script parameters; these two commands are equivalent:
 
  	$0 testtemplate.go
- 	COMMIT=latest REPOSITORY_SOURCE=GERRIT CORE_PBFT_GENERAL_N=4 CORE_PBFT_GENERAL_F=1 LOGGING_LEVEL=error CORE_SECURITY_ENABLED=Y CORE_PEER_VALIDATOR_CONSENSUS_PLUGIN=pbft CORE_PBFT_GENERAL_MODE=batch CORE_PBFT_GENERAL_BATCHSIZE=2 TEST_STOP_OR_PAUSE=STOP $0 testtemplate.go
+ 	COMMIT=latest REPOSITORY_SOURCE=GERRIT CORE_PBFT_GENERAL_N=4 CORE_PBFT_GENERAL_F=1 CORE_LOGGING_LEVEL=error CORE_SECURITY_ENABLED=Y CORE_PEER_VALIDATOR_CONSENSUS_PLUGIN=pbft CORE_PBFT_GENERAL_MODE=batch CORE_PBFT_GENERAL_BATCHSIZE=2 TEST_STOP_OR_PAUSE=STOP $0 testtemplate.go
 
     This should run a test on the latest hyperledger fabric images using the code default configuration parameters:
 
@@ -164,7 +164,7 @@ Examples:
 
     Run all the CAT tests in current directory with batchsize 10 and collect debug logs, using the v0.5 branch June beta image (from github):
 
- 	COMMIT=3e0e80a REPOSITORY_SOURCE=GITHUB LOGGING_LEVEL=debug CORE_PBFT_GENERAL_BATCHSIZE=10 $0 CAT*.go
+ 	COMMIT=3e0e80a REPOSITORY_SOURCE=GITHUB CORE_LOGGING_LEVEL=debug CORE_PBFT_GENERAL_BATCHSIZE=10 $0 CAT*.go
 "
 
 if [ ${#} -eq 0 ]
@@ -210,7 +210,7 @@ BEFORE_ABORT=`grep -c ABORT ${SUMMARY} 2>/dev/null`
 : ${COMMIT="latest"}
 
 # error , debug , critical , info ...
-: ${LOGGING_LEVEL="error"}
+: ${CORE_LOGGING_LEVEL="error"}
 
 : ${CORE_SECURITY_ENABLED="Y"}
 # Y or N ; capitalized
