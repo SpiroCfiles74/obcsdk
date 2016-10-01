@@ -43,10 +43,11 @@ const (
 	//    v05 LOCAL Docker network: should handle 11 Tx/sec on one client thread
 	//    v05 Z or HSBN Network: only 1.5 - 2  on one client thread
 	THROUGHPUT_RATE_DEFAULT = 10
-	THROUGHPUT_RATE_MAX = 160 	// normally should be well under 160, but this blast rate might be useful for short tests
+	// THROUGHPUT_RATE_MAX = 160 	// normally should be well under 160, but this blast rate might be useful for short tests
+	THROUGHPUT_RATE_MAX = 50
 
 	BUNDLE_OF_TRANSACTIONS = 1000 	// in each client, after sending this many transactions, print a status msg and sleep for ntwk to catch up
-	MAX_CLIENTS = 20		// limit - until we can implement the timing/sleep code 
+	MAX_CLIENTS = 20
 )
 
 var peerNetworkSetup peernetwork.PeerNetwork
@@ -144,8 +145,10 @@ func Init() {
 	THROUGHPUT_RATE = THROUGHPUT_RATE_DEFAULT
 	if localNetworkType == "" || localNetworkType == "LOCAL" {
 		THROUGHPUT_RATE = NUM_CLIENTS * 11
+		//THROUGHPUT_RATE = 11
 	} else if localNetworkType == "Z" {
 		THROUGHPUT_RATE = NUM_CLIENTS * 2
+		//THROUGHPUT_RATE = 2
 	}
 	envvar = os.Getenv("TEST_LST_THROUGHPUT_RATE")
         if envvar != "" {
@@ -303,6 +306,7 @@ func InvokeMultiThreads() {
 	}
 }
 
+// I think we can probably use this for all now, and get rid of the two functions above...
 func InvokeAllThreadsOnAllPeers() {
 
 	//  Number of NUM_CLIENTS = Number of threads : this func creates multiple client threads on each peer
@@ -362,8 +366,12 @@ func InvokeAllThreadsOnAllPeers() {
 					if nobodySleeping {
 
 						nobodySleeping = false
-						Logger(fmt.Sprintf("==== %d Tx accumulated (discovered by client %d). Elapsed Time prev=%s, accum=%s", (lstCounter-startCount), clientThread, elapsed, accum))
-						Logger(fmt.Sprintf("Client %d myTx=%d, sleepSecs = %d", clientThread, i+1, sleepSecs))
+						//  Logger(fmt.Sprintf("==== %d Tx accumulated (discovered by client %d). Elapsed Time prev=%s, accum=%s", (lstCounter-startCount), clientThread, elapsed, accum))
+						//  Logger(fmt.Sprintf("Client %d myTx=%d, sleepSecs = %d", clientThread, i+1, sleepSecs))
+
+						if (lstCounter-startCount) % (BUNDLE_OF_TRANSACTIONS * 10) == 0 {
+							Logger(fmt.Sprintf("%d=Tx prev=%s accum=%s (client=%d myTx=%d, sleep=%d)", (lstCounter-startCount), elapsed, accum, clientThread, i+1, sleepSecs))
+						}
 						if sleepSecs > 0 { Sleep( sleepSecs ) }
 
 						// setting curTime here after sleeping means we include the sleep time within the current/prior cycle of elapsed time, which means the other clients will also use this as their "previous started time" and compute their own sleep time similar to this first client
@@ -372,7 +380,7 @@ func InvokeAllThreadsOnAllPeers() {
 						nobodySleeping = true
 
 					} else {
-						Logger(fmt.Sprintf("Client %d myTx=%d, sleepSecs = %d", clientThread, i+1, sleepSecs))
+						//  Logger(fmt.Sprintf("Client %d myTx=%d, sleepSecs = %d", clientThread, i+1, sleepSecs))
 						if sleepSecs > 0 { Sleep( sleepSecs ) }
 					}
 				}
@@ -399,6 +407,9 @@ func RunLedgerStressTest(testname string, numClients int, numPeers int, numTx in
 	Init()
 	Logger("========= Transactions execution started =========")
 
+	InvokeAllThreadsOnAllPeers()	// use this for multiple threads on multiple peers, such as TwoClientsPerFourPeers (total 8 threads)
+
+    /*  ***********
 	if NUM_CLIENTS > 4 {
 		InvokeAllThreadsOnAllPeers()	// use this for multiple threads on multiple peers, such as TwoClientsPerFourPeers (total 8 threads)
 	} else {
@@ -408,7 +419,7 @@ func RunLedgerStressTest(testname string, numClients int, numPeers int, numTx in
 			InvokeMultiThreads()		// use this for multiple threads sending requests to one peer, such as TwoClientsOnePeer
 		}
 	}
-
+    ************** */
 
 	wg.Wait()
 	Logger("========= Transactions execution ended =========")

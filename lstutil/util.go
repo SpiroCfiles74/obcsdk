@@ -178,10 +178,10 @@ func TearDown(mynetwork peernetwork.PeerNetwork) {
 
 	// keep rechecking, as long as there are no errors, and cntr keeps advancing (catching up processing backlog of invokes)
 
-	var sleepSecs = int64(10) 	// sleep and query again every 10 secs
+	var sleepSecs = int64(60) 	// sleep and query again every few secs
 	prevCntr := int64(0)
 	for  err == nil && cntrVal < lstCounter && prevCntr != cntrVal {
-		Logger(fmt.Sprintf("current ledger counter %d DOES NOT MATCH expected lstCounter %d ; wait %d secs to try to catch up and recheck", cntrVal, lstCounter, sleepSecs))
+		Logger(fmt.Sprintf("current ledger counter %d != expected lstCounter %d ; wait %d secs", cntrVal, lstCounter, sleepSecs))
 		Sleep(sleepSecs)
 		prevCntr = cntrVal
 		_, cntrStr = QueryChaincode(mynetwork, lstCounter)
@@ -196,9 +196,16 @@ func TearDown(mynetwork peernetwork.PeerNetwork) {
 		}
 	}
 	if testPassed {
-		Logger(fmt.Sprintf("\n######### %s TEST PASSED ######### ledger counter = %d\n", TESTNAME, lstCounter))
+		Logger(fmt.Sprintf("\nPASSED TEST %s , ledger counter = %d.\n", TESTNAME, lstCounter))
 	} else {
-		Logger(fmt.Sprintf("\n######### %s TEST FAILED ######### ledger counter = %d, expected = %d #########\n", TESTNAME, cntrVal, lstCounter))
+		Logger(fmt.Sprintf("\nWARNING: ledger counter = %d does NOT match expected = %d.\n", TESTNAME, cntrVal, lstCounter))
+
+		queryCounterSuccess := QueryAllHostsToGetCurrentCounter(mynetwork, TESTNAME, &cntrVal)
+		if !queryCounterSuccess {
+			Logger(fmt.Sprintf("\nFAILED TEST %s : no consensus for ledger counter\n", TESTNAME))
+		} else {
+			Logger(fmt.Sprintf("\nPASSED TEST %s : after QueryAllHosts, consensus reached for ledger counter = %d (but expected = %d)\n", TESTNAME, cntrVal, lstCounter))
+		}
 	}
 }
 
