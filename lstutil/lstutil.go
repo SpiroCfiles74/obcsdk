@@ -398,6 +398,7 @@ func RunLedgerStressTest(testname string, numClients int, numPeers int, numTx in
 	NUM_CLIENTS = numClients
 	NUM_PEERS = numPeers
 	TX_COUNT = numTx
+	Logger(fmt.Sprintf("\n========= START TESTCASE %s =========", TESTNAME))
 
 	if NUM_CLIENTS > MAX_CLIENTS { Logger(fmt.Sprintf("Test not supported yet for more than %d clients", MAX_CLIENTS)); return }
 

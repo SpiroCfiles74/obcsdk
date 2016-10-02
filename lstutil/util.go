@@ -165,7 +165,6 @@ func TearDown(mynetwork peernetwork.PeerNetwork) {
 	Sleep(10)
 	testPassed := false
 	_, cntrStr := QueryChaincode(mynetwork, lstCounter)
-	Logger(fmt.Sprintf("========= After Query values lstCounter=%d, ledger cntr = <%s>\n", lstCounter, cntrStr))
 	cntrVal, err := strconv.ParseInt(cntrStr, 10, 64)
 	if err != nil { Logger(fmt.Sprintf("TearDown() Failed to convert cntr <%s> to int64\n Error: %s\n", cntrStr, err)) }
 
@@ -185,7 +184,7 @@ func TearDown(mynetwork peernetwork.PeerNetwork) {
 		Sleep(sleepSecs)
 		prevCntr = cntrVal
 		_, cntrStr = QueryChaincode(mynetwork, lstCounter)
-		//Logger(fmt.Sprintf("========= After Query values lstCounter=%d, ledger cntrIndex = <%s>\n", lstCounter, cntrStr))
+		//Logger(fmt.Sprintf("After Query values: expected=%d, ledger cntrIndex = <%s>\n", lstCounter, cntrStr))
 		cntrVal, err = strconv.ParseInt(cntrStr, 10, 64)
 		if err != nil {
 			Logger(fmt.Sprintf("TearDown() Failed to convert cntrStr <%s> to int64\n ERROR: %s\n", cntrStr, err))
@@ -198,7 +197,7 @@ func TearDown(mynetwork peernetwork.PeerNetwork) {
 	if testPassed {
 		Logger(fmt.Sprintf("\nPASSED TEST %s , ledger counter = %d.\n", TESTNAME, lstCounter))
 	} else {
-		Logger(fmt.Sprintf("\nWARNING: ledger counter = %d does NOT match expected = %d.\n", TESTNAME, cntrVal, lstCounter))
+		Logger(fmt.Sprintf("\nWARNING: ledger counter = %d does NOT match expected = %d.\n", cntrVal, lstCounter))
 
 		queryCounterSuccess := QueryAllHostsToGetCurrentCounter(mynetwork, TESTNAME, &cntrVal)
 		if !queryCounterSuccess {
@@ -231,7 +230,7 @@ func QueryAllHostsToGetCurrentCounter(mynetwork peernetwork.PeerNetwork, txName 
 	}
 	if failedCount > F {
 		querySuccess = false
-		Logger(fmt.Sprintf("%s TEST STARTUP FAILURE!!! Failed to query %d peers. RERUN when at least %d/%d peers are running, in order to be able to reach consensus.", txName, failedCount, ((N-1)/3)*2+1, N ))
+		Logger(fmt.Sprintf("%s TEST FAILURE!!! Failed to query %d peers. RERUN when at least %d/%d peers are running, in order to be able to reach consensus.", txName, failedCount, ((N-1)/3)*2+1, N ))
 	} else {
 		var consensus_counter int64 = 0
 		found_consensus := false
@@ -244,10 +243,10 @@ func QueryAllHostsToGetCurrentCounter(mynetwork peernetwork.PeerNetwork, txName 
 		}
 		if found_consensus {
 			*counter = consensus_counter
-			Logger(fmt.Sprintf("%s TEST PASS STARTUP: %d/%d peers reached consensus: current count = %d", txName, N-failedCount, N, consensus_counter))
+			Logger(fmt.Sprintf("%s TEST PASS : %d/%d peers reached consensus: current count = %d", txName, N-failedCount, N, consensus_counter))
 		} else {
 			querySuccess = false
-			Logger(fmt.Sprintf("%s TEST FAIL upon STARTUP: peers cannot reach consensus on current counter value!!!", txName))
+			Logger(fmt.Sprintf("%s TEST FAIL : peers cannot reach consensus on current counter value!!!", txName))
 		}
 	}
 	return querySuccess
