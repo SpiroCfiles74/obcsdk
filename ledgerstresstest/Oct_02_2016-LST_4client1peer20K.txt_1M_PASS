@@ -1,0 +1,139 @@
+2016/10/02 22:54:34 
+========= START TESTCASE LST_4client1peer20K =========
+2016/10/02 22:54:34 TX_COUNT=1000000, NUM_CLIENTS=4, NUM_PEERS=1, THROUGHPUT_RATE=44/sec, SLEEP=22 secs per every 1000 Tx
+2016/10/02 22:54:34 ========= Init Network =========
+2016/10/02 22:54:40 <<<<<< DeployID=736024304ac01973841b75aae625a43db28c6a59051ef625f197ddf64093a6a10199fad34685f851b5c8321255b2fcaac03552161d1cc105ffbc6015c22c2949. cntr=0. Need to give it some time; sleep for 60 secs >>>>>>
+2016/10/02 22:55:40 -----QueryAllHostsToGetCurrentCounter: on peer 0, counter=120040
+2016/10/02 22:55:40 -----QueryAllHostsToGetCurrentCounter: on peer 1, counter=120040
+2016/10/02 22:55:40 -----QueryAllHostsToGetCurrentCounter: on peer 2, counter=120040
+2016/10/02 22:55:40 -----QueryAllHostsToGetCurrentCounter: on peer 3, counter=120040
+2016/10/02 22:55:40 LST_4client1peer20K TEST PASS : 4/4 peers reached consensus: current count = 120040
+2016/10/02 22:55:40 LST_4client1peer20K: AFTER deploy,QueryAllHosts retrieved lstCounter value = 120040
+2016/10/02 22:55:40 ========= Transactions execution started =========
+2016/10/02 22:55:40 ========= Started CLIENT 3 thread on peer 0, to run 250000 Tx
+2016/10/02 22:55:40 ========= Started CLIENT 1 thread on peer 0, to run 250000 Tx
+2016/10/02 22:55:40 ========= Started CLIENT 0 thread on peer 0, to run 250000 Tx
+2016/10/02 22:55:40 ========= Started CLIENT 2 thread on peer 0, to run 250000 Tx
+2016/10/02 23:00:12 10000=Tx prev=25.103581617s accum=4m31.938001048s (client=3 myTx=2476, sleep=0)
+2016/10/02 23:04:58 20000=Tx prev=40.526543099s accum=9m17.324879174s (client=3 myTx=5008, sleep=0)
+2016/10/02 23:09:31 30000=Tx prev=24.779072039s accum=13m50.94085895s (client=1 myTx=7530, sleep=0)
+2016/10/02 23:14:23 40000=Tx prev=27.386388757s accum=18m42.741743924s (client=2 myTx=9956, sleep=0)
+2016/10/02 23:19:07 50000=Tx prev=24.218902515s accum=23m26.92679962s (client=3 myTx=12463, sleep=0)
+2016/10/02 23:23:41 60000=Tx prev=24.651628586s accum=28m0.767093068s (client=0 myTx=15047, sleep=0)
+2016/10/02 23:28:58 70000=Tx prev=29.931953436s accum=33m17.993798348s (client=1 myTx=17564, sleep=0)
+2016/10/02 23:34:08 80000=Tx prev=42.334405332s accum=38m27.444537788s (client=3 myTx=19907, sleep=0)
+2016/10/02 23:39:20 90000=Tx prev=43.979368758s accum=43m39.324663933s (client=0 myTx=22539, sleep=0)
+2016/10/02 23:44:40 100000=Tx prev=28.707368272s accum=48m59.411128791s (client=0 myTx=25029, sleep=0)
+2016/10/02 23:50:14 110000=Tx prev=27.262435674s accum=54m33.669907639s (client=1 myTx=27592, sleep=0)
+2016/10/02 23:55:40 120000=Tx prev=31.631533589s accum=59m59.978818097s (client=0 myTx=30005, sleep=0)
+2016/10/03 00:01:35 130000=Tx prev=30.681439069s accum=1h5m54.466851754s (client=1 myTx=32651, sleep=0)
+2016/10/03 00:07:26 140000=Tx prev=30.499562104s accum=1h11m45.772172815s (client=0 myTx=34980, sleep=0)
+2016/10/03 00:13:45 150000=Tx prev=37.325282058s accum=1h18m5.065573822s (client=3 myTx=37440, sleep=0)
+2016/10/03 00:19:58 160000=Tx prev=32.455030467s accum=1h24m17.565353659s (client=1 myTx=40094, sleep=0)
+2016/10/03 00:26:16 170000=Tx prev=1m6.637759046s accum=1h30m35.403930991s (client=2 myTx=42481, sleep=0)
+2016/10/03 00:32:32 180000=Tx prev=48.701363675s accum=1h36m51.586512165s (client=0 myTx=44965, sleep=0)
+2016/10/03 00:39:04 190000=Tx prev=48.176177361s accum=1h43m23.487089069s (client=2 myTx=47523, sleep=0)
+2016/10/03 00:46:00 200000=Tx prev=42.369807775s accum=1h50m20.130982516s (client=1 myTx=50133, sleep=0)
+2016/10/03 00:52:52 210000=Tx prev=40.899390134s accum=1h57m12.004958639s (client=3 myTx=52401, sleep=0)
+2016/10/03 01:00:18 220000=Tx prev=41.915155146s accum=2h4m37.319492937s (client=0 myTx=54980, sleep=0)
+2016/10/03 01:07:25 230000=Tx prev=27.419277049s accum=2h11m44.509717959s (client=1 myTx=57546, sleep=0)
+2016/10/03 01:14:47 240000=Tx prev=46.282633381s accum=2h19m7.198120829s (client=2 myTx=60001, sleep=0)
+2016/10/03 01:22:07 250000=Tx prev=39.039192954s accum=2h26m27.003856983s (client=1 myTx=62600, sleep=0)
+2016/10/03 01:29:34 260000=Tx prev=40.48467093s accum=2h33m54.242663955s (client=0 myTx=64965, sleep=0)
+2016/10/03 01:37:01 270000=Tx prev=41.378922083s accum=2h41m20.962513118s (client=1 myTx=67542, sleep=0)
+2016/10/03 01:44:35 280000=Tx prev=40.593437656s accum=2h48m54.847343326s (client=3 myTx=69987, sleep=0)
+2016/10/03 01:52:13 290000=Tx prev=44.182070239s accum=2h56m33.262783549s (client=3 myTx=72471, sleep=0)
+2016/10/03 01:59:47 300000=Tx prev=41.355484643s accum=3h4m6.843688276s (client=1 myTx=75115, sleep=0)
+2016/10/03 02:07:36 310000=Tx prev=42.223079342s accum=3h11m55.767001944s (client=2 myTx=77376, sleep=0)
+2016/10/03 02:15:32 320000=Tx prev=46.499173889s accum=3h19m51.380740881s (client=1 myTx=80166, sleep=0)
+2016/10/03 02:23:31 330000=Tx prev=39.068222528s accum=3h27m51.135265959s (client=2 myTx=82422, sleep=0)
+2016/10/03 02:31:49 340000=Tx prev=47.227548675s accum=3h36m8.730541539s (client=0 myTx=84966, sleep=0)
+2016/10/03 02:40:14 350000=Tx prev=41.454149532s accum=3h44m33.808768967s (client=1 myTx=87602, sleep=0)
+2016/10/03 02:48:34 360000=Tx prev=43.777966847s accum=3h52m53.947525102s (client=0 myTx=89982, sleep=0)
+2016/10/03 02:57:09 370000=Tx prev=52.818190672s accum=4h1m28.381388024s (client=3 myTx=92588, sleep=0)
+2016/10/03 03:05:44 380000=Tx prev=42.693601066s accum=4h10m3.753758141s (client=1 myTx=95098, sleep=0)
+2016/10/03 03:14:19 390000=Tx prev=50.323538758s accum=4h18m38.636162348s (client=2 myTx=97377, sleep=0)
+2016/10/03 03:23:00 400000=Tx prev=48.469567308s accum=4h27m19.952672228s (client=1 myTx=100116, sleep=0)
+2016/10/03 03:31:44 410000=Tx prev=50.311743167s accum=4h36m3.935740312s (client=3 myTx=102611, sleep=0)
+2016/10/03 03:40:42 420000=Tx prev=50.533481517s accum=4h45m1.97371223s (client=0 myTx=104909, sleep=0)
+2016/10/03 03:49:42 430000=Tx prev=42.560515055s accum=4h54m1.301465992s (client=3 myTx=107643, sleep=0)
+2016/10/03 03:58:14 440000=Tx prev=47.808225308s accum=5h2m33.938306444s (client=2 myTx=109829, sleep=0)
+2016/10/03 04:07:18 450000=Tx prev=49.451936817s accum=5h11m37.432805003s (client=3 myTx=112548, sleep=0)
+2016/10/03 04:16:03 460000=Tx prev=45.499285754s accum=5h20m22.4684821s (client=2 myTx=114789, sleep=0)
+2016/10/03 04:25:14 470000=Tx prev=55.088140425s accum=5h29m34.116687064s (client=2 myTx=117262, sleep=0)
+2016/10/03 04:34:21 480000=Tx prev=47.061824767s accum=5h38m41.086533352s (client=0 myTx=119893, sleep=0)
+2016/10/03 04:43:49 490000=Tx prev=51.028727964s accum=5h48m8.489100761s (client=0 myTx=122405, sleep=0)
+2016/10/03 04:52:54 500000=Tx prev=50.638403634s accum=5h57m14.139748991s (client=1 myTx=125168, sleep=0)
+2016/10/03 05:02:09 510000=Tx prev=54.252041726s accum=6h6m28.690687055s (client=1 myTx=127657, sleep=0)
+2016/10/03 05:11:32 520000=Tx prev=48.73238606s accum=6h15m52.143896863s (client=0 myTx=129927, sleep=0)
+2016/10/03 05:20:47 530000=Tx prev=51.947510059s accum=6h25m7.17865664s (client=1 myTx=132677, sleep=0)
+2016/10/03 05:29:52 540000=Tx prev=47.809087659s accum=6h34m11.922481607s (client=2 myTx=134815, sleep=0)
+2016/10/03 05:39:09 550000=Tx prev=52.871210975s accum=6h43m29.015339198s (client=2 myTx=137334, sleep=0)
+2016/10/03 05:48:23 560000=Tx prev=49.058366163s accum=6h52m42.52973492s (client=1 myTx=140167, sleep=0)
+2016/10/03 05:57:40 570000=Tx prev=56.834326296s accum=7h1m59.664990994s (client=1 myTx=142692, sleep=0)
+2016/10/03 06:07:40 580000=Tx prev=1m21.045657901s accum=7h11m59.347453155s (client=2 myTx=144862, sleep=0)
+2016/10/03 06:17:15 590000=Tx prev=1m14.093966915s accum=7h21m35.13611782s (client=2 myTx=147366, sleep=0)
+2016/10/03 06:27:01 600000=Tx prev=1m15.971226784s accum=7h31m20.850280397s (client=2 myTx=149889, sleep=0)
+2016/10/03 06:36:49 610000=Tx prev=47.921264832s accum=7h41m8.935934976s (client=3 myTx=152610, sleep=0)
+2016/10/03 06:46:45 620000=Tx prev=58.065940443s accum=7h51m4.531571503s (client=1 myTx=155137, sleep=0)
+2016/10/03 06:57:36 630000=Tx prev=57.767651359s accum=8h1m56.238881812s (client=2 myTx=157526, sleep=0)
+2016/10/03 07:07:53 640000=Tx prev=53.418532135s accum=8h12m13.026805404s (client=2 myTx=160018, sleep=0)
+2016/10/03 07:18:08 650000=Tx prev=58.639918302s accum=8h22m27.692197303s (client=3 myTx=162623, sleep=0)
+2016/10/03 07:28:44 660000=Tx prev=57.763603478s accum=8h33m3.82685664s (client=2 myTx=165072, sleep=0)
+2016/10/03 07:39:02 670000=Tx prev=53.771323517s accum=8h43m22.043145296s (client=1 myTx=167628, sleep=0)
+2016/10/03 07:49:25 680000=Tx prev=59.805348824s accum=8h53m44.574465476s (client=3 myTx=170075, sleep=0)
+2016/10/03 07:59:51 690000=Tx prev=51.96604751s accum=9h4m10.755660856s (client=3 myTx=172589, sleep=0)
+2016/10/03 08:10:23 700000=Tx prev=1m2.00058875s accum=9h14m42.402111729s (client=2 myTx=175052, sleep=0)
+2016/10/03 08:21:26 710000=Tx prev=1m15.657492821s accum=9h25m45.448049124s (client=3 myTx=177596, sleep=0)
+2016/10/03 08:32:07 720000=Tx prev=1m27.672690746s accum=9h36m26.506035258s (client=1 myTx=180139, sleep=0)
+2016/10/03 08:42:31 730000=Tx prev=1m29.88374744s accum=9h46m50.437740266s (client=0 myTx=182283, sleep=0)
+2016/10/03 08:52:55 740000=Tx prev=1m22.314384265s accum=9h57m14.98160295s (client=1 myTx=185159, sleep=0)
+2016/10/03 09:03:21 750000=Tx prev=58.39542861s accum=10h7m40.956257455s (client=3 myTx=187612, sleep=0)
+2016/10/03 09:13:52 760000=Tx prev=51.511515722s accum=10h18m11.651837475s (client=0 myTx=189729, sleep=0)
+2016/10/03 09:24:32 770000=Tx prev=54.583663067s accum=10h28m51.673939424s (client=2 myTx=192465, sleep=0)
+2016/10/03 09:35:33 780000=Tx prev=1m0.587212623s accum=10h39m52.77470319s (client=2 myTx=194900, sleep=0)
+2016/10/03 09:46:22 790000=Tx prev=53.409726756s accum=10h50m41.539850743s (client=1 myTx=197745, sleep=0)
+2016/10/03 09:57:03 800000=Tx prev=1m4.674572064s accum=11h1m22.451934567s (client=3 myTx=200104, sleep=0)
+2016/10/03 10:07:49 810000=Tx prev=1m4.46992647s accum=11h12m9.054701s (client=1 myTx=202731, sleep=0)
+2016/10/03 10:18:52 820000=Tx prev=58.29731304s accum=11h23m11.986795856s (client=0 myTx=204770, sleep=0)
+2016/10/03 10:29:52 830000=Tx prev=1m2.185466629s accum=11h34m12.231636124s (client=1 myTx=207712, sleep=0)
+2016/10/03 10:41:38 840000=Tx prev=1m34.177750238s accum=11h45m57.764546915s (client=1 myTx=210195, sleep=0)
+2016/10/03 10:52:44 850000=Tx prev=1m34.301048937s accum=11h57m3.422576287s (client=1 myTx=212709, sleep=0)
+2016/10/03 11:04:20 860000=Tx prev=59.713352703s accum=12h8m39.543715221s (client=3 myTx=215099, sleep=0)
+2016/10/03 11:15:56 870000=Tx prev=1m3.432451193s accum=12h20m15.741325138s (client=1 myTx=217734, sleep=0)
+2016/10/03 11:28:02 880000=Tx prev=1m10.757253317s accum=12h32m21.877220668s (client=1 myTx=220205, sleep=0)
+2016/10/03 11:39:24 890000=Tx prev=50.238234798s accum=12h43m43.361044477s (client=0 myTx=222280, sleep=0)
+2016/10/03 11:51:07 900000=Tx prev=1m4.887700608s accum=12h55m26.735969818s (client=2 myTx=224933, sleep=0)
+2016/10/03 12:03:19 910000=Tx prev=1m0.081284385s accum=13h7m38.445762021s (client=1 myTx=227740, sleep=0)
+2016/10/03 12:15:23 920000=Tx prev=1m6.216506816s accum=13h19m43.1872625s (client=0 myTx=229731, sleep=0)
+2016/10/03 12:27:29 930000=Tx prev=1m4.794938113s accum=13h31m48.862551368s (client=1 myTx=232796, sleep=0)
+2016/10/03 12:39:55 940000=Tx prev=1m7.678163237s accum=13h44m14.692081241s (client=3 myTx=235062, sleep=0)
+2016/10/03 12:52:55 950000=Tx prev=1m34.666465302s accum=13h57m14.727066109s (client=1 myTx=237724, sleep=0)
+2016/10/03 13:05:55 960000=Tx prev=1m34.050926158s accum=14h10m15.164782852s (client=1 myTx=240263, sleep=0)
+2016/10/03 13:19:20 970000=Tx prev=1m16.011871182s accum=14h23m40.172081645s (client=3 myTx=242567, sleep=0)
+2016/10/03 13:32:29 980000=Tx prev=1m1.75036869s accum=14h36m49.200213645s (client=1 myTx=245264, sleep=0)
+2016/10/03 13:45:26 990000=Tx prev=1m6.148193201s accum=14h49m45.481068377s (client=2 myTx=247470, sleep=0)
+2016/10/03 13:56:46 ========= Finished CLIENT 1 thread on peer 0, Tx=250000, Elapsed Time prev=57.277835414s accum=15h1m5.682726936s
+2016/10/03 13:57:24 ========= Finished CLIENT 3 thread on peer 0, Tx=250000, Elapsed Time prev=29.414076042s accum=15h1m43.672072469s
+2016/10/03 13:57:44 ========= Finished CLIENT 2 thread on peer 0, Tx=250000, Elapsed Time prev=49.110266866s accum=15h2m3.368263555s
+2016/10/03 13:58:20 ========= Finished CLIENT 0 thread on peer 0, Tx=250000, Elapsed Time prev=1m25.469034391s accum=15h2m39.727047333s
+2016/10/03 13:58:20 ========= Transactions execution ended =========
+2016/10/03 13:58:31 current ledger counter 1115403 != expected lstCounter 1120025 ; wait 60 secs
+2016/10/03 13:59:32 current ledger counter 1115903 != expected lstCounter 1120025 ; wait 60 secs
+2016/10/03 14:00:34 current ledger counter 1116903 != expected lstCounter 1120025 ; wait 60 secs
+2016/10/03 14:01:40 current ledger counter 1117903 != expected lstCounter 1120025 ; wait 60 secs
+2016/10/03 14:02:44 current ledger counter 1118403 != expected lstCounter 1120025 ; wait 60 secs
+2016/10/03 14:03:45 current ledger counter 1119403 != expected lstCounter 1120025 ; wait 60 secs
+2016/10/03 14:04:46 
+WARNING: ledger counter = 1120040 does NOT match expected = 1120025.
+
+2016/10/03 14:04:46 -----QueryAllHostsToGetCurrentCounter: on peer 0, counter=1120040
+2016/10/03 14:04:47 -----QueryAllHostsToGetCurrentCounter: on peer 1, counter=1120040
+2016/10/03 14:04:47 -----QueryAllHostsToGetCurrentCounter: on peer 2, counter=1120040
+2016/10/03 14:04:47 -----QueryAllHostsToGetCurrentCounter: on peer 3, counter=1120040
+2016/10/03 14:04:47 LST_4client1peer20K TEST PASS : 4/4 peers reached consensus: current count = 1120040
+2016/10/03 14:04:47 
+PASSED TEST LST_4client1peer20K : after QueryAllHosts, consensus reached for ledger counter = 1120040 (but expected = 1120025)
+
+2016/10/03 14:04:47 ========= Total execution time for LST_4client1peer20K is 15h10m13.342553305s
+

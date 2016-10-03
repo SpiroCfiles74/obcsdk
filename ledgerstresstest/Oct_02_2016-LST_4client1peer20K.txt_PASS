@@ -1,0 +1,25 @@
+2016/10/02 17:18:06 TX_COUNT=20000, NUM_CLIENTS=4, NUM_PEERS=1, THROUGHPUT_RATE=44/sec, SLEEP=22 secs per every 1000 Tx
+2016/10/02 17:18:06 ========= Init Network =========
+2016/10/02 17:18:12 <<<<<< DeployID=736024304ac01973841b75aae625a43db28c6a59051ef625f197ddf64093a6a10199fad34685f851b5c8321255b2fcaac03552161d1cc105ffbc6015c22c2949. cntr=0. Need to give it some time; sleep for 60 secs >>>>>>
+2016/10/02 17:19:12 -----QueryAllHostsToGetCurrentCounter: on peer 0, counter=60000
+2016/10/02 17:19:12 -----QueryAllHostsToGetCurrentCounter: on peer 1, counter=60000
+2016/10/02 17:19:12 -----QueryAllHostsToGetCurrentCounter: on peer 2, counter=60000
+2016/10/02 17:19:13 -----QueryAllHostsToGetCurrentCounter: on peer 3, counter=60000
+2016/10/02 17:19:13 LST_4client1peer20K TEST PASS : 4/4 peers reached consensus: current count = 60000
+2016/10/02 17:19:13 LST_4client1peer20K: AFTER deploy,QueryAllHosts retrieved lstCounter value = 60000
+2016/10/02 17:19:13 ========= Transactions execution started =========
+2016/10/02 17:19:13 ========= Started CLIENT 3 thread on peer 0, to run 5000 Tx
+2016/10/02 17:19:13 ========= Started CLIENT 0 thread on peer 0, to run 5000 Tx
+2016/10/02 17:19:13 ========= Started CLIENT 1 thread on peer 0, to run 5000 Tx
+2016/10/02 17:19:13 ========= Started CLIENT 2 thread on peer 0, to run 5000 Tx
+2016/10/02 17:23:41 10000=Tx prev=26.146225262s accum=4m28.318863267s (client=0 myTx=2470, sleep=0)
+2016/10/02 17:28:21 ========= Finished CLIENT 2 thread on peer 0, Tx=5000, Elapsed Time prev=22.271284426s accum=9m8.511567692s
+2016/10/02 17:28:23 ========= Finished CLIENT 3 thread on peer 0, Tx=5000, Elapsed Time prev=23.690652845s accum=9m9.930936308s
+2016/10/02 17:28:26 ========= Finished CLIENT 0 thread on peer 0, Tx=5000, Elapsed Time prev=27.159366672s accum=9m13.399652723s
+2016/10/02 17:28:28 20000=Tx prev=29.332383193s accum=9m15.572662221s (client=1 myTx=5000, sleep=0)
+2016/10/02 17:28:28 ========= Finished CLIENT 1 thread on peer 0, Tx=5000, Elapsed Time prev=2.627µs accum=9m15.572868724s
+2016/10/02 17:28:28 ========= Transactions execution ended =========
+2016/10/02 17:28:38 
+PASSED TEST LST_4client1peer20K , ledger counter = 80000.
+
+2016/10/02 17:28:38 ========= Total execution time for LST_4client1peer20K is 10m32.707511627s

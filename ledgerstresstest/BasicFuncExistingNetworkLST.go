@@ -18,6 +18,45 @@ var url string
 var counter int64
 var subTestsFailures int
 
+
+/* -----------------------------------------------------------------------------------------------------------------------------
+    TEST coverage for Basic Functionality: Block, Blockchain, Chaincode, Network, Registrar, and Transactions
+
+	Block           /chain/blocks/<block>   (get block chain stats data)
+     x  chaincode.BlockStats                    calls peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block))
+        chaincode.ChaincodeBlockHash            calls peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block))
+        chaincode.ChaincodeBlockTrxInfo         calls peerrest.GetChainInfo(url + "/chain/blocks/" + strconv.Itoa(block))
+        chaincode.GetBlockTrxInfoByHost calls prev func
+
+	Blockchain      /chain                  (get block chain height)
+     x  chaincode.GetChainStats                 calls peerrest.GetChainInfo(url + "/chain")
+        chaincode.ChainStats                    calls peerrest.GetChainInfo(url + "/chain")
+     x  chaincode.Monitor_ChainHeight           calls peerrest.GetChainInfo(url + "/chain")
+     x  chaincode.GetChainHeight calls prev func
+
+	Chaincode       /chaincode              (for all deploy, invoke, query commands)
+     x  chaincode.changeState                   calls peerrest.PostChainAPI with  url + "/chaincode"
+
+	Network         /network/peers
+     x  chaincode.NetworkPeers                  calls peerrest.GetChainInfo(url + "/network/peers")
+
+	Registrar       /registrar
+	Registrar       /registrar/id
+	Registrar       /registrar/id/ecert
+	Registrar       /registrar/id/tcert
+     x  chaincode.RegisterUsers                 calls chaincode.register calls peerrest.GetChainInfo(url + "/registrar"
+     x  chaincode.UserRegister_Status           calls peerrest.GetChainInfo(url + "/registrar/" + username)
+     x  chaincode.UserRegister_ecertDetail      calls peerrest.GetChainInfo(url + "/registrar/" + username + "/ecert")
+                                                /tcert : no test exists yet
+
+	Transactions    /transactions/<uuid>
+     x  chaincode.Transaction_Detail            calls peerrest.GetChainInfo(url + "/transactions/" + txid)
+        chaincode.GetChainTransactions          calls peerrest.GetChainInfo(url + "/transactions/" + txid)
+
+   -----------------------------------------------------------------------------------------------------------------------------
+ */
+
+
 func main() {
 	subTestsFailures = 0
 	lstutil.TESTNAME = "BasicFuncExistingNetworkLST"
@@ -28,14 +67,14 @@ func main() {
 
 	setupNetwork()  // establish chco2.MyNetwork, using networkcredentials
 
-	lstutil.Logger("\n===== userRegisterTest =====")
-	lstutil.Logger("userRegisterTest: FirstUser=" + peernetwork.FirstUser)
+	lstutil.Logger("\n===== /registrar Registrar Test =====")
+	lstutil.Logger("FirstUser=" + peernetwork.FirstUser)
 	user_ip, user_port, user_name, err := peernetwork.PeerOfThisUser(chco2.MyNetwork, peernetwork.FirstUser)
 	check(err)
 	url = chaincode.GetURL(user_ip, user_port)
 	userRegisterTest(url, user_name)
 
-	lstutil.Logger("\n===== NetworkPeers Test =====")
+	lstutil.Logger("\n===== /network/peers Network Test =====")
 	response, status := chaincode.NetworkPeers(url)
 	myStr := "NetworkPeers Rest API TEST "
 	if strings.Contains(status, "200") {
@@ -47,7 +86,7 @@ func main() {
 	myStr += fmt.Sprintf("NetworkPeers response body:\n%s\n", response)
 	lstutil.Logger(myStr)
 
-	lstutil.Logger("\n===== Get ChainStats Test =====")
+	lstutil.Logger("\n===== /chain Blockchain Test =====")
 	response, status = chaincode.GetChainStats(url)
         if strings.Contains(status, "200") {
                 lstutil.Logger("ChainStats Rest API TEST PASS.")
@@ -57,7 +96,7 @@ func main() {
         }
 	lstutil.Logger(fmt.Sprintf("  ChainStats response status: %s\n  ChainStats response body: %s\n", status, response))
 
-	lstutil.Logger("\n===== Deploy Test =====")
+	lstutil.Logger("\n===== /chaincode Deploy Test =====")
 	counter = lstutil.DeployChaincode(chco2.MyNetwork)  // includes sleep 60 secs for Local network or 120 secs for External network
 	lstutil.Logger(fmt.Sprintf("-----Deploy Test returned counter: %d", counter))
 	// lstutil.Logger("Sleep another 2 min before proceeding..."); time.Sleep(120 * time.Second)
@@ -75,18 +114,18 @@ func main() {
 	queryDeploySuccess := lstutil.QueryAllHosts(chco2.MyNetwork, "DEPLOY", counter)
 	if !queryDeploySuccess { subTestsFailures++ }
 
-	lstutil.Logger("\n===== Invoke Test =====")
+	lstutil.Logger("\n===== /chaincode Invoke Test =====")
 	invRes := lstutil.InvokeChaincode(chco2.MyNetwork, &counter)  // increments counter inside
 	height++
 	time.Sleep(10 * time.Second)
 	queryInvokeSuccess := lstutil.QueryAllHosts(chco2.MyNetwork, "INVOKE", counter)
 	if !queryInvokeSuccess { subTestsFailures++ }
 
-	lstutil.Logger("\n===== GetChainHeight Test =====")
+	lstutil.Logger("\n===== /chain Blockchain Test =====")
 	getHeight(chco2.MyNetwork, height)  // this gets height from all peers and validates all match
 
-	lstutil.Logger("\n===== GetBlock Stats API Test =====")
-	//chaincode.BlockStats(url, height)
+	lstutil.Logger("\n===== /chain/blocks Block Test =====")
+	chaincode.BlockStats(url, height)
 
 	if len(chco2.MyNetwork.Peers) < 1 { panic("No peers in network; cannot run this test") }
 	peername := chco2.MyNetwork.Peers[0].PeerDetails["name"]
@@ -105,7 +144,7 @@ func main() {
 		getBlockTxInfo(chco2.MyNetwork,0)
 	}
 
-	lstutil.Logger("\n===== Get Transaction_Detail Test =====")
+	lstutil.Logger("\n===== /transactions Transactions Test =====")
 	lstutil.Logger("  input url:  " + url)
 	lstutil.Logger("  input invRes:  " + invRes)
 	lstutil.Logger("  calling Transaction_Detail(url,invRes):  ")
@@ -187,7 +226,7 @@ func setupNetwork() {
 // and confirms 
 func userRegisterTest(url string, username string) {
 
-	lstutil.Logger("\n----- RegisterUser Test -----")
+	lstutil.Logger("\n----- /registrar Test -----")
 	response, status := chaincode.UserRegister_Status(url, username)
 	myStr := "RegisterUser API TEST "
 	if strings.Contains(status, "200") && strings.Contains(response, username + " is already logged in") {
