@@ -28,5 +28,9 @@ date; go run LST_2client1peer20K.go
 date; go run LST_2client2peer20K.go
 date; go run LST_4client1peer20K.go
 date; go run LST_4client4peer20K.go
+# LST_8client4peer.go
+# LST_16client4peer.go
+# LST_2client1peer1M.go
+# LST_4client1peer1M.go
 date; echo "==================== End of LST Regression Tests, 100,000 Transactions in total ===================="
 
